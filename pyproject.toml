@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "deep_ext_obj"
+version = "0.1.0"
+description = "Deep extended object modelling"
+authors = ["Jakob Lindqvist <jakob.lindqvist@chalmers.se>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+torch = "*"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
