@@ -10,9 +10,9 @@ class RingModel(torch.nn.Module):
     def __init__(self, mu, log_precision):
         super().__init__()
         self.mu = mu
-        self.log_precision = torch.nn.Parameter(log_precision, requires_grad=True)
+        self.log_precision = torch.nn.Parameter(torch.tensor(log_precision), requires_grad=True)
 
-    def unnorm_prob(self, y: Tensor) -> Tensor:
+    def prob(self, y: Tensor) -> Tensor:
         """Compute unnorm prob p_tilde(y)"""
 
         return torch.exp(self.log_prob(y))
@@ -21,27 +21,17 @@ class RingModel(torch.nn.Module):
         return ring_model_pdf(y, self.mu, torch.exp(self.log_precision))
 
     def forward(self, y):
-        return self.log_prob(y)
+        return self.prob(y)
 
 
-class RingModelNCE(torch.nn.Module):
+class RingModelNCE(RingModel):
     def __init__(self, mu, log_precision, log_part_fn):
-        super().__init__()
+        super().__init__(mu, log_precision)
 
-        self.mu = mu
-        self.log_precision = torch.nn.Parameter(log_precision, requires_grad=True)
-        self.log_part_fn = torch.nn.Parameter(log_part_fn, requires_grad=True)
-
-    def unnorm_prob(self, y: Tensor) -> Tensor:
-        """Compute unnorm prob p_tilde(y)"""
-
-        return torch.exp(self.log_prob(y))
+        self.log_part_fn = torch.nn.Parameter(torch.tensor(log_part_fn), requires_grad=True)
 
     def log_prob(self, y: Tensor):
-        return ring_model_pdf(y, self.mu, torch.exp(self.log_precision)) + self.log_part_fn
-
-    def forward(self, y):
-        return self.log_prob(y)
+        return super().log_prob(y) + self.log_part_fn
 
 
 def ring_model_pdf(x, mu, precision):

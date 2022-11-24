@@ -24,6 +24,9 @@ class NceBinaryCrit(PartFnEstimator):
         return self._unnorm_distr.log_part_fn
 
     def _norm_w(self, y, y_samples) -> Tensor:
-        y = y.reshape((1,))
+
+        if y.ndim == 1:
+            y = y.reshape((1, -1))
+
         ys = torch.cat((y, y_samples))
-        return unnorm_weights(ys, self._norm_distr, self._noise_distr)
+        return unnorm_weights(ys, self._unnorm_distr.prob, self._noise_distr.prob)

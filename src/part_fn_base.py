@@ -17,6 +17,12 @@ class PartFnEstimator(ABC):
     def part_fn(self, y, y_samples) -> Tensor:
         pass
 
+    def sample_noise(self, num_samples, y):
+        return self._noise_distr.sample(torch.Size((num_samples,)), y)
+
+    def get_model(self):
+        return self._unnorm_distr
+
 
 def unnorm_weights(y, unnorm_distr, noise_distr):
     """Compute w_tilde(y) = p_tilde(y) / p_n(y)"""

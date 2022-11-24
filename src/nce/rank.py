@@ -23,6 +23,9 @@ class NceRankCrit(PartFnEstimator):
         return w_tilde.mean()
 
     def _unnorm_w(self, y, y_samples) -> Tensor:
-        y = y.reshape((1,))
+
+        if y.ndim == 1:
+            y = y.reshape((1, -1))
+
         ys = torch.cat((y, y_samples))
-        return unnorm_weights(ys, self._unnorm_distr, self._noise_distr)
+        return unnorm_weights(ys, self._unnorm_distr.prob, self._noise_distr.prob)

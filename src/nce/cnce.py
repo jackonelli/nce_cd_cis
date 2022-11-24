@@ -1,6 +1,8 @@
 """Noise Contrastive Estimation (NCE) partition functions"""
 import torch
 from torch import Tensor
+import numpy as np
+
 from src.part_fn_base import PartFnEstimator, cond_unnorm_weights
 
 
@@ -19,5 +21,13 @@ class CondNceCrit(PartFnEstimator):
         pass
 
     def _unnorm_w(self, y, y_samples) -> Tensor:
-        y = y.reshape((1,))
-        return cond_unnorm_weights(y, y_samples, self._unnorm_distr, self._noise_distr)
+
+        if y.ndim == 1:
+            y = y.reshape((1, -1))
+
+        assert np.remainder(y_samples.size(0), y.size(0)) == 0
+
+        # Alternative to this: use broadcasting
+        y = torch.repeat_interleave(y, int(y_samples.size(0) / y.size(0)), dim=0)
+
+        return cond_unnorm_weights(y, y_samples, self._unnorm_distr.prob, self._noise_distr.prob)

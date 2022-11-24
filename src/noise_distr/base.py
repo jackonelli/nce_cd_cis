@@ -10,7 +10,7 @@ class NoiseDistr(ABC):
         pass
 
     @abstractmethod
-    def log_prob(self, samples, x) -> Tensor:
+    def log_prob(self, samples, x=0) -> Tensor:
         """Compute the log. probability of a sample conditional on obs. x.
 
         Most APIs expose a log_prob method for distributions.
