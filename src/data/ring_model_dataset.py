@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from torch.utils.data import Dataset
 
 import matplotlib.pyplot as plt
@@ -36,6 +35,9 @@ class RingModelDataset(Dataset):
 
 
 def generate_ring_data(num_samples, num_dims, mu, precision):
+    # Adapted from https://github.com/ciwanceylan/CNCE-matlab/blob/master/matlab/synthetic_data/bin/data_generation/genRingData.m
+    # They use a cutoff of 0.1 for the radii
+
     u = np.random.normal(size=(num_samples, num_dims))
     u = u / np.sqrt(np.sum(u**2, axis=-1, keepdims=True))
 
