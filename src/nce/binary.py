@@ -12,7 +12,7 @@ class NceBinaryCrit(PartFnEstimator):
     def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         w_tilde = self._norm_w(y, y_samples)
         num_neg = y_samples.shape[0]
-        return -torch.log(w_tilde[0] / (w_tilde[0] + num_neg)) + torch.log((num_neg / (w_tilde[1:] + num_neg)).sum())
+        return - torch.log(w_tilde[0] / (w_tilde[0] + num_neg)) - torch.log((num_neg / (w_tilde[1:] + num_neg)).sum())
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (binary version).

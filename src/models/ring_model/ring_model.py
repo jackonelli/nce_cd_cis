@@ -7,10 +7,10 @@ from torch import Tensor
 
 
 class RingModel(torch.nn.Module):
-    def __init__(self, mu, log_precision):
+    def __init__(self, mu: torch.tensor, log_precision: torch.tensor):
         super().__init__()
         self.mu = mu
-        self.log_precision = torch.nn.Parameter(torch.tensor(log_precision), requires_grad=True)
+        self.log_precision = torch.nn.Parameter(log_precision, requires_grad=True)
 
     def prob(self, y: Tensor) -> Tensor:
         """Compute unnorm prob p_tilde(y)"""
