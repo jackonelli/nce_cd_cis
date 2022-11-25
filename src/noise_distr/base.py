@@ -20,7 +20,7 @@ class NoiseDistr(ABC):
 
     def prob(self, samples, x=0):
         """Probability of a sample y  conditional on obs. x"""
-        return torch.exp(self.log_prob(samples - x))
+        return torch.exp(self.log_prob(samples, x))
 
 
 def unnorm_weights(y, unnorm_distr, noise_distr):

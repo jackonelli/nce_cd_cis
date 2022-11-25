@@ -12,7 +12,7 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
 
     running_loss_it = np.zeros(num_epochs)
 
-    metric = np.zeros((num_epochs,))
+    metric = []
     for epoch in range(num_epochs):
 
         running_loss = 0.0
@@ -33,7 +33,7 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
               (epoch + 1, running_loss))
         running_loss_it[epoch] = running_loss
 
-        metric[epoch] = evaluation_metric(model)
+        metric.append(evaluation_metric(model))
 
         print('[%d] evaluation metric: %.3f' %
               (epoch + 1, metric[epoch]))
@@ -43,6 +43,8 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
             break
 
     print('Finished training')
+
+    metric = np.array(metric)
     np.save(save_dir, metric)
     print("Data saved")
 
