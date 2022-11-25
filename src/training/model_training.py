@@ -33,7 +33,7 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
               (epoch + 1, running_loss))
         running_loss_it[epoch] = running_loss
 
-        metric.append(evaluation_metric(model))
+        metric.append(evaluation_metric(model).detach().numpy())
 
         print('[%d] evaluation metric: %.3f' %
               (epoch + 1, metric[epoch]))

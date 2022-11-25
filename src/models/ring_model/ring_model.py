@@ -18,7 +18,7 @@ class RingModel(torch.nn.Module):
         return torch.exp(self.log_prob(y))
 
     def log_prob(self, y: Tensor):
-        return ring_model_pdf(y, self.mu, torch.exp(self.log_precision))
+        return unnorm_ring_model_log_pdf(y, self.mu, torch.exp(self.log_precision))
 
     def forward(self, y):
         return self.prob(y)
@@ -34,7 +34,7 @@ class RingModelNCE(RingModel):
         return super().log_prob(y) + self.log_part_fn
 
 
-def ring_model_pdf(x, mu, precision):
+def unnorm_ring_model_log_pdf(x, mu, precision):
     return - (precision / 2) * (torch.norm(x, p=2, dim=-1) - mu)**2
 
 
@@ -43,12 +43,14 @@ def plot_ring_model_pdf():
     X, Y = np.meshgrid(nx, nx)
     x = torch.tensor(np.column_stack((X.reshape(-1), Y.reshape(-1))))
 
-    log_pdf = ring_model_pdf(x, mu=2, precision=1).reshape(100, 100)
+    pdf = unnorm_ring_model_log_pdf(x, mu=2, precision=1).reshape(100, 100)
+
+    print(pdf.max())
 
     fig = plt.figure(figsize=(6, 5))
     ax = fig.add_subplot(111)
 
-    ax.contourf(X, Y, log_pdf, cmap='ocean')
+    ax.contourf(X, Y, pdf, cmap='ocean')
     plt.show()
 
 

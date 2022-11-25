@@ -21,10 +21,10 @@ class ConditionalNormal(NoiseDistr):
 class ConditionalMultivariateNormal(NoiseDistr):
     """Multivariate normal distr. with adaptive mean"""
 
-    def __init__(self, cov: np.ndarray):
+    def __init__(self, cov: torch.Tensor):
         self.cov = cov
         self.dim = cov.shape[0]
-        self._inner_distr = torch.distributions.MultivariateNormal(torch.zeros(self.dim), torch.tensor(cov))
+        self._inner_distr = torch.distributions.MultivariateNormal(torch.zeros(self.dim), cov)
 
     def sample(self, size: torch.Size, x: torch.Tensor):
         assert x.size(-1) == self.dim

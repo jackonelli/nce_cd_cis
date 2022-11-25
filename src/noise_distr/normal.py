@@ -18,11 +18,11 @@ class Normal(NoiseDistr):
 
 
 class MultivariateNormal(NoiseDistr):
-    def __init__(self, mu: np.ndarray, cov: np.ndarray):
+    def __init__(self, mu: torch.Tensor, cov: torch.Tensor):
         self.mu = mu
         self.cov = cov
-        self.dim = mu.shape[0]
-        self._inner_distr = torch.distributions.MultivariateNormal(torch.tensor(mu), torch.tensor(cov))
+        self.dim = mu.size(0)
+        self._inner_distr = torch.distributions.MultivariateNormal(torch.tensor(mu), cov)
 
     def sample(self, size: torch.Size, x=0):
         return self._inner_distr.rsample(size)

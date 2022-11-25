@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 import matplotlib.pyplot as plt
@@ -20,6 +21,9 @@ class RingModelDataset(Dataset):
         self.num_samples = sample_size
         self.y = generate_ring_data(num_samples=self.num_samples, num_dims=num_dims, mu=mu, precision=precision)
         np.save(self.root_dir, self.y)
+
+    def get_full_data(self):
+        return torch.tensor(self.y)
 
     def __len__(self):
         return self.num_samples
