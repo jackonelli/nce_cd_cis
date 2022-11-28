@@ -30,4 +30,15 @@ def unnorm_weights(y, unnorm_distr, noise_distr):
 
 
 def cond_unnorm_weights(y, yp, unnorm_distr, noise_distr) -> Tensor:
-    return unnorm_distr(y) * noise_distr(y, yp) / (unnorm_distr(yp) * noise_distr(yp, y))
+    """Compute w_tilde(y) = p_tilde(y) / p_n(y | y')"""
+    return (
+        unnorm_distr(y) * noise_distr(y, yp) / (unnorm_distr(yp) * noise_distr(yp, y))
+    )
+
+
+def norm_weights(y, y_samples, true_distr, noise_distr):
+    """Compute self-normalised weight w(y) = w_tilde(y) / sum_j w_tilde(y_j)"""
+    y_w_tilde = unnorm_weights(y, true_distr.prob, noise_distr.prob)
+    return y_w_tilde / (
+        y_w_tilde + unnorm_weights(y_samples, true_distr.prob, noise_distr.prob).sum()
+    )
