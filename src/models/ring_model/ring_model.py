@@ -25,10 +25,10 @@ class RingModel(torch.nn.Module):
 
 
 class RingModelNCE(RingModel):
-    def __init__(self, mu, log_precision, log_part_fn):
+    def __init__(self, mu: torch.tensor, log_precision: torch.tensor, log_part_fn: torch.tensor):
         super().__init__(mu, log_precision)
 
-        self.log_part_fn = torch.nn.Parameter(torch.tensor(log_part_fn), requires_grad=True)
+        self.log_part_fn = torch.nn.Parameter(log_part_fn, requires_grad=True)
 
     def log_prob(self, y: Tensor):
         return super().log_prob(y) + self.log_part_fn
