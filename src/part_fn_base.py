@@ -30,6 +30,4 @@ def unnorm_weights(y, unnorm_distr, noise_distr):
 
 
 def cond_unnorm_weights(y, yp, unnorm_distr, noise_distr) -> Tensor:
-    print(y.shape)
-    print(yp.shape)
     return unnorm_distr(y) * noise_distr(yp, y) / (unnorm_distr(yp) * noise_distr(y, yp))
