@@ -22,7 +22,7 @@ class MultivariateNormal(NoiseDistr):
         self.mu = mu
         self.cov = cov
         self.dim = mu.size(0)
-        self._inner_distr = torch.distributions.MultivariateNormal(torch.tensor(mu), cov)
+        self._inner_distr = torch.distributions.MultivariateNormal(mu, cov)
 
     def sample(self, size: torch.Size, x=0):
         return self._inner_distr.rsample(size)
