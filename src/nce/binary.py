@@ -30,3 +30,5 @@ class NceBinaryCrit(PartFnEstimator):
 
         ys = torch.cat((y, y_samples))
         return unnorm_weights(ys, self._unnorm_distr.prob, self._noise_distr.prob)
+
+

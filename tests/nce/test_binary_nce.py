@@ -10,44 +10,38 @@ from src.part_fn_base import unnorm_weights
 class TestBinaryNCE(unittest.TestCase):
     def test_criteria_equal_distr(self):
 
-        num_dims = np.random.randint(2, 5)
-        y_mu = torch.randn((num_dims,))
         num_samples = 1000
-        y = torch.randn((num_samples, num_dims)) + y_mu
+        y = sample_postive_test_samples(num_samples)
 
-        mu, cov = torch.randn((num_dims,)), torch.eye(num_dims)
+        mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
         true_distr = MultivariateNormal(mu, cov)
         noise_distr = MultivariateNormal(mu, cov)
-
         criteria = NceBinaryCrit(true_distr, noise_distr)
 
-        min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
-        y_samples = criteria.sample_noise(num_neg_samples * y.size(0), y)
+        y_samples = sample_negative_test_samples(criteria, y)
         res = criteria.crit(y, y_samples)
 
+        # Reference calculation
+        num_neg_samples = torch.tensor(y_samples.shape[0] / y.shape[0])
         ref = - torch.log(1 / (1 + num_neg_samples)) - num_neg_samples * torch.log(num_neg_samples / (1 + num_neg_samples))
+
         self.assertTrue(torch.allclose(ref, res))
 
     def test_criteria_example(self):
 
-        num_dims = np.random.randint(2, 5)
-        y_mu = torch.randn((num_dims,))
         num_samples = 1000
-        y = torch.randn((num_samples, num_dims)) + y_mu
+        y = sample_postive_test_samples(num_samples)
 
-        mu_true, cov_true = torch.randn((num_dims,)), torch.eye(num_dims)
-        mu_noise, cov_noise = torch.randn((num_dims,)), torch.eye(num_dims)
-        true_distr = MultivariateNormal(mu_true, cov_true)
-        noise_distr = MultivariateNormal(mu_noise, cov_noise)
-
+        mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        true_distr = MultivariateNormal(mu, cov)
+        noise_distr = MultivariateNormal(mu, cov)
         criteria = NceBinaryCrit(true_distr, noise_distr)
 
-        min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
-        y_samples = criteria.sample_noise(num_neg_samples * y.size(0), y)
+        y_samples = sample_negative_test_samples(criteria, y)
         res = criteria.crit(y, y_samples)
 
+        # Reference calculation
+        num_neg_samples = torch.tensor(y_samples.shape[0] / y.shape[0])
         y_w = unnorm_weights(y, true_distr.prob, noise_distr.prob)
         ref_y = torch.log(y_w / (y_w + num_neg_samples)).mean()
 
@@ -58,5 +52,22 @@ class TestBinaryNCE(unittest.TestCase):
         self.assertTrue(torch.allclose(ref, res))
 
 
-if __name__=='__main__':
+def sample_postive_test_samples(num_samples, min_num_dims=2, max_num_dims=5):
+
+    num_dims = np.random.randint(min_num_dims, max_num_dims)
+    mu = torch.randn((num_dims,))
+    y = torch.randn((num_samples, num_dims)) + mu
+
+    return y
+
+
+def sample_negative_test_samples(criteria, y, min_neg_samples=2, max_neg_samples=20):
+
+    num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+    y_samples = criteria.sample_noise(num_neg_samples * y.size(0), y)
+
+    return y_samples
+
+
+if __name__ == '__main__':
     unittest.main()
