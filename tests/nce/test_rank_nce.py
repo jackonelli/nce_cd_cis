@@ -4,9 +4,12 @@ import numpy as np
 
 from src.noise_distr.normal import MultivariateNormal
 from src.nce.rank import NceRankCrit
-from src.part_fn_base import unnorm_weights
+from src.part_fn_base import norm_weights
 
-from tests.nce.test_binary_nce import sample_postive_test_samples, sample_negative_test_samples
+from tests.nce.test_binary_nce import (
+    sample_postive_test_samples,
+    sample_negative_test_samples,
+)
 
 
 class TestRankNCE(unittest.TestCase):
@@ -20,7 +23,11 @@ class TestRankNCE(unittest.TestCase):
         noise_distr = MultivariateNormal(mu, cov)
         criteria = NceRankCrit(true_distr, noise_distr)
 
-        y_samples = sample_negative_test_samples(criteria, y)
+        min_neg_samples, max_neg_samples = 2, 20
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
+        y_samples = criteria.sample_noise(num_neg_samples * y.size(0), y)
         res = criteria.crit(y, y_samples)
 
         # Reference calculation
@@ -40,22 +47,28 @@ class TestRankNCE(unittest.TestCase):
         noise_distr = MultivariateNormal(mu_noise, cov_noise)
         criteria = NceRankCrit(true_distr, noise_distr)
 
-        y_samples = sample_negative_test_samples(criteria, y)
+        min_neg_samples, max_neg_samples = 2, 20
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
+        y_samples = criteria.sample_noise(num_neg_samples * y.size(0), y)
         res = criteria.crit(y, y_samples)
 
-        # Reference calculation
-        num_neg_samples = torch.tensor(y_samples.shape[0] / y.shape[0]).int()
-        y_w = torch.tensor([y_weights_norm(y[i, :], y_samples[(num_neg_samples * i):(num_neg_samples * (i + 1)), :],
-                                           true_distr, noise_distr) for i in range(num_samples)])
-        ref = - torch.log(y_w).mean()
+        y_w = torch.tensor(
+            [
+                norm_weights(
+                    y[i, :],
+                    y_samples[(num_neg_samples * i) : (num_neg_samples * (i + 1)), :],
+                    true_distr,
+                    noise_distr,
+                )
+                for i in range(num_samples)
+            ]
+        )
+        ref = -torch.log(y_w).mean()
 
         self.assertTrue(torch.allclose(ref, res))
 
 
-def y_weights_norm(y, y_samples, true_distr, noise_distr):
-    y_w_tilde = unnorm_weights(y, true_distr.prob, noise_distr.prob)
-    return y_w_tilde / (y_w_tilde + unnorm_weights(y_samples, true_distr.prob, noise_distr.prob).sum())
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
