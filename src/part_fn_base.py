@@ -31,3 +31,6 @@ def unnorm_weights(y, unnorm_distr, noise_distr):
 
 def cond_unnorm_weights(y, yp, unnorm_distr, noise_distr) -> Tensor:
     return unnorm_distr(y) * noise_distr(yp, y) / (unnorm_distr(yp) * noise_distr(y, yp))
+
+def log_cond_unnorm_weights(y, yp, log_unnorm_distr, log_noise_distr) -> Tensor:
+    return log_unnorm_distr(y) + log_noise_distr(yp, y) - log_unnorm_distr(yp) - log_noise_distr(y, yp)
