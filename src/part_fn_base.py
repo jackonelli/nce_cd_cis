@@ -39,3 +39,11 @@ def extend_sample(y: Tensor, y_sample: Tensor) -> Tensor:
     """Combine one vector y with set of many vectors y_1:J into y_0:J"""
 
     return torch.cat((y, y_sample))
+
+
+def norm_weights(y, y_samples, true_distr, noise_distr):
+    """Compute self-normalised weight w(y) = w_tilde(y) / sum_j w_tilde(y_j)"""
+    y_w_tilde = unnorm_weights(y, true_distr.prob, noise_distr.prob)
+    return y_w_tilde / (
+        y_w_tilde + unnorm_weights(y_samples, true_distr.prob, noise_distr.prob).sum()
+    )
