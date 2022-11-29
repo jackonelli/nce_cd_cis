@@ -5,10 +5,11 @@ from torch import Tensor
 
 
 class PartFnEstimator(ABC):
-    def __init__(self, unnorm_distr, noise_distr):
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples):
 
         self._unnorm_distr = unnorm_distr
         self._noise_distr = noise_distr
+        self._num_neg = num_neg_samples
 
     def log_part_fn(self, y, y_samples) -> Tensor:
         return torch.log(self.log_part_fn(y, y_samples))

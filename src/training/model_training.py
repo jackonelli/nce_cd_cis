@@ -21,8 +21,7 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
 
             optimizer.zero_grad()
 
-            y_samples = criterion.sample_noise(neg_sample_size * y.size(0), y)
-            loss = criterion.crit(y, y_samples)
+            loss = criterion.crit(y)
             loss.backward()
             optimizer.step()
 

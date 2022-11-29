@@ -11,15 +11,16 @@ class TestBinaryNCE(unittest.TestCase):
     def test_criteria_equal_distr(self):
 
         num_samples = 1000
+        num_neg_samples = 2
         y = sample_postive_test_samples(num_samples)
 
         mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
         true_distr = MultivariateNormal(mu, cov)
         noise_distr = MultivariateNormal(mu, cov)
-        criteria = NceBinaryCrit(true_distr, noise_distr)
+        criteria = NceBinaryCrit(true_distr, noise_distr, num_neg_samples)
 
         y_samples = sample_negative_test_samples(criteria, y)
-        res = criteria.crit(y, y_samples)
+        res = criteria.crit(y)
 
         # Reference calculation
         num_neg_samples = torch.tensor(y_samples.shape[0] / y.shape[0])
@@ -30,15 +31,16 @@ class TestBinaryNCE(unittest.TestCase):
     def test_criteria_example(self):
 
         num_samples = 1000
+        num_neg_samples = 2
         y = sample_postive_test_samples(num_samples)
 
         mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
         true_distr = MultivariateNormal(mu, cov)
         noise_distr = MultivariateNormal(mu, cov)
-        criteria = NceBinaryCrit(true_distr, noise_distr)
+        criteria = NceBinaryCrit(true_distr, noise_distr, num_neg_samples)
 
         y_samples = sample_negative_test_samples(criteria, y)
-        res = criteria.crit(y, y_samples)
+        res = criteria.crit(y)
 
         # Reference calculation
         num_neg_samples = torch.tensor(y_samples.shape[0] / y.shape[0])

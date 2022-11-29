@@ -5,10 +5,11 @@ from src.part_fn_base import PartFnEstimator, unnorm_weights
 
 
 class NceBinaryCrit(PartFnEstimator):
-    def __init__(self, unnorm_distr, noise_distr):
-        super().__init__(unnorm_distr, noise_distr)
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples):
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
-    def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
+    def crit(self, y: Tensor) -> Tensor:
+        y_samples = self.sample_noise(self._num_neg * y.size(0), y)
         w_tilde = self._norm_w(y, y_samples)
         num_neg = y_samples.shape[0] / y.shape[0]
         return - torch.log(w_tilde[:y.shape[0]] / (w_tilde[:y.shape[0]] + num_neg)).mean() \

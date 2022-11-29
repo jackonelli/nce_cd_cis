@@ -8,10 +8,11 @@ from src.part_fn_base import PartFnEstimator, cond_unnorm_weights, log_cond_unno
 
 class CondNceCrit(PartFnEstimator):
 
-    def __init__(self, unnorm_distr, noise_distr):
-        super().__init__(unnorm_distr, noise_distr)
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
-    def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
+    def crit(self, y: Tensor) -> Tensor:
+        y_samples = self.sample_noise(self._num_neg * y.size(0), y)
         log_w_tilde = self._log_unnorm_w(y, y_samples)
 
         return torch.log(1 + torch.exp(- log_w_tilde)).mean()
