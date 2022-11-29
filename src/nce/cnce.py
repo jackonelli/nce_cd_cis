@@ -17,8 +17,7 @@ class CondNceCrit(PartFnEstimator):
         return torch.log(1 + torch.exp(- log_w_tilde)).mean()
 
     def part_fn(self, y, y_samples) -> Tensor:
-        """Compute Ẑ with NCE (conditional version).
-        """
+        """Compute Ẑ with NCE (conditional version). """
         pass
 
     def _unnorm_w(self, y, y_samples) -> Tensor:

@@ -45,7 +45,8 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
     print('Finished training')
 
     metric = np.array(metric)
-    np.save(save_dir, metric)
-    print("Data saved")
+    if save_dir is not None:
+        np.save(save_dir, metric)
+        print("Data saved")
 
     return metric[-1]

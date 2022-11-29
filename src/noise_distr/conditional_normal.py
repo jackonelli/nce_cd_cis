@@ -27,13 +27,11 @@ class ConditionalMultivariateNormal(NoiseDistr):
         self._inner_distr = torch.distributions.MultivariateNormal(torch.zeros(self.dim), cov)
 
     def sample(self, size: torch.Size, x: torch.Tensor):
-        print(f"x init: {x.size()}")
         assert x.size(-1) == self.dim
 
         x = torch.repeat_interleave(x, int(size[0] / x.size(0)), dim=0)
-        # assert x.size(0) == size[0]
+        assert x.size(0) == size[0]
         eps = self._inner_distr.rsample(size) 
-        print(f"Eps: {eps.size()}, x: {x.size()}")
 
         return x + eps
 

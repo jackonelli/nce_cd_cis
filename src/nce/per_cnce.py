@@ -12,6 +12,7 @@ class PersistentCondNceCrit(PartFnEstimator):
         self._persistent_y = None
 
     def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
+
         w_tilde = self._unnorm_w(y, y_samples)
         return torch.log(1 + (1 / w_tilde)).mean()
 
