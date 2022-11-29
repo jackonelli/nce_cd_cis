@@ -29,14 +29,14 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
             running_loss += loss.item()
 
         # print statistics
-        print('[%d] loss: %.3f' %
-              (epoch + 1, running_loss))
+        #print('[%d] loss: %.3f' %
+        #      (epoch + 1, running_loss))
         running_loss_it[epoch] = running_loss
 
         metric.append(evaluation_metric(model).detach().numpy())
 
-        print('[%d] evaluation metric: %.3f' %
-              (epoch + 1, metric[epoch]))
+        # print('[%d] evaluation metric: %.3f' %
+        #       (epoch + 1, metric[epoch]))
 
         if stopping_condition(torch.nn.utils.parameters_to_vector(model.parameters()), old_params):
             print("Training converged")
@@ -49,6 +49,3 @@ def train_model(criterion, evaluation_metric, train_loader, save_dir, neg_sample
     print("Data saved")
 
     return metric[-1]
-
-
-

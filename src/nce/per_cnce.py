@@ -1,4 +1,4 @@
-"""Noise Contrastive Estimation (NCE) partition functions"""
+"""Persistent Noise Contrastive Estimation (NCE) partition functions"""
 import torch
 from torch import Tensor
 import numpy as np
