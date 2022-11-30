@@ -37,7 +37,7 @@ class PersistentCondNceCrit(PartFnEstimator):
         """Sample new persistent y"""
         ys = extend_sample(y, y_samples)
         idx = Categorical(w_unnorm)
-        self._persistent_y = ys[idx, :]
+        self._persistent_y = ys[idx]
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (conditional version)."""
