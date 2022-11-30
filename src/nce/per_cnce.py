@@ -2,20 +2,26 @@
 import torch
 from torch import Tensor
 import numpy as np
+from torch.distributions import Categorical
 
-from src.part_fn_base import PartFnEstimator, cond_unnorm_weights
+from src.part_fn_base import (
+    PartFnEstimator,
+    cond_unnorm_weights,
+    norm_weights,
+    extend_sample,
+)
 
 
 class PersistentCondNceCrit(PartFnEstimator):
-    def __init__(self, unnorm_distr, noise_distr):
-        super().__init__(unnorm_distr, noise_distr)
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples):
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples)
         self._persistent_y = None
 
     def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         y_p = self.persistent_y(y)
         y_samples = self.sample_noise(self._num_neg * y_p.size(0), y_p)
-        w_tilde = self._unnorm_w(y, y_samples)
-        self._update_persistent_y(w_tilde, y, y_samples)
+        w_tilde = self._unnorm_w(y_p, y_samples)
+        self._update_persistent_y(w_tilde, y_p, y_samples)
         return torch.log(1 + (1 / w_tilde)).mean()
 
     def persistent_y(self, actual_y: Tensor):
@@ -29,7 +35,9 @@ class PersistentCondNceCrit(PartFnEstimator):
 
     def _update_persistent_y(self, w_unnorm, y, y_samples):
         """Sample new persistent y"""
-        w_norm = w_unnorm / w_unnorm.sum(1)
+        ys = extend_sample(y, y_samples)
+        idx = Categorical(w_unnorm)
+        self._persistent_y = ys[idx, :]
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (conditional version)."""

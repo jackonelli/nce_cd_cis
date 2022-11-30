@@ -9,8 +9,9 @@ from src.models.ebm.normal_params import NormalEbm
 
 
 class TestPersistentCnce(unittest.TestCase):
-    def test_criteria_equal_distr(self):
-        pass
+    def test_y_persistent_update(self):
+        J = 5
+        crit = PersistentCondNceCrit(None, None, J)
 
 
 if __name__ == "__main__":

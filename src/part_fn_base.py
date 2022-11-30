@@ -46,7 +46,12 @@ def log_cond_unnorm_weights(y, yp, log_unnorm_distr, log_noise_distr) -> Tensor:
 
 
 def extend_sample(y: Tensor, y_sample: Tensor) -> Tensor:
-    """Combine one vector y with set of many vectors y_1:J into y_0:J"""
+    """Combine actual samples with noisy ones
+
+    Actual samples: y_1:N, tensor of shape (N, D)
+    Noisy samples: y_1:J, for every y_n, n = 1, ..., N, tensor of shape (J, D)
+
+    vector y with set of many vectors y_1:J into y_0:J"""
 
     return torch.cat((y, y_sample))
 
