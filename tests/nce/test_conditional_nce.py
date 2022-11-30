@@ -19,7 +19,9 @@ class TestCondNce(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Set model and noise distr. to be equal
         mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -28,7 +30,7 @@ class TestCondNce(unittest.TestCase):
         criterion = CondNceCrit(true_distr, noise_distr, num_neg_samples)
 
         # Evaluate criterion
-        res = criterion.crit(y)
+        res = criterion.crit(y, None)
 
         # For model and noise_distr equal, criterion should be constant
         ref = torch.log(torch.tensor(2))
@@ -44,7 +46,9 @@ class TestCondNce(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Multivariate normal model and noise distr.
         mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -59,11 +63,18 @@ class TestCondNce(unittest.TestCase):
 
         # Reference calculations (check so that weights are calculated and used as intended)
         y_w_tilde = unnorm_weights(y, true_distr.prob, noise_distr.prob)
-        ys_w_tilde = unnorm_weights(y_samples, true_distr.prob, noise_distr.prob)**(-1)
+        ys_w_tilde = unnorm_weights(y_samples, true_distr.prob, noise_distr.prob) ** (
+            -1
+        )
 
-        w_tilde_ref = torch.cat([y_w_tilde[i] * ys_w_tilde[(num_neg_samples * i):(num_neg_samples * (i + 1))] for i
-                                in range(num_samples)])
-        ref = - torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
+        w_tilde_ref = torch.cat(
+            [
+                y_w_tilde[i]
+                * ys_w_tilde[(num_neg_samples * i) : (num_neg_samples * (i + 1))]
+                for i in range(num_samples)
+            ]
+        )
+        ref = -torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
 
         self.assertTrue(torch.allclose(w_tilde_ref, w_tilde))
         self.assertTrue(torch.allclose(ref, res))
@@ -77,7 +88,9 @@ class TestCondNce(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Multivariate normal model and noise distr.
         # Multivariate normal model and noise distr.
@@ -93,15 +106,23 @@ class TestCondNce(unittest.TestCase):
         res = criterion.inner_crit(y, y_samples)
 
         # Reference calculations (check so that weights are calculated and used as intended)
-        w_tilde_ref = torch.cat([cond_unnorm_weights(y[i, :].reshape(1, -1),
-                                                     y_samples[(num_neg_samples * i):(num_neg_samples * (i + 1)), :],
-                                                     true_distr.prob, noise_distr.prob) for i in range(num_samples)])
+        w_tilde_ref = torch.cat(
+            [
+                cond_unnorm_weights(
+                    y[i, :].reshape(1, -1),
+                    y_samples[(num_neg_samples * i) : (num_neg_samples * (i + 1)), :],
+                    true_distr.prob,
+                    noise_distr.prob,
+                )
+                for i in range(num_samples)
+            ]
+        )
 
-        ref = - torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
+        ref = -torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
 
         self.assertTrue(torch.allclose(w_tilde_ref, w_tilde))
         self.assertTrue(torch.allclose(ref, res))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

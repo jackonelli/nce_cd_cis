@@ -1,4 +1,5 @@
 """Noise Contrastive Estimation (NCE) partition functions"""
+from typing import Optional
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator, unnorm_weights
@@ -8,7 +9,7 @@ class NceRankCrit(PartFnEstimator):
     def __init__(self, unnorm_distr, noise_distr, num_neg_samples):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
-    def crit(self, y: Tensor) -> Tensor:
+    def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
         y_samples = self.sample_noise(self._num_neg * y.size(0), y)
 
         return self.inner_crit(y, y_samples)
@@ -16,10 +17,18 @@ class NceRankCrit(PartFnEstimator):
     def inner_crit(self, y: Tensor, y_samples: Tensor):
         w_tilde = self._unnorm_w(y, y_samples)
 
-        w_norm = torch.cat((w_tilde[:y.shape[0]].reshape(-1, 1), w_tilde[y.shape[0]:].reshape(y.shape[0], -1)), dim=-1)
+        w_norm = torch.cat(
+            (
+                w_tilde[: y.shape[0]].reshape(-1, 1),
+                w_tilde[y.shape[0] :].reshape(y.shape[0], -1),
+            ),
+            dim=-1,
+        )
         assert w_norm.shape[-1] == (y_samples.shape[0] / y.shape[0] + 1)
 
-        return (- torch.log(w_tilde[:y.shape[0]]) + torch.log(torch.sum(w_norm, dim=-1))).mean()
+        return (
+            -torch.log(w_tilde[: y.shape[0]]) + torch.log(torch.sum(w_norm, dim=-1))
+        ).mean()
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (ranking version).
@@ -39,4 +48,3 @@ class NceRankCrit(PartFnEstimator):
 
         ys = torch.cat((y, y_samples))
         return unnorm_weights(ys, self._unnorm_distr.prob, self._noise_distr.prob)
-

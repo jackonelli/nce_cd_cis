@@ -51,7 +51,8 @@ def extend_sample(y: Tensor, y_sample: Tensor) -> Tensor:
     Actual samples: y_1:N, tensor of shape (N, D)
     Noisy samples: y_1:J, for every y_n, n = 1, ..., N, tensor of shape (J, D)
 
-    vector y with set of many vectors y_1:J into y_0:J"""
+    They are combined into a tensor of shape (N+JN, D)
+    """
 
     return torch.cat((y, y_sample))
 
@@ -61,3 +62,10 @@ def norm_weights(unnorm_weights: Tensor) -> Tensor:
     return unnorm_weights / unnorm_weights.sum()
 
 
+# This is a bit buggy? It only computes it for y.
+def old_norm_weights(y, y_samples, true_distr, noise_distr):
+    """Compute self-normalised weight w(y) = w_tilde(y) / sum_j w_tilde(y_j)"""
+    y_w_tilde = unnorm_weights(y, true_distr.prob, noise_distr.prob)
+    return y_w_tilde / (
+        y_w_tilde + unnorm_weights(y_samples, true_distr.prob, noise_distr.prob).sum()
+    )
