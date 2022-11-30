@@ -13,6 +13,10 @@ class CondNceCrit(PartFnEstimator):
 
     def crit(self, y: Tensor) -> Tensor:
         y_samples = self.sample_noise(self._num_neg * y.size(0), y)
+
+        return self.inner_crit(y, y_samples)
+
+    def inner_crit(self, y:Tensor, y_samples):
         log_w_tilde = self._log_unnorm_w(y, y_samples)
 
         return torch.log(1 + torch.exp(- log_w_tilde)).mean()

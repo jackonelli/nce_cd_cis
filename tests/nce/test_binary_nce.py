@@ -8,45 +8,59 @@ from src.part_fn_base import unnorm_weights
 
 
 class TestBinaryNCE(unittest.TestCase):
-    def test_criteria_equal_distr(self):
+    def test_criterion_equal_distr(self):
+        """Check that criterion is correct for case model=noise distr."""
 
+        # Sample some data to test on
         num_samples = 1000
-        num_neg_samples = 2
         y = sample_postive_test_samples(num_samples)
+        
+        # Random number of negative samples
+        min_neg_samples, max_neg_samples = 2, 20
+        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
 
+        # Set model and noise distr. to be equal
         mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
         true_distr = MultivariateNormal(mu, cov)
         noise_distr = MultivariateNormal(mu, cov)
-        criteria = NceBinaryCrit(true_distr, noise_distr, num_neg_samples)
+        criterion = NceBinaryCrit(true_distr, noise_distr, num_neg_samples)
 
-        y_samples = sample_negative_test_samples(criteria, y)
-        res = criteria.crit(y)
-
-        # Reference calculation
-        num_neg_samples = torch.tensor(y_samples.shape[0] / y.shape[0])
-        ref = - torch.log(1 / (1 + num_neg_samples)) - num_neg_samples * torch.log(num_neg_samples / (1 + num_neg_samples))
+        # Evaluate criterion
+        res = criterion.crit(y)
+        
+        # For model and noise_distr equal, criterion should depend only on the number of neg. samples
+        ref = - torch.log(1 / (1 + num_neg_samples)) - num_neg_samples * torch.log(num_neg_samples / (1 + num_neg_samples))       
 
         self.assertTrue(torch.allclose(ref, res))
 
-    def test_criteria_example(self):
+    def test_criterion_example(self):
+        """Test example for calculating NCE binary criterion"""
 
+        # Sample some data to test on
         num_samples = 1000
-        num_neg_samples = 2
         y = sample_postive_test_samples(num_samples)
+        
+        # Random number of negative samples
+        min_neg_samples, max_neg_samples = 2, 20
+        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
 
-        mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
-        true_distr = MultivariateNormal(mu, cov)
-        noise_distr = MultivariateNormal(mu, cov)
-        criteria = NceBinaryCrit(true_distr, noise_distr, num_neg_samples)
+        # Multivariate normal model and noise distr.
+        mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        true_distr = MultivariateNormal(mu_true, cov_true)
+        noise_distr = MultivariateNormal(mu_noise, cov_noise)
+        criterion = NceBinaryCrit(true_distr, noise_distr, num_neg_samples)
 
-        y_samples = sample_negative_test_samples(criteria, y)
-        res = criteria.crit(y)
+        # Evaluate criterion
+        y_samples = criterion.sample_noise(num_neg_samples * y.size(0), y)
+        res = criterion.inner_crit(y, y_samples)
 
-        # Reference calculation
-        num_neg_samples = torch.tensor(y_samples.shape[0] / y.shape[0])
+        # Reference calculation (check so that positive and negative samples are used correctly)
+        # Positive sample term
         y_w = unnorm_weights(y, true_distr.prob, noise_distr.prob)
         ref_y = torch.log(y_w / (y_w + num_neg_samples)).mean()
 
+        # Negative sample term
         ys_w = unnorm_weights(y_samples, true_distr.prob, noise_distr.prob)
         ref_ys = num_neg_samples * torch.log(num_neg_samples / (ys_w + num_neg_samples)).mean()
         ref = - ref_y - ref_ys
@@ -62,13 +76,6 @@ def sample_postive_test_samples(num_samples, min_num_dims=2, max_num_dims=5):
 
     return y
 
-
-def sample_negative_test_samples(criteria, y, min_neg_samples=2, max_neg_samples=20):
-
-    num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
-    y_samples = criteria.sample_noise(num_neg_samples * y.size(0), y)
-
-    return y_samples
 
 
 if __name__ == '__main__':

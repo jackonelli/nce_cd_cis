@@ -10,6 +10,10 @@ class NceRankCrit(PartFnEstimator):
 
     def crit(self, y: Tensor) -> Tensor:
         y_samples = self.sample_noise(self._num_neg * y.size(0), y)
+
+        return self.inner_crit(y, y_samples)
+
+    def inner_crit(self, y: Tensor, y_samples: Tensor):
         w_tilde = self._unnorm_w(y, y_samples)
 
         w_norm = torch.cat((w_tilde[:y.shape[0]].reshape(-1, 1), w_tilde[y.shape[0]:].reshape(y.shape[0], -1)), dim=-1)

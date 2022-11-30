@@ -10,8 +10,13 @@ class NceBinaryCrit(PartFnEstimator):
 
     def crit(self, y: Tensor) -> Tensor:
         y_samples = self.sample_noise(self._num_neg * y.size(0), y)
+
+        return self.inner_crit(y, y_samples)
+
+    def inner_crit(self, y: Tensor, y_samples: Tensor):
         w_tilde = self._norm_w(y, y_samples)
         num_neg = y_samples.shape[0] / y.shape[0]
+
         return - torch.log(w_tilde[:y.shape[0]] / (w_tilde[:y.shape[0]] + num_neg)).mean() \
                - num_neg * torch.log((num_neg / (w_tilde[y.shape[0]:] + num_neg))).mean()
 
