@@ -15,6 +15,7 @@ class PersistentCondNceCrit(PartFnEstimator):
         y_p = self.persistent_y(y)
         y_samples = self.sample_noise(self._num_neg * y_p.size(0), y_p)
         w_tilde = self._unnorm_w(y, y_samples)
+        self._update_persistent_y(w_tilde, y, y_samples)
         return torch.log(1 + (1 / w_tilde)).mean()
 
     def persistent_y(self, actual_y: Tensor):

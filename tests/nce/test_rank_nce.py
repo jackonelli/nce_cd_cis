@@ -4,7 +4,7 @@ import numpy as np
 
 from src.noise_distr.normal import MultivariateNormal
 from src.nce.rank import NceRankCrit
-from src.part_fn_base import norm_weights
+from src.part_fn_base import old_norm_weights
 
 from tests.nce.test_binary_nce import (
     sample_postive_test_samples,
@@ -58,7 +58,7 @@ class TestRankNCE(unittest.TestCase):
 
         y_w = torch.tensor(
             [
-                norm_weights(
+                old_norm_weights(
                     y[i, :],
                     y_samples[(num_neg_samples * i) : (num_neg_samples * (i + 1)), :],
                     true_distr,
