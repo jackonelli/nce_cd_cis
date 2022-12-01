@@ -1,7 +1,7 @@
 """Noise Contrastive Estimation (NCE) partition functions"""
 import torch
 from torch import Tensor
-from src.part_fn_base import PartFnEstimator, unnorm_weights
+from src.part_fn_base import PartFnEstimator, unnorm_weights, concat_samples
 
 
 class NceRankCrit(PartFnEstimator):
@@ -14,12 +14,13 @@ class NceRankCrit(PartFnEstimator):
         return self.inner_crit(y, y_samples)
 
     def inner_crit(self, y: Tensor, y_samples: Tensor):
+
         w_tilde = self._unnorm_w(y, y_samples)
 
-        w_norm = torch.cat((w_tilde[:y.shape[0]].reshape(-1, 1), w_tilde[y.shape[0]:].reshape(y.shape[0], -1)), dim=-1)
-        assert w_norm.shape[-1] == (y_samples.shape[0] / y.shape[0] + 1)
+        w_concat = concat_samples(w_tilde[:y.shape[0]], w_tilde[y.shape[0]:])
+        assert w_concat.shape[1] == (y_samples.shape[0] / y.shape[0] + 1)
 
-        return (- torch.log(w_tilde[:y.shape[0]]) + torch.log(torch.sum(w_norm, dim=-1))).mean()
+        return (- torch.log(w_tilde[:y.shape[0]]) + torch.log(w_concat.sum(dim=1))).mean()
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (ranking version).

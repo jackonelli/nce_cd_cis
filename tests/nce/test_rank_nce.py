@@ -2,6 +2,7 @@ import unittest
 import torch
 import numpy as np
 
+from src.models.gaussian_model import GaussianModel
 from src.noise_distr.normal import MultivariateNormal
 from src.nce.rank import NceRankCrit
 from src.part_fn_base import unnorm_weights
@@ -23,7 +24,7 @@ class TestRankNCE(unittest.TestCase):
 
         # Set model and noise distr. to be equal
         mu, cov = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
-        true_distr = MultivariateNormal(mu, cov)
+        true_distr = GaussianModel(mu, cov)
         noise_distr = MultivariateNormal(mu, cov)
         criterion = NceRankCrit(true_distr, noise_distr, num_neg_samples)
 
@@ -49,7 +50,7 @@ class TestRankNCE(unittest.TestCase):
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
         mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
-        true_distr = MultivariateNormal(mu_true, cov_true)
+        true_distr = GaussianModel(mu_true, cov_true)
         noise_distr = MultivariateNormal(mu_noise, cov_noise)
         criterion = NceRankCrit(true_distr, noise_distr, num_neg_samples)
 

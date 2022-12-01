@@ -3,9 +3,12 @@ from abc import ABC, abstractmethod
 import torch
 from torch import Tensor
 
+from src.noise_distr.base import NoiseDistr
+from src.models.base_model import BaseModel
+
 
 class PartFnEstimator(ABC):
-    def __init__(self, unnorm_distr, noise_distr, num_neg_samples):
+    def __init__(self, unnorm_distr: BaseModel, noise_distr: NoiseDistr, num_neg_samples: int):
 
         self._unnorm_distr = unnorm_distr
         self._noise_distr = noise_distr
@@ -15,10 +18,22 @@ class PartFnEstimator(ABC):
         return torch.log(self.log_part_fn(y, y_samples))
 
     @abstractmethod
+    def crit(self, y: Tensor) -> Tensor:
+        pass
+
+    def calculate_crit_grad(self, y: Tensor):
+
+        # Clear gradients to avoid any issues
+        self._unnorm_distr.clear_gradients()
+
+        # This should automatically assign gradients to model parameters
+        self.crit(y).backward()
+
+    @abstractmethod
     def part_fn(self, y, y_samples) -> Tensor:
         pass
 
-    def sample_noise(self, num_samples, y):
+    def sample_noise(self, num_samples: int, y: Tensor):
         return self._noise_distr.sample(torch.Size((num_samples,)), y)
 
     def get_model(self):
@@ -56,3 +71,8 @@ def norm_weights(unnorm_weights: Tensor) -> Tensor:
     return unnorm_weights / unnorm_weights.sum()
 
 
+def concat_samples(y: Tensor, y_samples: Tensor) -> Tensor:
+    """Concatenate y (NxD), y_samples (N*JxD) and reshape as Nx(J+1)xD"""
+
+    y_reshaped = y.reshape(y.shape[0], 1, -1)
+    return torch.cat((y_reshaped, y_samples.reshape(y_reshaped.shape[0], -1, y_reshaped.shape[-1])), dim=1)

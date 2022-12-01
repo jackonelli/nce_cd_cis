@@ -20,6 +20,7 @@ class NceBinaryCrit(PartFnEstimator):
         return - torch.log(w_tilde[:y.shape[0]] / (w_tilde[:y.shape[0]] + num_neg)).mean() \
                - num_neg * torch.log((num_neg / (w_tilde[y.shape[0]:] + num_neg))).mean()
 
+
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (binary version).
 
