@@ -1,2 +1,9 @@
 *.ipynb_checkpoints
 __pycache__
+<<<<<<< HEAD
+=======
+.idea/
+venv
+datasets/
+res/
+>>>>>>> ring_model_exp

@@ -11,13 +11,16 @@ class MdCrit(PartFnEstimator):
         self._est_part = est_part
 
     def part_fn(self, y, y_samples) -> Tensor:
-        y = y.reshape((1,))
+
+        if y.ndim == 1:
+            y = y.reshape((1, -1))
+
         ys = torch.cat((y, y_samples))
         num_neg = y_samples.size(0)
 
-        num = self._unnorm_distr(ys)
-        noise_prob = self._noise_distr(ys)
-        md_prob = self._unnorm_distr(ys) / self._est_part
+        num = self._unnorm_distr.prob(ys)
+        noise_prob = self._noise_distr.prob(ys)
+        md_prob = self._unnorm_distr.prob(ys) / self._est_part
         den = num_neg / (num_neg + 1) * noise_prob + 1 / (num_neg + 1) * md_prob
 
         return (num / den).sum() / (num_neg + 1)
