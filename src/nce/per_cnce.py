@@ -3,7 +3,8 @@ import torch
 from torch import Tensor
 import numpy as np
 
-from src.part_fn_base import PartFnEstimator, cond_unnorm_weights
+from src.part_fn_base import PartFnEstimator
+from src.part_fn_utils import cond_unnorm_weights
 
 
 class PersistentCondNceCrit(PartFnEstimator):

@@ -1,3 +1,4 @@
+"""Model predicting parameters of Gaussian distr."""
 import torch
 from torch import Tensor
 

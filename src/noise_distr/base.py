@@ -6,7 +6,7 @@ from torch import Tensor
 
 class NoiseDistr(ABC):
     @abstractmethod
-    def sample(self, size: torch.Size, x: torch.Tensor) -> Tensor:
+    def sample(self, size: torch.Size, x: Tensor) -> Tensor:
         pass
 
     @abstractmethod

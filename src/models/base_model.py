@@ -34,11 +34,16 @@ class BaseModel(torch.nn.Module):
         for param, grad in zip(self.parameters(), grads):
              param.grad = grad
 
+    def get_gradients(self):
+        return [param.grad for param in self.parameters()]
+
     def clear_gradients(self):
         """ Clear all parameter gradients """
 
         for param in self.parameters():
-            param.grad.data.zero_()
+            if param.grad is not None:
+                param.grad.data.zero_()
+                param.grad.detach_()
 
     def num_parameters(self):
         """ Total number of model parameters """
