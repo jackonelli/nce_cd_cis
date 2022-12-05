@@ -62,6 +62,9 @@ class CdCnceCrit(PartFnEstimator):
         """Compute Ẑ"""
         pass
 
+    def sample_noise(self, num_samples: tuple, y: Tensor):
+        return self._noise_distr.sample(torch.Size(num_samples), y.reshape(y.size(0), 1, -1))
+
     def _unnorm_w(self, y, y_samples) -> Tensor:
         return torch.exp(self._log_unnorm_w(y, y_samples))
 
