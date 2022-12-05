@@ -8,11 +8,8 @@ from torch import Tensor
 import numpy as np
 from torch.distributions import Categorical
 
-from src.part_fn_base import (
-    PartFnEstimator,
-    cond_unnorm_weights,
-    extend_sample,
-)
+from src.part_fn_base import PartFnEstimator
+from src.part_fn_utils import cond_unnorm_weights, extend_sample
 
 
 class PersistentCondNceCrit(PartFnEstimator):
@@ -25,7 +22,7 @@ class PersistentCondNceCrit(PartFnEstimator):
     def crit(self, y: Optional[Tensor]) -> Tensor:
         print("y:", y.shape)
         y_p = self.persistent_y(y)
-        y_samples = self.sample_noise(self._num_neg * y_p.size(0), y_p)
+        y_samples = self.sample_noise((self._num_neg * y_p.size(0),), y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
         w_tilde = self._unnorm_w(y, y_samples)
         self._update_persistent_y(w_tilde, y_p, y_samples)

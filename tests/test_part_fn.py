@@ -1,6 +1,6 @@
 import unittest
 import torch
-from src.part_fn_base import extend_sample, unnorm_weights, norm_weights
+from src.part_fn_utils import extend_sample, unnorm_weights, norm_weights
 
 
 class TestWeights(unittest.TestCase):

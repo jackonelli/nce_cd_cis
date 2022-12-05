@@ -1,7 +1,8 @@
 """Maximum Likelihood Importance Sampling (MLIS) partition function"""
 import torch
 from torch import Tensor
-from src.part_fn_base import PartFnEstimator, unnorm_weights
+from src.part_fn_base import PartFnEstimator
+from src.part_fn_utils import unnorm_weights
 
 
 class MlisCrit(PartFnEstimator):

@@ -17,27 +17,30 @@ def train_model(
     model = criterion.get_model()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
-    running_loss_it = np.zeros(num_epochs)
+    #running_loss_it = np.zeros(num_epochs)
 
     metric = []
     for epoch in range(num_epochs):
 
-        running_loss = 0.0
+        #running_loss = 0.0
         old_params = torch.nn.utils.parameters_to_vector(model.parameters())
         for i, (y, idx) in enumerate(train_loader, 0):
 
             optimizer.zero_grad()
 
-            loss = criterion.crit(y, idx)
-            loss.backward()
+            # Calculate and assign gradients
+            criterion.calculate_crit_grad(y)
+
+            # Take gradient step
             optimizer.step()
 
-            running_loss += loss.item()
+            # TODO: not sure how to do here
+            #running_loss += loss.item()
 
         # print statistics
         # print('[%d] loss: %.3f' %
         #      (epoch + 1, running_loss))
-        running_loss_it[epoch] = running_loss
+        #running_loss_it[epoch] = running_loss
 
         metric.append(evaluation_metric(model).detach().numpy())
 

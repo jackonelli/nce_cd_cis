@@ -5,23 +5,17 @@ import matplotlib.pyplot as plt
 import torch
 from torch import Tensor
 
+from src.models.base_model import BaseModel
 
-class RingModel(torch.nn.Module):
-    def __init__(self, mu: torch.tensor, log_precision: torch.tensor):
+
+class RingModel(BaseModel):
+    def __init__(self, mu: Tensor, log_precision: Tensor):
         super().__init__()
         self.mu = mu
         self.log_precision = torch.nn.Parameter(log_precision, requires_grad=True)
 
-    def prob(self, y: Tensor) -> Tensor:
-        """Compute unnorm prob p_tilde(y)"""
-
-        return torch.exp(self.log_prob(y))
-
     def log_prob(self, y: Tensor):
         return unnorm_ring_model_log_pdf(y, self.mu, torch.exp(self.log_precision))
-
-    def forward(self, y):
-        return self.prob(y)
 
 
 class RingModelNCE(RingModel):
