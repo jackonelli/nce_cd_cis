@@ -29,7 +29,7 @@ def train_model(
             optimizer.zero_grad()
 
             # Calculate and assign gradients
-            criterion.calculate_crit_grad(y)
+            criterion.calculate_crit_grad(y, idx)
 
             # Take gradient step
             optimizer.step()

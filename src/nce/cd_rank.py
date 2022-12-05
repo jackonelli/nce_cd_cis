@@ -1,4 +1,5 @@
 """Noise Contrastive Estimation (NCE) ranking partition functions with multiple MCMC steps"""
+from typing import Optional
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
@@ -14,15 +15,15 @@ class CdRankCrit(PartFnEstimator):
 
         self.mcmc_steps = mcmc_steps
 
-    def inner_crit(self, y: Tensor) -> Tensor:
+    def inner_crit(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]) -> Tensor:
         pass
 
-    def calculate_crit_grad(self, y: Tensor):
+    def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
         y_samples = self.sample_noise((y.size(0), self._num_neg), y)
 
-        return self.calculate_inner_crit_grad(y, y_samples)
+        return self.calculate_inner_crit_grad(y, y_samples, _idx)
 
-    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor):
+    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
 
         # Gradient of mean is same as mean of gradient (?)
         grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)

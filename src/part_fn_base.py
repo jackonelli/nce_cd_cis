@@ -1,5 +1,6 @@
 """Partition function estimator interface"""
 from abc import ABC, abstractmethod
+from typing import Optional
 import torch
 from torch import Tensor
 
@@ -17,29 +18,29 @@ class PartFnEstimator(ABC):
     def log_part_fn(self, y, y_samples) -> Tensor:
         return torch.log(self.log_part_fn(y, y_samples))
 
-    def crit(self, y: Tensor) -> Tensor:
+    def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
         y_samples = self.sample_noise((y.size(0), self._num_neg), y.reshape(y.size(0), 1, -1))
-        return self.inner_crit(y, y_samples)
+        return self.inner_crit(y, y_samples, _idx)
 
     @abstractmethod
-    def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
+    def inner_crit(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]) -> Tensor:
         pass
 
-    def calculate_crit_grad(self, y: Tensor):
+    def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
 
         # Clear gradients to avoid any issues
         self._unnorm_distr.clear_gradients()
 
         # This should automatically assign gradients to model parameters
-        self.crit(y).backward()
+        self.crit(y, _idx).backward()
 
-    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor):
+    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
 
         # Clear gradients to avoid any issues
         self._unnorm_distr.clear_gradients()
 
         # This should automatically assign gradients to model parameters
-        self.inner_crit(y, y_samples).backward()
+        self.inner_crit(y, y_samples, _idx).backward()
 
     def get_model_gradients(self):
         return self._unnorm_distr.get_gradients()

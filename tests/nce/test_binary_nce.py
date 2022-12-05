@@ -110,7 +110,7 @@ class TestBinaryNCE(unittest.TestCase):
 
         # Run training for one epoch and check final parameters
         optimizer = torch.optim.SGD(criterion.get_model().parameters(), lr=0.1)
-        for i, y in enumerate(train_loader, 0):
+        for i, (y, idx) in enumerate(train_loader, 0):
 
             y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
 

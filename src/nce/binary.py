@@ -15,7 +15,7 @@ class NceBinaryCrit(PartFnEstimator):
 
         return self.inner_crit(y, y_samples)
 
-    def inner_crit(self, y: Tensor, y_samples: Tensor):
+    def inner_crit(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
         w = self._norm_w(y, y_samples)
 
         return - torch.log(w[:, 0] / (w[:, 0] + self._num_neg)).mean() \
