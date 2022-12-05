@@ -20,9 +20,9 @@ class BaseModel(torch.nn.Module):
 
         self.clear_gradients()
 
-        log_prob = (weights * self.log_prob(y)).mean()
-        log_prob.backward()
-        grads = [param.grad.detach() for param in self.parameters()]
+        l = (weights * self.log_prob(y)).mean()
+        l.backward()
+        grads = [param.grad.detach().clone() for param in self.parameters()]
 
         return grads
 

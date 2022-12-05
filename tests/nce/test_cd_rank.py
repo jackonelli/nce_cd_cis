@@ -12,12 +12,11 @@ from tests.nce.test_binary_nce import sample_postive_test_samples
 
 class TestCdRank(unittest.TestCase):
 
-    # TODO: Why isn't this the same?
     def test_order_grad_mean(self):
         """Test that gradient of mean is same as mean of gradient"""
 
         # Sample some data to test on
-        num_samples = 10
+        num_samples = 5
         y = sample_postive_test_samples(num_samples)
 
         # Random number of negative samples
@@ -36,39 +35,27 @@ class TestCdRank(unittest.TestCase):
         # Calculate weights
         ys = concat_samples(y, y_samples)
 
-        # TODO: Varför verkar bara ett samples inkluderas när jag tar väntevärde?
-        print(true_distr.log_prob(ys[0, :2]).mean())
-        print(torch.tensor([true_distr.log_prob(ys[0, 0]), true_distr.log_prob(ys[0, 1])]).mean())
-
         w_tilde = unnorm_weights(ys, true_distr.prob, noise_distr.prob).detach()
         w = w_tilde / w_tilde.sum(dim=1, keepdim=True)
 
-        # Calculate gradients of log prob (gradient of mean)
-        # TODO: DET ÄR SOM ATT GRADIENTEN BARA BERÄKNAS FÖR FÖRSTA SAMPLET???
         res = true_distr.grad_log_prob(ys, w)
-        res_2 = true_distr.grad_log_prob(ys[0, 0], w[0, 0]) #true_distr.grad_log_prob(ys, w)
-
-        # Just check that everything stays constant as expected
-        for grad, grad_2 in zip(res, res_2):
-            self.assertTrue(torch.allclose(grad, grad_2))
 
         # Reference calculation (mean of gradient)
         ref_mu = torch.zeros(mu_true.shape)
         ref_cov = torch.zeros(cov_true.shape)
-
-        for i in range(1):
-            for j in range(1):
-                grads = true_distr.grad_log_prob(w[i, j] * ys[i, j, :])
-                # TODO: BLIR INTE SAMMA OM JAG FLYTTAR UT VIKTEN??? TAS GRADIENT M.A.P VIKT?
+        for i in range(num_samples):
+            for j in range(num_neg_samples + 1):
+                grads = true_distr.grad_log_prob(ys[i, j, :], w[i, j])
+                ref = true_distr.grad_log_prob(ys[i, j, :])
+                self.assertTrue(torch.allclose(grads[0], w[i, j] * ref[0]))
+                self.assertTrue(torch.allclose(grads[1], w[i, j] * ref[1]))
                 ref_mu += grads[0]
                 ref_cov += grads[1]
 
-        refs = [ref_mu, ref_cov]
+        refs = [ref_mu / (num_samples * (num_neg_samples + 1)), ref_cov / (num_samples * (num_neg_samples + 1))]
 
         for grad, grad_ref in zip(res, refs):
-            print(grad)
-            print(grad_ref)
-            #self.assertTrue(torch.allclose(grad_ref, grad))
+            self.assertTrue(torch.allclose(grad_ref, grad, rtol=1e-4))
 
     def test_criterion_grad(self):
         """Check that criterion gives same gradient as NCE ranking for 1 step"""
