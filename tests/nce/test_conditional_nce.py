@@ -60,7 +60,7 @@ class TestCondNce(unittest.TestCase):
         # Evaluate criterion
         y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1))
         w_tilde = criterion._unnorm_w(y, y_samples)
-        res = criterion.inner_crit(y, y_samples)
+        res = criterion.inner_crit(y, y_samples, None)
 
         # Reference calculations (check so that weights are calculated and used as intended)
         y_w_tilde = unnorm_weights(y, true_distr.prob, noise_distr.prob)
@@ -99,7 +99,7 @@ class TestCondNce(unittest.TestCase):
         # Evaluate criterion
         y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1))
         w_tilde = criterion._unnorm_w(y, y_samples)
-        res = criterion.inner_crit(y, y_samples)
+        res = criterion.inner_crit(y, y_samples, None)
 
         # Reference calculations (check so that weights are calculated and used as intended)
 

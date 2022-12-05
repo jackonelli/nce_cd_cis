@@ -13,7 +13,7 @@ class NceBinaryCrit(PartFnEstimator):
     def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
         y_samples = self.sample_noise((y.size(0), self._num_neg), y)
 
-        return self.inner_crit(y, y_samples)
+        return self.inner_crit(y, y_samples, _idx)
 
     def inner_crit(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
         w = self._norm_w(y, y_samples)

@@ -62,7 +62,7 @@ class TestBinaryNCE(unittest.TestCase):
 
         # Evaluate criterion
         y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
-        res = criterion.inner_crit(y, y_samples)
+        res = criterion.inner_crit(y, y_samples, None)
 
         # Reference calculation (check so that positive and negative samples are used correctly)
         # Positive sample term
@@ -116,12 +116,12 @@ class TestBinaryNCE(unittest.TestCase):
 
             # Calculate using gradient function
             optimizer.zero_grad()
-            criterion.calculate_inner_crit_grad(y, y_samples)
+            criterion.calculate_inner_crit_grad(y, y_samples, None)
             res = [param.grad.detach().clone() for param in criterion.get_model().parameters()]
 
             # Calculate "as usual"
             optimizer.zero_grad()
-            loss = criterion.inner_crit(y, y_samples)
+            loss = criterion.inner_crit(y, y_samples, None)
             loss.backward()
             refs = [param.grad.detach().clone() for param in criterion.get_model().parameters()]
 

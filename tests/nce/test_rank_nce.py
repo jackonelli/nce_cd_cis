@@ -60,7 +60,7 @@ class TestRankNCE(unittest.TestCase):
 
         # Evaluate criterion
         y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
-        res = criterion.inner_crit(y, y_samples)
+        res = criterion.inner_crit(y, y_samples, None)
 
         # Reference calculation (check so that positive and negative samples are used correctly)
         w_tilde_y = unnorm_weights(y, true_distr.prob, noise_distr.prob)

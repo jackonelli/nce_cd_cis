@@ -79,13 +79,13 @@ class TestCdRank(unittest.TestCase):
         y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
 
         # Calculate gradient directly using CD+NCE ranking
-        criterion.calculate_inner_crit_grad(y, y_samples)
+        criterion.calculate_inner_crit_grad(y, y_samples, None)
         res = criterion.get_model_gradients()
 
         # Calculate gradient of NCE ranking crit.
         true_distr_ref = GaussianModel(mu_true, cov_true)
         criterion_ref = NceRankCrit(true_distr_ref, noise_distr, num_neg_samples)
-        criterion_ref.calculate_inner_crit_grad(y, y_samples)
+        criterion_ref.calculate_inner_crit_grad(y, y_samples, None)
         refs = criterion_ref.get_model_gradients()
 
         for grad, grad_ref in zip(res, refs):
