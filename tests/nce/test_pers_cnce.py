@@ -6,14 +6,16 @@ from src.nce.per_cnce import PersistentCondNceCrit
 from src.part_fn_utils import norm_weights
 from src.models.ebm.normal_params import NormalEbm
 
+from src.part_fn_utils import cond_unnorm_weights, concat_samples
+
 
 class TestPersistentCnce(unittest.TestCase):
     def test_y_persistent_update(self):
         J = 5
         crit = PersistentCondNceCrit(None, None, J)
         w_unnorm = torch.ones((J + 1,))
-        y_samples = torch.ones((J + 1,))
-        y, idx = torch.ones((1,)), torch.zeros((1,))
+        y_samples = torch.ones((1, J, 1))
+        y, idx = torch.ones((1, 1)), torch.zeros((1,))
         crit._update_persistent_y(w_unnorm, y, y_samples, idx)
         y_p = crit.persistent_y(torch.randn(y.size()), idx)
         self.assertAlmostEqual(y_p.item(), 1)

@@ -49,7 +49,7 @@ class PersistentCondNceCrit(PartFnEstimator):
             )
         return per_y
 
-    def _update_persistent_y(self, w_unnorm, y_samples, y, idx):
+    def _update_persistent_y(self, w_unnorm, y, y_samples, idx):
         """Sample new persistent y"""
         ys = concat_samples(y, y_samples)
         idx = Categorical(w_unnorm).sample()
