@@ -13,19 +13,15 @@ def cond_unnorm_weights(y: Tensor, yp: Tensor, unnorm_distr, noise_distr) -> Ten
     )
 
 
-def log_cond_unnorm_weights(y: Tensor, yp: Tensor, log_unnorm_distr, log_noise_distr) -> Tensor:
+def log_cond_unnorm_weights(
+    y: Tensor, yp: Tensor, log_unnorm_distr, log_noise_distr
+) -> Tensor:
     return (
         log_unnorm_distr(y)
         + log_noise_distr(yp, y)
         - log_unnorm_distr(yp)
         - log_noise_distr(y, yp)
     )
-
-
-def extend_sample(y: Tensor, y_sample: Tensor) -> Tensor:
-    """Combine one vector y with set of many vectors y_1:J into y_0:J"""
-
-    return torch.cat((y, y_sample))
 
 
 def norm_weights(unnorm_weights: Tensor) -> Tensor:

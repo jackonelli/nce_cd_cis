@@ -9,7 +9,7 @@ import numpy as np
 from torch.distributions import Categorical
 
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import cond_unnorm_weights, extend_sample
+from src.part_fn_utils import cond_unnorm_weights, concat_samples
 
 
 class PersistentCondNceCrit(PartFnEstimator):
@@ -51,7 +51,7 @@ class PersistentCondNceCrit(PartFnEstimator):
 
     def _update_persistent_y(self, w_unnorm, y_samples, y, idx):
         """Sample new persistent y"""
-        ys = extend_sample(y, y_samples)
+        ys = concat_samples(y, y_samples)
         idx = Categorical(w_unnorm).sample()
         self._persistent_y = ys[idx]
 
