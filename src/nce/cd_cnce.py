@@ -42,8 +42,8 @@ class CdCnceCrit(PartFnEstimator):
         grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
 
         y_0 = y.clone()
-        log_w_threshold = 10
-        w_y = torch.zeros((y.shape[0], 1), dtype=y.dtype)
+        # log_w_threshold = 1e4
+        # w_y = torch.zeros((y.shape[0], 1), dtype=y.dtype)
         for t in range(self.mcmc_steps):
 
             # Get neg. samples
@@ -52,12 +52,13 @@ class CdCnceCrit(PartFnEstimator):
 
             # Calculate and normalise weights
             log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
-            w_y[log_w_y <= log_w_threshold] = 1 / (
-                1 + torch.exp(-log_w_y[log_w_y <= log_w_threshold])
-            )
-
+            #  w_y[log_w_y <= log_w_threshold] = 1 / (
+            #      1 + torch.exp(-log_w_y[log_w_y <= log_w_threshold])
+             #  )
             # For computational stability
-            w_y[log_w_y > log_w_threshold] = 1.0
+            #w_y[log_w_y > log_w_threshold] = 1.0
+
+            w_y = 1 / (1 + torch.exp(-log_w_y))
             w = torch.cat((w_y, 1 - w_y), dim=1)
 
             # Calculate gradients of log prob
