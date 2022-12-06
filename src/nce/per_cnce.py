@@ -8,11 +8,8 @@ from torch import Tensor
 import numpy as np
 from torch.distributions import Categorical
 
-from src.part_fn_base import (
-    PartFnEstimator,
-    cond_unnorm_weights,
-    extend_sample,
-)
+from src.part_fn_base import PartFnEstimator
+from src.part_fn_utils import cond_unnorm_weights, extend_sample
 
 
 class PersistentCondNceCrit(PartFnEstimator):
