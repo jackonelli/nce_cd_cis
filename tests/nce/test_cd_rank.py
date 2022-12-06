@@ -20,7 +20,7 @@ class TestCdRank(unittest.TestCase):
         y = sample_postive_test_samples(num_samples)
 
         # Random number of negative samples
-        min_neg_samples, max_neg_samples = 2, 5
+        min_neg_samples, max_neg_samples = 2, 20
         num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
 
         # Get some neg. samples
@@ -65,7 +65,7 @@ class TestCdRank(unittest.TestCase):
         y = sample_postive_test_samples(num_samples)
 
         # Random number of negative samples
-        min_neg_samples, max_neg_samples = 2, 20
+        min_neg_samples, max_neg_samples = 2, 5
         num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
 
         # Multivariate normal model and noise distr.
@@ -90,6 +90,25 @@ class TestCdRank(unittest.TestCase):
 
         for grad, grad_ref in zip(res, refs):
             self.assertTrue(torch.allclose(grad_ref, grad, rtol=1e-4))
+
+        def test_several_steps(self):
+            """Just check that everything seems to run for multiple MCMC steps"""
+            num_samples = 1000
+            y = sample_postive_test_samples(num_samples)
+
+            # Random number of negative samples
+            min_neg_samples, max_neg_samples = 2, 5
+            num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+
+            # Multivariate normal model and noise distr.
+            mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+            mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+            true_distr = GaussianModel(mu_true, cov_true)
+            noise_distr = MultivariateNormal(mu_noise, cov_noise)
+
+            mcmc_steps = 3
+            criterion = CdRankCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
+            criterion.calculate_crit_grad(y, None)
 
 
 if __name__ == '__main__':

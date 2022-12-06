@@ -50,8 +50,10 @@ class CdCnceCrit(PartFnEstimator):
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y
-                sample_inds = torch.distributions.bernoulli.Bernoulli(probs=w).sample((1,))
-                y_0 = ys[torch.stack((sample_inds, 1-sample_inds)), :]
+                sample_inds = torch.distributions.bernoulli.Bernoulli(probs=1-w_y).sample()
+                y_0 = ys[torch.cat((sample_inds, 1-sample_inds), dim=-1).bool(), :]
+
+                assert y_0.shape == y.shape
 
                 # Sample neg. samples
                 y_samples = self.sample_noise((y_0.size(0), 1), y_0)
