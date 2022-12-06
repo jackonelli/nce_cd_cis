@@ -70,7 +70,5 @@ class TestCdRank(unittest.TestCase):
         criterion.calculate_crit_grad(y, None)
 
 
-
-
 if __name__ == '__main__':
     unittest.main()
