@@ -9,7 +9,7 @@ import numpy as np
 from torch.distributions import Categorical
 
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import cond_unnorm_weights, extend_sample
+from src.part_fn_utils import cond_unnorm_weights, concat_samples
 
 
 class PersistentCondNceCrit(PartFnEstimator):
@@ -41,19 +41,21 @@ class PersistentCondNceCrit(PartFnEstimator):
         if no last selected y exists
         """
         per_y = torch.empty(actual_y.size())
-        for i, per_i in enumerate(idx):
-            per_y[i] = (
-                self._persistent_y[per_i]
-                if self._persistent_y[per_i] is not None
-                else actual_y[i]
+        for n, per_n in enumerate(idx):
+            per_n = per_n.item()
+            per_y[n] = (
+                self._persistent_y[per_n]
+                if self._persistent_y.get(per_n) is not None
+                else actual_y[n]
             )
         return per_y
 
-    def _update_persistent_y(self, w_unnorm, y_samples, y, idx):
+    def _update_persistent_y(self, w_unnorm, y, y_samples, idx):
         """Sample new persistent y"""
-        ys = extend_sample(y, y_samples)
-        idx = Categorical(w_unnorm).sample()
-        self._persistent_y = ys[idx]
+        ys = concat_samples(y, y_samples)
+        for n, _ in enumerate(ys):
+            sampled_idx = Categorical(w_unnorm[n, :]).sample()
+            self._persistent_y[idx[n].item()] = ys[n, sampled_idx]
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (conditional version)."""

@@ -11,7 +11,6 @@ from tests.nce.test_binary_nce import sample_postive_test_samples
 
 
 class TestCdRank(unittest.TestCase):
-
     def test_criterion_grad_unc_distr(self):
         """Check that criterion gives same gradient as NCE ranking for 1 step, when noise distr. is not conditional"""
 
@@ -21,7 +20,9 @@ class TestCdRank(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -47,7 +48,7 @@ class TestCdRank(unittest.TestCase):
         refs = criterion_ref.get_model_gradients()
 
         for grad, grad_ref in zip(res, refs):
-            self.assertTrue(torch.allclose(grad_ref, grad, rtol=1e-4))
+            self.assertTrue(torch.allclose(grad_ref, grad, rtol=1e-3))
 
     def test_criterion_grad(self):
         """Check that criterion gives same gradient as NCE ranking for 1 step, when noise distr. is conditional"""
@@ -93,7 +94,9 @@ class TestCdRank(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 5
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -106,5 +109,5 @@ class TestCdRank(unittest.TestCase):
         criterion.calculate_crit_grad(y, None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
