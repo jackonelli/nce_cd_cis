@@ -47,8 +47,10 @@ class CdRankCrit(PartFnEstimator):
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y for next step
-                sample_inds = torch.distributions.one_hot_categorical.OneHotCategorical(probs=w).sample((1,))
-                y_0 = ys[sample_inds, :]
+                sample_inds = torch.distributions.one_hot_categorical.OneHotCategorical(probs=w).sample()
+                y_0 = ys[sample_inds.bool(), :]
+
+                assert y_0.shape == y.shape
 
                 # Sample neg. samples
                 y_samples = self.sample_noise((y_0.size(0), self._num_neg), y_0)
