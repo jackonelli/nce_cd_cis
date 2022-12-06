@@ -27,11 +27,13 @@ class CdCnceCrit(PartFnEstimator):
 
     def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
 
-        # Gradient of mean is same as mean of gradient (?)
+        # Gradient of mean is same as mean of gradient
         grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
         grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
 
         y_0 = y.clone()
+        log_w_threshold = 10
+        w_y = torch.zeros((y.shape[0], 1), dtype=y.dtype)
         for t in range(self.mcmc_steps):
 
             # Get neg. samples
@@ -39,7 +41,11 @@ class CdCnceCrit(PartFnEstimator):
             assert ys.shape == (y_0.size(0), 2, y_0.size(1))
 
             # Calculate and normalise weights
-            w_y = 1 / (1 + torch.exp(-self._log_unnorm_w(y_0, y_samples).detach()))
+            log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
+            w_y[log_w_y <= log_w_threshold] = 1 / (1 + torch.exp(-log_w_y[log_w_y <= log_w_threshold]))
+
+            # For computational stability
+            w_y[log_w_y > log_w_threshold] = 1.0
             w = torch.cat((w_y, 1-w_y), dim=1)
 
             # Calculate gradients of log prob

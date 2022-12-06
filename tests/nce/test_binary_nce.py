@@ -117,13 +117,13 @@ class TestBinaryNCE(unittest.TestCase):
             # Calculate using gradient function
             optimizer.zero_grad()
             criterion.calculate_inner_crit_grad(y, y_samples, None)
-            res = [param.grad.detach().clone() for param in criterion.get_model().parameters()]
+            res = [grad.detach().clone() for grad in criterion.get_model_gradients()]
 
             # Calculate "as usual"
             optimizer.zero_grad()
             loss = criterion.inner_crit(y, y_samples, None)
             loss.backward()
-            refs = [param.grad.detach().clone() for param in criterion.get_model().parameters()]
+            refs = [grad.detach().clone() for grad in criterion.get_model_gradients()]
 
             optimizer.step()
 
