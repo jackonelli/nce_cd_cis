@@ -71,7 +71,7 @@ class TestCdRank(unittest.TestCase):
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
         mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
-        true_distr = GaussianModel(mu_true, cov_true)
+        true_distr = GaussianModel(mu_true.clone(), cov_true.clone())
         noise_distr = MultivariateNormal(mu_noise, cov_noise)
 
         mcmc_steps = 1
@@ -83,7 +83,7 @@ class TestCdRank(unittest.TestCase):
         res = criterion.get_model_gradients()
 
         # Calculate gradient of NCE ranking crit.
-        true_distr_ref = GaussianModel(mu_true, cov_true)
+        true_distr_ref = GaussianModel(mu_true.clone(), cov_true.clone())
         criterion_ref = NceRankCrit(true_distr_ref, noise_distr, num_neg_samples)
         criterion_ref.calculate_inner_crit_grad(y, y_samples, None)
         refs = criterion_ref.get_model_gradients()
