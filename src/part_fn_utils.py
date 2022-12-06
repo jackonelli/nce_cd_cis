@@ -30,6 +30,9 @@ def norm_weights(unnorm_weights: Tensor) -> Tensor:
 
 
 def concat_samples(y: Tensor, y_samples: Tensor) -> Tensor:
-    """Concatenate y (NxD), y_samples (NxJxD) and to tensor of shape Nx(J+1)xD"""
+    """Concatenate y (NxD), y_samples (NxJxD) and to tensor of shape Nx(J+1)xD
+
+    Note that the actual y sample is the first vector of the J+1 concatenated samples.
+    """
 
     return torch.cat((y.reshape(y.shape[0], 1, -1), y_samples), dim=1)
