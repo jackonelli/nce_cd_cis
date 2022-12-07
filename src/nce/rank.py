@@ -19,7 +19,7 @@ class NceRankCrit(PartFnEstimator):
     def inner_crit(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
 
         w_tilde = self._unnorm_w(y, y_samples)
-        return (- torch.log(w_tilde[:, 0]) + torch.log(w_tilde.sum(dim=1))).mean()
+        return (-torch.log(w_tilde[:, 0]) + torch.log(w_tilde.sum(dim=1))).mean()
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (ranking version).
