@@ -26,8 +26,8 @@ class PersistentCondNceCrit(PartFnEstimator):
         y_p = self.persistent_y(y, idx)
         y_samples = self.sample_noise(self._num_neg, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
-        w_tilde = self._log_unnorm_w(y, y_samples)
-        self._update_persistent_y(w_tilde, y_p, y_samples, idx)
+        log_w_tilde = self._log_unnorm_w(y, y_samples)
+        self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
         return self.inner_crit(y, y_samples, idx)
 
     def inner_crit(self, y: Tensor, y_samples, _idx: Optional[Tensor]):
@@ -57,12 +57,12 @@ class PersistentCondNceCrit(PartFnEstimator):
             )
         return per_y
 
-    def _update_persistent_y(self, w_unnorm, y, y_samples, idx):
+    def _update_persistent_y(self, log_w_unnorm, y, y_samples, idx):
         """Sample new persistent y"""
-        print(f"y: {y.size()}, y_s: {y_samples.size()}")
+        w_unnorm = torch.exp(log_w_unnorm)
         ys = concat_samples(y, y_samples)
         for n, _ in enumerate(ys):
-            sampled_idx = Categorical(w_unnorm[n, :]).sample()
+            sampled_idx = Categorical(logits=w_unnorm[n, :]).sample()
             self._persistent_y[idx[n].item()] = ys[n, sampled_idx]
 
     def part_fn(self, y, y_samples) -> Tensor:
