@@ -58,19 +58,24 @@ class TestCondNce(unittest.TestCase):
         criterion = CondNceCrit(true_distr, noise_distr, num_neg_samples)
 
         # Evaluate criterion
-        y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1))
+        y_samples = criterion.sample_noise(
+            (y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1)
+        )
         w_tilde = criterion._unnorm_w(y, y_samples)
         res = criterion.inner_crit(y, y_samples, None)
 
         # Reference calculations (check so that weights are calculated and used as intended)
         y_w_tilde = unnorm_weights(y, true_distr.prob, noise_distr.prob)
 
-        ys_w_tilde = unnorm_weights(y_samples, true_distr.prob, noise_distr.prob)**(-1)
+        ys_w_tilde = unnorm_weights(y_samples, true_distr.prob, noise_distr.prob) ** (
+            -1
+        )
 
-        w_tilde_ref = torch.cat([y_w_tilde[i] * ys_w_tilde[i, :] for i
-                                in range(num_samples)])
+        w_tilde_ref = torch.cat(
+            [y_w_tilde[i] * ys_w_tilde[i, :] for i in range(num_samples)]
+        )
 
-        ref = - torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
+        ref = -torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
 
         self.assertTrue(torch.allclose(w_tilde_ref, w_tilde.reshape(-1)))
         self.assertTrue(torch.allclose(ref, res))
@@ -81,6 +86,7 @@ class TestCondNce(unittest.TestCase):
         # Sample some data to test on
         num_samples = 1000
         y = sample_postive_test_samples(num_samples)
+        print(f"y shape: {y.size()}")
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
@@ -97,17 +103,27 @@ class TestCondNce(unittest.TestCase):
         criterion = CondNceCrit(true_distr, noise_distr, num_neg_samples)
 
         # Evaluate criterion
-        y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1))
+        y_samples = criterion.sample_noise(
+            (y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1)
+        )
         w_tilde = criterion._unnorm_w(y, y_samples)
         res = criterion.inner_crit(y, y_samples, None)
 
         # Reference calculations (check so that weights are calculated and used as intended)
 
-        w_tilde_ref = torch.cat([cond_unnorm_weights(y[i, :].reshape(1, -1),
-                                                     y_samples[i, :,  :],
-                                                     true_distr.prob, noise_distr.prob) for i in range(num_samples)])
+        w_tilde_ref = torch.cat(
+            [
+                cond_unnorm_weights(
+                    y[i, :].reshape(1, -1),
+                    y_samples[i, :, :],
+                    true_distr.prob,
+                    noise_distr.prob,
+                )
+                for i in range(num_samples)
+            ]
+        )
 
-        ref = - torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
+        ref = -torch.log(w_tilde_ref / (1 + w_tilde_ref)).mean()
 
         self.assertTrue(torch.allclose(w_tilde_ref, w_tilde.reshape(-1)))
         self.assertTrue(torch.allclose(ref, res))

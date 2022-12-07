@@ -3,12 +3,38 @@ import torch
 
 from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
 from src.nce.per_cnce import PersistentCondNceCrit
-from src.part_fn_utils import norm_weights
-from src.models.ebm.normal_params import NormalEbm
+from src.models.gaussian_model import GaussianModel
 
 
 class TestPersistentCnce(unittest.TestCase):
+    def test_crit(self):
+        """Check the evaluation of crit."""
+        N, J, D = 2, 5, 3
+        true_distr = GaussianModel(
+            mu=torch.zeros(
+                D,
+            ),
+            cov=torch.eye(D),
+        )
+        noise_distr = ConditionalMultivariateNormal(
+            cov=3 * torch.eye(D),
+        )
+        crit = PersistentCondNceCrit(true_distr, noise_distr, J)
+        y = true_distr.mu.clone().repeat((N, 1))
+        self.assertEqual(y.size(), (N, D))
+        crit.crit(
+            y,
+            torch.zeros(
+                N,
+            ),
+        )
+
     def test_y_persistent_update(self):
+        """Check that the persistent samples are properly updated
+
+        Forces the weight of the actual sample to be zero and verifies that the persistent y
+        is updated to a noisy sample from.
+        """
         N, J, D = 2, 5, 3
         crit = PersistentCondNceCrit(None, None, J)
         w_unnorm = torch.ones((N, J + 1), dtype=torch.long)
@@ -24,6 +50,10 @@ class TestPersistentCnce(unittest.TestCase):
         self.assertTrue(torch.allclose(y_p, torch.ones(y.size())))
 
     def test_y_persistent_dim(self):
+        """Check that the persistent samples are properly updated
+
+        Checks that the persistent sample has the same dim as actual y.
+        """
         N, J, D = 1, 5, 1
         crit = PersistentCondNceCrit(None, None, J)
         w_unnorm = torch.ones((N, J + 1))
@@ -34,6 +64,11 @@ class TestPersistentCnce(unittest.TestCase):
         self.assertEqual(y_p.size(), y.size())
 
     def test_y_persistent_multi_dim(self):
+        """Check that the persistent samples are properly updated
+
+        Checks that the persistent sample has the same dim as actual y.
+        For multi-dim y.
+        """
         N, J, D = 1, 5, 2
         crit = PersistentCondNceCrit(None, None, J)
         w_unnorm = torch.ones((N, J + 1))
