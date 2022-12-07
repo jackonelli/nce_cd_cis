@@ -36,29 +36,6 @@ class TestWeights(unittest.TestCase):
         w = norm_weights(w_tilde)
         self.assertTrue(torch.allclose(torch.ones((5,)) / 5, w))
 
-    def test_cond_unnorm_weights(self):
-        N, J, D = 5, 10, 3
-        y_sample = torch.ones((N, J, D))
-        yp = torch.ones((N, D))
-
-        true_distr = GaussianModel(
-            mu=torch.zeros(
-                D,
-            ),
-            cov=torch.eye(D),
-        ).prob
-        noise_distr = ConditionalMultivariateNormal(
-            cov=3 * torch.eye(D),
-        ).prob
-
-        p_tilde = true_distr(y_sample)
-        p_n = noise_distr(y_sample, yp)
-        self.assertEqual(p_tilde.size(), (N, J))
-
-        w_tilde = cond_unnorm_weights(y_sample, yp, true_distr, noise_distr)
-        w = norm_weights(w_tilde)
-        self.assertTrue(torch.allclose(torch.ones((5,)) / 5, w))
-
 
 def uniform(x):
     return torch.ones(x.size())

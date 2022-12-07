@@ -86,7 +86,6 @@ class TestCondNce(unittest.TestCase):
         # Sample some data to test on
         num_samples = 1000
         y = sample_postive_test_samples(num_samples)
-        print(f"y shape: {y.size()}")
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
