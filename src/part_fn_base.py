@@ -9,7 +9,9 @@ from src.models.base_model import BaseModel
 
 
 class PartFnEstimator(ABC):
-    def __init__(self, unnorm_distr: BaseModel, noise_distr: NoiseDistr, num_neg_samples: int):
+    def __init__(
+        self, unnorm_distr: BaseModel, noise_distr: NoiseDistr, num_neg_samples: int
+    ):
 
         self._unnorm_distr = unnorm_distr
         self._noise_distr = noise_distr
@@ -19,11 +21,13 @@ class PartFnEstimator(ABC):
         return torch.log(self.log_part_fn(y, y_samples))
 
     def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
-        y_samples = self.sample_noise((y.size(0), self._num_neg), y.reshape(y.size(0), 1, -1))
-        return self.inner_crit(y, y_samples, _idx)
+        y_samples = self.sample_noise(
+            (y.size(0), self._num_neg), y.reshape(y.size(0), 1, -1)
+        )
+        return self.inner_crit(y, y_samples)
 
     @abstractmethod
-    def inner_crit(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]) -> Tensor:
+    def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         pass
 
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
@@ -34,13 +38,13 @@ class PartFnEstimator(ABC):
         # This should automatically assign gradients to model parameters
         self.crit(y, _idx).backward()
 
-    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
+    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor):
 
         # Clear gradients to avoid any issues
         self._unnorm_distr.clear_gradients()
 
         # This should automatically assign gradients to model parameters
-        self.inner_crit(y, y_samples, _idx).backward()
+        self.inner_crit(y, y_samples).backward()
 
     def get_model_gradients(self):
         return self._unnorm_distr.get_gradients()
@@ -54,5 +58,3 @@ class PartFnEstimator(ABC):
 
     def get_model(self):
         return self._unnorm_distr
-
-

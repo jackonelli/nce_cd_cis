@@ -21,9 +21,7 @@ class CdCnceCrit(PartFnEstimator):
 
         self.mcmc_steps = mcmc_steps
 
-    def inner_crit(
-        self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]
-    ) -> Tensor:
+    def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         pass
 
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
@@ -31,11 +29,9 @@ class CdCnceCrit(PartFnEstimator):
         y = torch.repeat_interleave(y, self._num_neg, dim=0)
         y_samples = self.sample_noise((y.size(0), 1), y)
 
-        return self.calculate_inner_crit_grad(y, y_samples, _idx)
+        return self.calculate_inner_crit_grad(y, y_samples)
 
-    def calculate_inner_crit_grad(
-        self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]
-    ):
+    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor):
 
         # Gradient of mean is same as mean of gradient
         grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
@@ -54,9 +50,9 @@ class CdCnceCrit(PartFnEstimator):
             log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
             #  w_y[log_w_y <= log_w_threshold] = 1 / (
             #      1 + torch.exp(-log_w_y[log_w_y <= log_w_threshold])
-             #  )
+            #  )
             # For computational stability
-            #w_y[log_w_y > log_w_threshold] = 1.0
+            # w_y[log_w_y > log_w_threshold] = 1.0
 
             w_y = 1 / (1 + torch.exp(-log_w_y))
             w = torch.cat((w_y, 1 - w_y), dim=1)
@@ -72,7 +68,9 @@ class CdCnceCrit(PartFnEstimator):
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y
-                sample_inds = torch.distributions.bernoulli.Bernoulli(probs=1-w_y).sample()
+                sample_inds = torch.distributions.bernoulli.Bernoulli(
+                    probs=1 - w_y
+                ).sample()
                 y_0 = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
 
                 assert y_0.shape == y.shape

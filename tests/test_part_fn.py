@@ -1,20 +1,27 @@
 import unittest
 import torch
-from src.part_fn_utils import concat_samples, unnorm_weights, norm_weights
+from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
+from src.models.gaussian_model import GaussianModel
+from src.part_fn_utils import (
+    concat_samples,
+    unnorm_weights,
+    norm_weights,
+    cond_unnorm_weights,
+)
 
 
 class TestWeights(unittest.TestCase):
     def test_concat_dims(self):
-        y_sample = torch.randn(1, 50, 2)
-        n, j, d = y_sample.size()
-        y = torch.randn(1, 2)
+        y_sample = torch.randn(2, 5, 3)
+        N, J, D = y_sample.size()
+        y = torch.randn(N, D)
         y_all = concat_samples(y, y_sample)
-        self.assertEqual(y_all.size(), (n, j + 1, d))
+        self.assertEqual(y_all.size(), (N, J + 1, D))
 
     def test_concat_order(self):
-        n, j, d = 5, 50, 1
-        y_sample = torch.ones(n, j, d)
-        y = torch.zeros(n, d)
+        N, J, D = 5, 50, 1
+        y_sample = torch.ones(N, J, D)
+        y = torch.zeros(N, D)
         y_all = concat_samples(y, y_sample)
         self.assertTrue(torch.allclose(y_all[:, 0, :], y))
 
