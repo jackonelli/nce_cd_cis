@@ -37,13 +37,13 @@ class TestCdRank(unittest.TestCase):
         y_samples = criterion.sample_noise((y.size(0), 1), y)
 
         # Calculate gradient directly using CD+CNCE
-        criterion.calculate_inner_crit_grad(y, y_samples, None)
+        criterion.calculate_inner_crit_grad(y, y_samples)
         res = criterion.get_model_gradients()
 
         # Calculate gradient of CNCE crit.
         true_distr_ref = GaussianModel(mu_true.clone(), cov_true.clone())
         criterion_ref = CondNceCrit(true_distr_ref, noise_distr, num_neg_samples)
-        criterion_ref.calculate_inner_crit_grad(y, y_samples, None)
+        criterion_ref.calculate_inner_crit_grad(y, y_samples)
 
         refs = criterion_ref.get_model_gradients()
 
@@ -59,7 +59,9 @@ class TestCdRank(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -74,13 +76,13 @@ class TestCdRank(unittest.TestCase):
         y_samples = criterion.sample_noise((y.size(0), 1), y)
 
         # Calculate gradient directly using CD+CNCE
-        criterion.calculate_inner_crit_grad(y, y_samples, None)
+        criterion.calculate_inner_crit_grad(y, y_samples)
         res = criterion.get_model_gradients()
 
         # Calculate gradient of CNCE crit.
         true_distr_ref = GaussianModel(mu_true.clone(), cov_true.clone())
         criterion_ref = CondNceCrit(true_distr_ref, noise_distr, num_neg_samples)
-        criterion_ref.calculate_inner_crit_grad(y, y_samples, None)
+        criterion_ref.calculate_inner_crit_grad(y, y_samples)
         refs = criterion_ref.get_model_gradients()
 
         for grad, grad_ref in zip(res, refs):

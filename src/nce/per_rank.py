@@ -28,7 +28,7 @@ class PersistentNceRankCrit(NceRankCrit):
         yp = self.persistent_y(y, idx)
         y_samples = self.sample_noise((y.size(0), self._num_neg), yp)
 
-        return self.inner_crit(yp, y_samples, None)
+        return self.inner_crit(yp, y_samples)
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (ranking version).

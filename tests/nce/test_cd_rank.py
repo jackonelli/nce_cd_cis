@@ -11,7 +11,6 @@ from tests.nce.test_binary_nce import sample_postive_test_samples
 
 
 class TestCdRank(unittest.TestCase):
-
     def test_order_grad_mean(self):
         """Test that gradient of mean is same as mean of gradient"""
 
@@ -21,7 +20,9 @@ class TestCdRank(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Get some neg. samples
         mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -52,7 +53,10 @@ class TestCdRank(unittest.TestCase):
                 ref_mu += grads[0]
                 ref_cov += grads[1]
 
-        refs = [ref_mu / (num_samples * (num_neg_samples + 1)), ref_cov / (num_samples * (num_neg_samples + 1))]
+        refs = [
+            ref_mu / (num_samples * (num_neg_samples + 1)),
+            ref_cov / (num_samples * (num_neg_samples + 1)),
+        ]
 
         for grad, grad_ref in zip(res, refs):
             self.assertTrue(torch.allclose(grad_ref, grad, rtol=1e-4))
@@ -66,7 +70,9 @@ class TestCdRank(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 5
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -79,13 +85,13 @@ class TestCdRank(unittest.TestCase):
         y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
 
         # Calculate gradient directly using CD+NCE ranking
-        criterion.calculate_inner_crit_grad(y, y_samples, None)
+        criterion.calculate_inner_crit_grad(y, y_samples)
         res = criterion.get_model_gradients()
 
         # Calculate gradient of NCE ranking crit.
         true_distr_ref = GaussianModel(mu_true.clone(), cov_true.clone())
         criterion_ref = NceRankCrit(true_distr_ref, noise_distr, num_neg_samples)
-        criterion_ref.calculate_inner_crit_grad(y, y_samples, None)
+        criterion_ref.calculate_inner_crit_grad(y, y_samples)
         refs = criterion_ref.get_model_gradients()
 
         for grad, grad_ref in zip(res, refs):
@@ -98,7 +104,9 @@ class TestCdRank(unittest.TestCase):
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 5
-        num_neg_samples = ((max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples).int()
+        num_neg_samples = (
+            (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
+        ).int()
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -111,5 +119,5 @@ class TestCdRank(unittest.TestCase):
         criterion.calculate_crit_grad(y, None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

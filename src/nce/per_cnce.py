@@ -31,7 +31,7 @@ class PersistentCondNceCrit(CondNceCrit):
         # NB We recompute w_tilde in inner_crit to comply with the API.
         log_w_tilde = self._log_unnorm_w(y, y_samples)
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
-        return self.inner_crit(y, y_samples, None)
+        return self.inner_crit(y, y_samples)
 
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y

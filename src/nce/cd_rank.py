@@ -10,20 +10,26 @@ from src.models.base_model import BaseModel
 
 
 class CdRankCrit(PartFnEstimator):
-    def __init__(self, unnorm_distr: BaseModel, noise_distr: NoiseDistr, num_neg_samples: int,  mcmc_steps: int):
+    def __init__(
+        self,
+        unnorm_distr: BaseModel,
+        noise_distr: NoiseDistr,
+        num_neg_samples: int,
+        mcmc_steps: int,
+    ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
         self.mcmc_steps = mcmc_steps
 
-    def inner_crit(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]) -> Tensor:
+    def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         pass
 
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
         y_samples = self.sample_noise((y.size(0), self._num_neg), y)
 
-        return self.calculate_inner_crit_grad(y, y_samples, _idx)
+        return self.calculate_inner_crit_grad(y, y_samples)
 
-    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor, _idx: Optional[Tensor]):
+    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor):
 
         # Gradient of mean is same as mean of gradient (?)
         grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
@@ -42,12 +48,16 @@ class CdRankCrit(PartFnEstimator):
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
 
             # Sum over samples, mean over iter.
-            grads = [grad + ((self._num_neg + 1) / self.mcmc_steps) * grad_log_prob for grad, grad_log_prob in
-                     zip(grads, grads_log_prob)]
+            grads = [
+                grad + ((self._num_neg + 1) / self.mcmc_steps) * grad_log_prob
+                for grad, grad_log_prob in zip(grads, grads_log_prob)
+            ]
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y for next step
-                sample_inds = torch.distributions.one_hot_categorical.OneHotCategorical(probs=w).sample()
+                sample_inds = torch.distributions.one_hot_categorical.OneHotCategorical(
+                    probs=w
+                ).sample()
                 y_0 = ys[sample_inds.bool(), :]
 
                 assert y_0.shape == y.shape

@@ -60,13 +60,17 @@ class TestRankNCE(unittest.TestCase):
 
         # Evaluate criterion
         y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
-        res = criterion.inner_crit(y, y_samples, None)
+        res = criterion.inner_crit(y, y_samples)
 
         # Reference calculation (check so that positive and negative samples are used correctly)
         w_tilde_y = unnorm_weights(y, true_distr.prob, noise_distr.prob)
         w_tilde_y_samples = unnorm_weights(y_samples, true_distr.prob, noise_distr.prob)
-        y_w = torch.tensor([w_tilde_y[i] / (w_tilde_y[i] + w_tilde_y_samples[i, :].sum())
-                            for i in range(num_samples)])
+        y_w = torch.tensor(
+            [
+                w_tilde_y[i] / (w_tilde_y[i] + w_tilde_y_samples[i, :].sum())
+                for i in range(num_samples)
+            ]
+        )
         ref = -torch.log(y_w).mean()
 
         self.assertTrue(torch.allclose(ref, res))
