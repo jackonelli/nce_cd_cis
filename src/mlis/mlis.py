@@ -13,8 +13,7 @@ class MlisCrit(PartFnEstimator):
     """Maximum Likelihood Importance Sampling (MLIS) criterion"""
 
     def __init__(self, unnorm_distr, noise_distr):
-        self._unnorm_distr = unnorm_distr
-        self._noise_distr = noise_distr
+        super().__init__(unnorm_distr, noise_distr)
 
     def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         """MLIS criterion"""
@@ -31,4 +30,6 @@ class MlisCrit(PartFnEstimator):
         The result is a tensor of J elements, where
         w_tilde(y_j) = p_tilde(y_j) / p_n(y_j), for j = 1, ..., J
         """
-        return unnorm_weights(y_samples, self._unnorm_distr, self._noise_distr)
+        return unnorm_weights(
+            y_samples, self._unnorm_distr.prob, self._noise_distr.prob
+        )
