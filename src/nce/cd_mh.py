@@ -1,4 +1,4 @@
-"""Conditional Noise Contrastive Estimation (NCE) with multiple MCMC steps"""
+"""Contrastive Divergence with Metropolis-Hastings kernel"""
 from typing import Optional
 import torch
 from torch import Tensor
@@ -9,7 +9,7 @@ from src.noise_distr.base import NoiseDistr
 from src.models.base_model import BaseModel
 
 
-class CdCnceCrit(PartFnEstimator):
+class CdMHCrit(PartFnEstimator):
     def __init__(
         self,
         unnorm_distr: BaseModel,
@@ -46,15 +46,9 @@ class CdCnceCrit(PartFnEstimator):
             ys = concat_samples(y_0, y_samples)
             assert ys.shape == (y_0.size(0), 2, y_0.size(1))
 
-            # Calculate and normalise weight ratios
-            log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
-            #  w_y[log_w_y <= log_w_threshold] = 1 / (
-            #      1 + torch.exp(-log_w_y[log_w_y <= log_w_threshold])
-            #  )
-            # For computational stability
-            # w_y[log_w_y > log_w_threshold] = 1.0
-
-            w_y = 1 / (1 + torch.exp(-log_w_y))
+            # Calculate weight ratios (acceptance prob.)
+            w_y = torch.exp(- self._log_unnorm_w(y_0, y_samples).detach())
+            w_y[w_y >= 1.0] = 1.0
             w = torch.cat((w_y, 1 - w_y), dim=1)
 
             # Calculate gradients of log prob

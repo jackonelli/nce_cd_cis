@@ -102,9 +102,9 @@ class TestCdRank(unittest.TestCase):
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
-        mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        cov_noise = torch.eye(y.shape[-1])
         true_distr = GaussianModel(mu_true, cov_true)
-        noise_distr = MultivariateNormal(mu_noise, cov_noise)
+        noise_distr = ConditionalMultivariateNormal(cov_noise)
 
         mcmc_steps = 3
         criterion = CdCnceCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
