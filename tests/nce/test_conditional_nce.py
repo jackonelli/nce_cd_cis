@@ -58,8 +58,7 @@ class TestCondNce(unittest.TestCase):
         criterion = CondNceCrit(true_distr, noise_distr, num_neg_samples)
 
         # Evaluate criterion
-        y_samples = criterion.sample_noise(
-            (y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1)
+        y_samples = criterion.sample_noise(num_neg_samples, y.reshape(y.size(0), 1, -1)
         )
         w_tilde = criterion._unnorm_w(y, y_samples)
         res = criterion.inner_crit(y, y_samples)
@@ -102,8 +101,7 @@ class TestCondNce(unittest.TestCase):
         criterion = CondNceCrit(true_distr, noise_distr, num_neg_samples)
 
         # Evaluate criterion
-        y_samples = criterion.sample_noise(
-            (y.size(0), num_neg_samples), y.reshape(y.size(0), 1, -1)
+        y_samples = criterion.sample_noise(num_neg_samples, y.reshape(y.size(0), 1, -1)
         )
         w_tilde = criterion._unnorm_w(y, y_samples)
         res = criterion.inner_crit(y, y_samples)

@@ -25,7 +25,7 @@ class CdRankCrit(PartFnEstimator):
         pass
 
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
-        y_samples = self.sample_noise((y.size(0), self._num_neg), y)
+        y_samples = self.sample_noise(self._num_neg, y)
 
         return self.calculate_inner_crit_grad(y, y_samples)
 
@@ -63,7 +63,7 @@ class CdRankCrit(PartFnEstimator):
                 assert y_0.shape == y.shape
 
                 # Sample neg. samples
-                y_samples = self.sample_noise((y_0.size(0), self._num_neg), y_0)
+                y_samples = self.sample_noise(self._num_neg, y_0)
 
         # Assign calculated gradients to model parameters
         self._unnorm_distr.set_gradients(grads)

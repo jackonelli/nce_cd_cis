@@ -21,9 +21,8 @@ class PartFnEstimator(ABC):
         return torch.log(self.log_part_fn(y, y_samples))
 
     def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
-        y_samples = self.sample_noise(
-            (y.size(0), self._num_neg), y.reshape(y.size(0), 1, -1)
-        )
+        y_samples = self.sample_noise(self._num_neg, y.reshape(y.size(0), 1, -1))
+
         return self.inner_crit(y, y_samples)
 
     @abstractmethod
@@ -53,8 +52,10 @@ class PartFnEstimator(ABC):
     def part_fn(self, y, y_samples) -> Tensor:
         pass
 
-    def sample_noise(self, num_samples: tuple, y: Tensor):
-        return self._noise_distr.sample(torch.Size(num_samples), y)
+    def sample_noise(self, num_samples: int, y: Tensor):
+        # Note: num_samples = samples / obs.
+        return self._noise_distr.sample(torch.Size((y.size(0), num_samples)), y.reshape(y.size(0), 1, -1))
+
 
     def get_model(self):
         return self._unnorm_distr

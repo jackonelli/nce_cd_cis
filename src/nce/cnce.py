@@ -12,7 +12,7 @@ class CondNceCrit(PartFnEstimator):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
     def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
-        y_samples = self.sample_noise((y.size(0), self._num_neg), y)
+        y_samples = self.sample_noise(self._num_neg, y)
 
         return self.inner_crit(y, y_samples)
 
@@ -24,11 +24,6 @@ class CondNceCrit(PartFnEstimator):
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (conditional version)."""
         pass
-
-    def sample_noise(self, num_samples: tuple, y: Tensor):
-        return self._noise_distr.sample(
-            torch.Size(num_samples), y.reshape(y.size(0), 1, -1)
-        )
 
     def _unnorm_w(self, y, y_samples) -> Tensor:
 

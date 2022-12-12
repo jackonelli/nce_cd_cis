@@ -82,7 +82,7 @@ class TestCdRank(unittest.TestCase):
 
         mcmc_steps = 1
         criterion = CdRankCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
-        y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
+        y_samples = criterion.sample_noise(num_neg_samples, y)
 
         # Calculate gradient directly using CD+NCE ranking
         criterion.calculate_inner_crit_grad(y, y_samples)

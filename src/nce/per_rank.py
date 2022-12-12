@@ -26,7 +26,7 @@ class PersistentNceRankCrit(NceRankCrit):
             idx is not None
         ), "PersistentNceRankCrit requires an idx tensor that is not None"
         yp = self.persistent_y(y, idx)
-        y_samples = self.sample_noise((y.size(0), self._num_neg), yp)
+        y_samples = self.sample_noise(self._num_neg, yp)
 
         return self.inner_crit(yp, y_samples)
 

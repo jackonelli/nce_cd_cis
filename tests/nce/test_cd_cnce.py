@@ -34,7 +34,7 @@ class TestCdRank(unittest.TestCase):
         criterion = CdCnceCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
 
         y = torch.repeat_interleave(y, num_neg_samples, dim=0)
-        y_samples = criterion.sample_noise((y.size(0), 1), y)
+        y_samples = criterion.sample_noise(1, y)
 
         # Calculate gradient directly using CD+CNCE
         criterion.calculate_inner_crit_grad(y, y_samples)
@@ -73,7 +73,7 @@ class TestCdRank(unittest.TestCase):
         criterion = CdCnceCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
 
         y = torch.repeat_interleave(y, num_neg_samples, dim=0)
-        y_samples = criterion.sample_noise((y.size(0), 1), y)
+        y_samples = criterion.sample_noise(1, y)
 
         # Calculate gradient directly using CD+CNCE
         criterion.calculate_inner_crit_grad(y, y_samples)

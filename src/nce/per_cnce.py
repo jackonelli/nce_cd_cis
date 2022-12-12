@@ -26,8 +26,7 @@ class PersistentCondNceCrit(CondNceCrit):
             idx is not None
         ), "PersistentCondNceCrit requires an idx tensor that is not None"
         y_p = self.persistent_y(y, idx)
-        num_samples = y.size(0)
-        y_samples = self.sample_noise((num_samples, self._num_neg), y_p)
+        y_samples = self.sample_noise(self._num_neg, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
         log_w_tilde = self._log_unnorm_w(y, y_samples)
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)

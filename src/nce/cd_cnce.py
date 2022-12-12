@@ -27,7 +27,7 @@ class CdCnceCrit(PartFnEstimator):
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
         # We will have N*J pairs
         y = torch.repeat_interleave(y, self._num_neg, dim=0)
-        y_samples = self.sample_noise((y.size(0), 1), y)
+        y_samples = self.sample_noise(1, y)
 
         return self.calculate_inner_crit_grad(y, y_samples)
 
@@ -76,18 +76,13 @@ class CdCnceCrit(PartFnEstimator):
                 assert y_0.shape == y.shape
 
                 # Sample neg. samples
-                y_samples = self.sample_noise((y_0.size(0), 1), y_0)
+                y_samples = self.sample_noise(1, y_0)
 
         self._unnorm_distr.set_gradients(grads)
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ"""
         pass
-
-    def sample_noise(self, num_samples: tuple, y: Tensor):
-        return self._noise_distr.sample(
-            torch.Size(num_samples), y.reshape(y.size(0), 1, -1)
-        )
 
     def _unnorm_w(self, y, y_samples) -> Tensor:
         return torch.exp(self._log_unnorm_w(y, y_samples))

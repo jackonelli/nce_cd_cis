@@ -32,8 +32,6 @@ class ConditionalMultivariateNormal(NoiseDistr):
     def sample(self, size: torch.Size, x: Tensor):
         assert x.size(-1) == self.dim
 
-        x = torch.repeat_interleave(x, int(size[0] / x.size(0)), dim=0)
-        assert x.size(0) == size[0]
         eps = self._inner_distr.rsample(size)
 
         return x + eps

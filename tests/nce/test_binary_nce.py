@@ -61,7 +61,7 @@ class TestBinaryNCE(unittest.TestCase):
         criterion = NceBinaryCrit(true_distr, noise_distr, num_neg_samples)
 
         # Evaluate criterion
-        y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
+        y_samples = criterion.sample_noise(num_neg_samples, y)
         res = criterion.inner_crit(y, y_samples)
 
         # Reference calculation (check so that positive and negative samples are used correctly)
@@ -120,7 +120,7 @@ class TestBinaryNCE(unittest.TestCase):
         optimizer = torch.optim.SGD(criterion.get_model().parameters(), lr=0.1)
         for i, (y, idx) in enumerate(train_loader, 0):
 
-            y_samples = criterion.sample_noise((y.size(0), num_neg_samples), y)
+            y_samples = criterion.sample_noise(num_neg_samples, y)
 
             # Calculate using gradient function
             optimizer.zero_grad()
