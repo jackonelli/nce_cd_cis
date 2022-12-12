@@ -49,7 +49,7 @@ class CdMHCrit(PartFnEstimator):
             # Calculate weight ratios (acceptance prob.)
             w_y = torch.exp(- self._log_unnorm_w(y_0, y_samples).detach())
             w_y[w_y >= 1.0] = 1.0
-            w = torch.cat((w_y, 1 - w_y), dim=1)
+            w = torch.cat((1 - w_y, w_y), dim=1)
 
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
@@ -63,7 +63,7 @@ class CdMHCrit(PartFnEstimator):
             if (t + 1) < self.mcmc_steps:
                 # Sample y
                 sample_inds = torch.distributions.bernoulli.Bernoulli(
-                    probs=1 - w_y
+                    probs=w_y
                 ).sample()
                 y_0 = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
 
