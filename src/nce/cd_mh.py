@@ -1,4 +1,4 @@
-"""Conditional Noise Contrastive Estimation (NCE) with multiple MCMC steps"""
+"""Contrastive Divergence with Metropolis-Hastings kernel"""
 from typing import Optional
 import torch
 from torch import Tensor
@@ -9,7 +9,7 @@ from src.noise_distr.base import NoiseDistr
 from src.models.base_model import BaseModel
 
 
-class CdCnceCrit(PartFnEstimator):
+class CdMHCrit(PartFnEstimator):
     def __init__(
         self,
         unnorm_distr: BaseModel,
@@ -27,7 +27,7 @@ class CdCnceCrit(PartFnEstimator):
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
         # We will have N*J pairs
         y = torch.repeat_interleave(y, self._num_neg, dim=0)
-        y_samples = self.sample_noise(1, y)
+        y_samples = self.sample_noise((y.size(0), 1), y)
 
         return self.calculate_inner_crit_grad(y, y_samples)
 
@@ -46,16 +46,10 @@ class CdCnceCrit(PartFnEstimator):
             ys = concat_samples(y_0, y_samples)
             assert ys.shape == (y_0.size(0), 2, y_0.size(1))
 
-            # Calculate and normalise weight ratios
-            log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
-            #  w_y[log_w_y <= log_w_threshold] = 1 / (
-            #      1 + torch.exp(-log_w_y[log_w_y <= log_w_threshold])
-            #  )
-            # For computational stability
-            # w_y[log_w_y > log_w_threshold] = 1.0
-
-            w_y = 1 / (1 + torch.exp(-log_w_y))
-            w = torch.cat((w_y, 1 - w_y), dim=1)
+            # Calculate weight ratios (acceptance prob.)
+            w_y = torch.exp(- self._log_unnorm_w(y_0, y_samples).detach())
+            w_y[w_y >= 1.0] = 1.0
+            w = torch.cat((1 - w_y, w_y), dim=1)
 
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
@@ -69,20 +63,25 @@ class CdCnceCrit(PartFnEstimator):
             if (t + 1) < self.mcmc_steps:
                 # Sample y
                 sample_inds = torch.distributions.bernoulli.Bernoulli(
-                    probs=1 - w_y
+                    probs=w_y
                 ).sample()
                 y_0 = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
 
                 assert y_0.shape == y.shape
 
                 # Sample neg. samples
-                y_samples = self.sample_noise(1, y_0)
+                y_samples = self.sample_noise((y_0.size(0), 1), y_0)
 
         self._unnorm_distr.set_gradients(grads)
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ"""
         pass
+
+    def sample_noise(self, num_samples: tuple, y: Tensor):
+        return self._noise_distr.sample(
+            torch.Size(num_samples), y.reshape(y.size(0), 1, -1)
+        )
 
     def _unnorm_w(self, y, y_samples) -> Tensor:
         return torch.exp(self._log_unnorm_w(y, y_samples))
