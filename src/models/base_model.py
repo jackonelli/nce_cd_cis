@@ -10,6 +10,7 @@ class BaseModel(torch.nn.Module):
         return torch.exp(self.log_prob(y))
 
     def log_prob(self, y: Tensor) -> Tensor:
+        """Compute log of unnorm prob: log p_tilde(y)"""
         pass
 
     def forward(self, y: Tensor) -> Tensor:

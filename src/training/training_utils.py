@@ -9,6 +9,20 @@ class PrecisionErrorMetric:
     def metric(self, model):
         return torch.mean((torch.exp(model.log_precision) - self.true_precison) ** 2)
 
+class Mse:
+    def __init__(self, true_model):
+        self.mu = true_model.mu
+        self.cov = true_model
+
+    def metric(self, model):
+        return torch.mean((self.mu - model.mu)**2)
+
+class KlDiv:
+    def __init__(self, true_model):
+        self.true_model = true_model
+
+    def metric(self, model):
+        return torch.mean((torch.exp(model.log_precision) - self.true_precison) ** 2)
 
 # Stopping conditions
 def no_stopping(new_params, old_params):
