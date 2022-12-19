@@ -8,6 +8,8 @@ from src.part_fn_utils import log_cond_unnorm_weights, concat_samples
 from src.noise_distr.base import NoiseDistr
 from src.models.base_model import BaseModel
 
+from src.training.training_utils import add_to_npy_file
+
 
 class CdCnceCrit(PartFnEstimator):
     def __init__(
@@ -48,14 +50,14 @@ class CdCnceCrit(PartFnEstimator):
 
             # Calculate and normalise weight ratios
             log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
-            #  w_y[log_w_y <= log_w_threshold] = 1 / (
-            #      1 + torch.exp(-log_w_y[log_w_y <= log_w_threshold])
-            #  )
-            # For computational stability
-            # w_y[log_w_y > log_w_threshold] = 1.0
-
             w_y = 1 / (1 + torch.exp(-log_w_y))
             w = torch.cat((w_y, 1 - w_y), dim=1)
+            add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy", (1-w_y).numpy())
+
+            # Ref. MH acceptance prob.
+            acc_mh = torch.exp(- log_w_y)
+            acc_mh[acc_mh >= 1.0] = 1.0
+            add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy", acc_mh.numpy())
 
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
@@ -96,3 +98,4 @@ class CdCnceCrit(PartFnEstimator):
             self._unnorm_distr.log_prob,
             self._noise_distr.log_prob,
         )
+
