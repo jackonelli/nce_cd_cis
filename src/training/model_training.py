@@ -9,13 +9,19 @@ def train_model(
     evaluation_metric,
     train_loader,
     save_dir,
-    neg_sample_size=10,
     num_epochs=100,
+    weight_decay=0.0,
+    lr=0.1,
+    decaying_lr=False,
     stopping_condition=no_stopping,
 ):
 
     model = criterion.get_model()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    if decaying_lr:
+        # Linearly decayng lr
+        scheduler = torch.optim.lr_scheduler.PolynomialLR(optimizer, total_iters=10, power=1.0)
 
     metric = []
     for epoch in range(num_epochs):
@@ -30,6 +36,9 @@ def train_model(
 
             # Take gradient step
             optimizer.step()
+
+            if decaying_lr:
+                scheduler.step()
 
             # Note: now logging this for every iteration (and not epoch)
             metric.append(evaluation_metric(model).detach().numpy())

@@ -11,9 +11,12 @@ class RingModelDataset(Dataset):
     def __init__(self, sample_size, num_dims, mu, precision, root_dir, transform=None):
         """
         Args:
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
+            sample_size (int): number of samples to generate.
+            num_dims: dimension of data.
+            mu (float): model mean.
+            precision(float): model precision.
+            root_dir (string): directory for saving data.
+            transform (callable, optional): optional data transform.
         """
         self.root_dir = root_dir
         self.transform = transform
