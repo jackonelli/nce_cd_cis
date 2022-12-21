@@ -20,7 +20,7 @@ def train_model(
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     if decaying_lr:
-        # Linearly decayng lr
+        # Linearly decaying lr
         scheduler = torch.optim.lr_scheduler.PolynomialLR(optimizer, total_iters=10, power=1.0)
 
     metric = []
