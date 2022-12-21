@@ -50,14 +50,23 @@ class CdMHCrit(PartFnEstimator):
 
             # Calculate weight ratios (acceptance prob.)
             log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
-            w_y = torch.exp(- log_w_y)
+            w_y = torch.exp(-log_w_y)
             w_y[w_y >= 1.0] = 1.0
             w = torch.cat((1 - w_y, w_y), dim=1)
-            add_to_npy_file("res/" + "cd_mh_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy", w_y.numpy())
+            add_to_npy_file(
+                "res/" + "cd_mh_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy",
+                w_y.numpy(),
+            )
 
             # Ref. CNCE acc. prob.
             acc_cnce = 1 - 1 / (1 + torch.exp(-log_w_y))
-            add_to_npy_file("res/" + "cd_mh_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy", acc_cnce.numpy())
+            add_to_npy_file(
+                "res/"
+                + "cd_mh_num_neg_"
+                + str(self._num_neg)
+                + "_cd_cnce_acc_prob.npy",
+                acc_cnce.numpy(),
+            )
 
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
