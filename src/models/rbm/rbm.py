@@ -23,14 +23,9 @@ class Rbm(BaseModel):
         return torch.log(torch.exp(- self.energy(y, h)))
 
     def energy(self, v: Tensor, h: Tensor):
-        print(h.shape)
-        assert torch.allclose((v * torch.matmul(h, self.weights.t())).sum(dim=-1),
-                              torch.diag(torch.matmul(v, torch.matmul(self.weights, h.t()))))
 
-        assert (v * torch.matmul(h, self.weights.t())).sum(dim=-1).shape == (v.shape[0], 1) # Annars använd keepdim=True
-
-        return - torch.matmul(v, self.vis_bias) - torch.matmul(h, self.hidden_bias) \
-               - (v * torch.matmul(h, self.weights.t())).sum(dim=-1)
+        return - (torch.matmul(v, self.vis_bias) + torch.matmul(h, self.hidden_bias)
+                  + (v * torch.matmul(h, self.weights.t())).sum(dim=-1, keepdim=True)).reshape(v.shape[0], -1)
 
     def sample_hidden(self, y: Tensor):
         p_h = torch.sigmoid(torch.matmul(y, self.weights) + self.hidden_bias.t())

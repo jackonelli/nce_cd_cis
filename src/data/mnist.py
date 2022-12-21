@@ -24,7 +24,7 @@ class MnistDataset(Dataset):
         self.num_samples = self.y.shape[0]
 
     def get_full_data(self):
-        return torch.tensor(self.y)
+        return self.y
 
     def __len__(self):
         return self.num_samples

@@ -35,6 +35,7 @@ def cond_unnorm_weights(y: Tensor, yp: Tensor, unnorm_distr, noise_distr) -> Ten
 def log_cond_unnorm_weights(
     y: Tensor, yp: Tensor, log_unnorm_distr, log_noise_distr
 ) -> Tensor:
+
     return (
         log_unnorm_distr(y)
         + log_noise_distr(yp, y)
