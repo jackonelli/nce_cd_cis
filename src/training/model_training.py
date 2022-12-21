@@ -1,14 +1,14 @@
+"""Training loops"""
 import torch
 import numpy as np
 
 from src.training.training_utils import no_stopping
 from src.noise_distr.normal import MultivariateNormal
-from src.nce.rank import NceRankCrit
 
 
 def train_model_model_proposal(
     model,
-    criterion,
+    crit_constructor,
     evaluation_metric,
     train_loader,
     save_dir,
@@ -28,7 +28,7 @@ def train_model_model_proposal(
             q = MultivariateNormal(
                 model.mu.detach().clone(), model.cov().clone().detach().clone()
             )
-            criterion = NceRankCrit(model, q, J)
+            criterion = crit_constructor(model, q, neg_sample_size)
             optimizer.zero_grad()
             with torch.no_grad():
                 loss = criterion.crit(y, None)
@@ -44,6 +44,8 @@ def train_model_model_proposal(
         if stopping_condition(
             torch.nn.utils.parameters_to_vector(model.parameters()), old_params
         ):
+            print("Training converged")
+            break
 
 
 def train_model(
