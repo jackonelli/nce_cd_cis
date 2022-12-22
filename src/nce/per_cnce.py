@@ -50,8 +50,7 @@ class PersistentCondNceCrit(CondNceCrit):
 
     def _update_persistent_y(self, log_w_unnorm, y, y_samples, idx):
         """Sample new persistent y"""
-        w_unnorm = torch.exp(log_w_unnorm)
         ys = concat_samples(y, y_samples)
         for n, _ in enumerate(ys):
-            sampled_idx = Categorical(logits=w_unnorm[n, :]).sample()
+            sampled_idx = Categorical(logits=log_w_unnorm[n, :]).sample()
             self._persistent_y[idx[n].item()] = ys[n, sampled_idx]
