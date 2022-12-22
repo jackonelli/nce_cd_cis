@@ -12,9 +12,9 @@ class MnistDataset(Dataset):
     def __init__(self, train=True, root_dir='./data', transform=None):
         """
         Args:
-            train (bool): if loading training (or test) data.
-            root_dir (string): directory for saving data.
-            transform (callable, optional): optional data transform.
+            train: (bool) if loading training (or test) data.
+            root_dir: (string) directory for saving data.
+            transform: (callable, optional) optional data transform.
         """
         self.root_dir = root_dir
         self.transform = transform

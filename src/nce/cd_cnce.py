@@ -18,10 +18,12 @@ class CdCnceCrit(PartFnEstimator):
         noise_distr: NoiseDistr,
         num_neg_samples: int,
         mcmc_steps: int,
+        save_acc_prob=False,
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
         self.mcmc_steps = mcmc_steps
+        self.save_acc_prob = save_acc_prob
 
     def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         pass
@@ -40,8 +42,6 @@ class CdCnceCrit(PartFnEstimator):
         grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
 
         y_0 = y.clone()
-        # log_w_threshold = 1e4
-        # w_y = torch.zeros((y.shape[0], 1), dtype=y.dtype)
         for t in range(self.mcmc_steps):
 
             # Get neg. samples
@@ -52,12 +52,15 @@ class CdCnceCrit(PartFnEstimator):
             log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
             w_y = 1 / (1 + torch.exp(-log_w_y))
             w = torch.cat((w_y, 1 - w_y), dim=1)
-            add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy", (1-w_y).numpy())
 
-            # Ref. MH acceptance prob.
-            acc_mh = torch.exp(- log_w_y)
-            acc_mh[acc_mh >= 1.0] = 1.0
-            add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy", acc_mh.numpy())
+            if self.save_acc_prob:
+                # Ref. MH acceptance prob.
+                acc_prob_mh = torch.exp(- log_w_y)
+                acc_prob_mh[acc_prob_mh >= 1.0] = 1.0
+                add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy",
+                                (1 - w_y).numpy())
+                add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy",
+                                acc_prob_mh.numpy())
 
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)

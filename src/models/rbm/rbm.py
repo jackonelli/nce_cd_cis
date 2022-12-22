@@ -7,7 +7,6 @@ from src.models.base_model import BaseModel
 
 # Adapted from https://blog.paperspace.com/beginners-guide-to-boltzmann-machines-pytorch/
 # and https://heartbeat.comet.ml/guide-to-restricted-boltzmann-machines-using-pytorch-ee50d1ed21a8
-# TODO: Skattar just nu energin med ett sample h. Hur löses detta vanligtvis?
 class Rbm(BaseModel):
 
     def __init__(self, weights, vis_bias, hidden_bias):
@@ -18,23 +17,31 @@ class Rbm(BaseModel):
         self.hidden_bias = torch.nn.Parameter(hidden_bias, requires_grad=True)
 
     def log_prob(self, y: Tensor) -> Tensor:
-        _, h = self.sample_hidden(y)
 
-        return torch.log(torch.exp(- self.energy(y, h)))
+        return - self.energy(y)
 
-    def energy(self, v: Tensor, h: Tensor):
+    def energy(self, y: Tensor):
+        return - (torch.matmul(y, self.vis_bias) +
+                  torch.log(1 + torch.exp(self.hidden_model(y))).sum(dim=-1, keepdim=True)).reshape(y.shape[0], -1)
 
+    def total_energy(self, v: Tensor, h: Tensor):
         return - (torch.matmul(v, self.vis_bias) + torch.matmul(h, self.hidden_bias)
                   + (v * torch.matmul(h, self.weights.t())).sum(dim=-1, keepdim=True)).reshape(v.shape[0], -1)
 
+    def hidden_model(self, y: Tensor):
+        return torch.matmul(y, self.weights) + self.hidden_bias.t()
+
+    def visible_model(self, h: Tensor):
+        return torch.matmul(h, self.weights.t()) + self.vis_bias.t()
+
     def sample_hidden(self, y: Tensor):
-        p_h = torch.sigmoid(torch.matmul(y, self.weights) + self.hidden_bias.t())
+        p_h = torch.sigmoid(self.hidden_model(y))
         sample_h = torch.distributions.bernoulli.Bernoulli(p_h).sample()
 
         return p_h, sample_h
 
     def sample_visible(self, h: Tensor):
-        p_v = torch.sigmoid(torch.matmul(h, self.weights.t()) + self.vis_bias.t())
+        p_v = torch.sigmoid(self.visible_model(h))
         sample_v = torch.distributions.bernoulli.Bernoulli(p_v).sample()
 
         return p_v, sample_v
