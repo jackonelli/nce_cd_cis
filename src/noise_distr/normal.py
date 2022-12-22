@@ -1,5 +1,6 @@
 """Normal (Gaussian) noise distributions"""
 import torch
+from torch import Tensor
 import numpy as np
 from src.noise_distr.base import NoiseDistr
 
@@ -10,7 +11,7 @@ class Normal(NoiseDistr):
         self.sigma_sq = sigma_sq
         self._inner_distr = torch.distributions.Normal(mu, np.sqrt(sigma_sq))
 
-    def sample(self, size: torch.Size, x: torch.Tensor):
+    def sample(self, size: torch.Size, x: Tensor):
         return self._inner_distr.rsample(size)
 
     def log_prob(self, samples, x=0):
@@ -18,7 +19,7 @@ class Normal(NoiseDistr):
 
 
 class MultivariateNormal(NoiseDistr):
-    def __init__(self, mu: torch.Tensor, cov: torch.Tensor):
+    def __init__(self, mu: Tensor, cov: Tensor):
         self.mu = mu
         self.cov = cov
         self.dim = mu.size(0)

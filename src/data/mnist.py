@@ -36,6 +36,7 @@ class MnistDataset(Dataset):
         if self.transform:
             sample = self.transform(sample)
 
+        # TODO: could also take threshold att 0.5
         img = torch.distributions.bernoulli.Bernoulli(sample).sample()
 
         return img, idx
