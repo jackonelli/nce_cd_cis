@@ -10,27 +10,36 @@ import torch
 from torch import Tensor
 from torch.distributions import Categorical
 
-from src.nce.cnce import CondNceCrit
+from src.nce.cd_cnce import CdCnceCrit
 from src.part_fn_utils import concat_samples
 
 
-class PersistentCondNceCrit(CondNceCrit):
+class PersistentCondNceCrit(CdCnceCrit):
     """Persistent cond. NCE crit"""
 
     def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
-        super().__init__(unnorm_distr, noise_distr, num_neg_samples)
+        mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
         self._persistent_y = dict()
 
-    def crit(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
+    def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
         assert (
             idx is not None
         ), "PersistentCondNceCrit requires an idx tensor that is not None"
+
         y_p = self.persistent_y(y, idx)
         y_samples = self.sample_noise(self._num_neg, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
         log_w_tilde = self._log_unnorm_w(y, y_samples)
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
-        return self.inner_crit(y, y_samples)
+
+        y = torch.repeat_interleave(y[idx.long(), :], self._num_neg, dim=0)
+        y_p = torch.repeat_interleave(y_p, self._num_neg, dim=0)
+
+        assert torch.allclose(y_samples[0, :, :],
+                              y_samples.reshape(-1, 1, y.shape[-1])[:self._num_neg, 0, :], rtol=1e-3)
+
+        return self.calculate_inner_crit_grad(y_p, y_samples.reshape(-1, 1, y.shape[-1]), y)
 
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y

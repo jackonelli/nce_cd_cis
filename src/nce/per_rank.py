@@ -9,26 +9,27 @@ that is used to condition on when sampling noisy samples.
 from typing import Optional
 import torch
 from torch import Tensor
-from src.nce.rank import NceRankCrit
+from src.nce.cd_rank import CdRankCrit
 from src.part_fn_utils import concat_samples
 from torch.distributions import Categorical
 
 
-class PersistentNceRankCrit(NceRankCrit):
+class PersistentNceRankCrit(CdRankCrit):
     """Persistent rank. NCE crit"""
 
-    def __init__(self, unnorm_distr, noise_distr, num_neg_samples):
-        super().__init__(unnorm_distr, noise_distr, num_neg_samples)
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
+        mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
         self._persistent_y = dict()
 
-    def crit(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
+    def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
         assert (
             idx is not None
         ), "PersistentNceRankCrit requires an idx tensor that is not None"
-        yp = self.persistent_y(y, idx)
-        y_samples = self.sample_noise(self._num_neg, yp)
+        y_p = self.persistent_y(y, idx)
+        y_samples = self.sample_noise(self._num_neg, y_p)
 
-        return self.inner_crit(yp, y_samples)
+        return self.calculate_inner_crit_grad(y_p, y_samples, y)
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with NCE (ranking version).

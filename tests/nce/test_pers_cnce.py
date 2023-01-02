@@ -22,7 +22,7 @@ class TestPersistentCnce(unittest.TestCase):
         crit = PersistentCondNceCrit(true_distr, noise_distr, J)
         y = true_distr.mu.clone().repeat((N, 1))
         self.assertEqual(y.size(), (N, D))
-        crit.crit(
+        crit.calculate_crit_grad(
             y,
             torch.zeros(
                 N,

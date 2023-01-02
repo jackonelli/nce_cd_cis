@@ -29,12 +29,15 @@ class CdRankCrit(PartFnEstimator):
 
         return self.calculate_inner_crit_grad(y, y_samples)
 
-    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor):
+    def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor, y_base=None):
 
-        # Gradient of mean is same as mean of gradient (?)
-        grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
+        if y_base is None:
+            # Gradient of mean is same as mean of gradient
+            grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
+        else:
+            grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
+
         grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
-
         y_0 = y.clone()
         for t in range(self.mcmc_steps):
 
