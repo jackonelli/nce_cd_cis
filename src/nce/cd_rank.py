@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import unnorm_weights, concat_samples
+from src.part_fn_utils import log_unnorm_weights, concat_samples
 
 from src.noise_distr.base import NoiseDistr
 from src.models.base_model import BaseModel
@@ -76,9 +76,14 @@ class CdRankCrit(PartFnEstimator):
         pass
 
     def _unnorm_w(self, y, y_samples) -> Tensor:
+        return torch.exp(self._log_unnorm_w(y, y_samples))
+
+    def _log_unnorm_w(self, y, y_samples):
+        """Log weights of y (NxD) and y_samples (NxJxD)"""
 
         ys = concat_samples(y, y_samples)
-        return unnorm_weights(ys, self._unnorm_distr.prob, self._noise_distr.prob)
+        return log_unnorm_weights(ys, self._unnorm_distr.log_prob,
+                                  self._noise_distr.log_prob)
 
     def _norm_w(self, y, y_samples):
         """Normalised weights of y (NxD) and y_samples (NxJxD)"""

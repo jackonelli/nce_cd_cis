@@ -31,9 +31,6 @@ class PersistentCondNceCrit(CdCnceCrit):
         y_samples = self.sample_noise(self._num_neg, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
         log_w_tilde = self._log_unnorm_w(y, y_samples)
-        print(y.shape)
-        print(y_samples.shape)
-        print(log_w_tilde.shape)
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
 
         y = torch.repeat_interleave(y, self._num_neg, dim=0)

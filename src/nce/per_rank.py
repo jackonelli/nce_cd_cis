@@ -29,6 +29,9 @@ class PersistentNceRankCrit(CdRankCrit):
         y_p = self.persistent_y(y, idx)
         y_samples = self.sample_noise(self._num_neg, y_p)
 
+        log_w_tilde = self._log_unnorm_w(y, y_samples)
+        self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
+
         return self.calculate_inner_crit_grad(y_p, y_samples, y)
 
     def part_fn(self, y, y_samples) -> Tensor:

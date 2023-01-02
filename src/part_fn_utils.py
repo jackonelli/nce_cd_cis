@@ -16,6 +16,11 @@ def unnorm_weights(y: Tensor, unnorm_distr, noise_distr) -> Tensor:
     return unnorm_distr(y) / noise_distr(y)
 
 
+def log_unnorm_weights(y: Tensor, log_unnorm_distr, log_noise_distr) -> Tensor:
+    """Compute w_tilde(y) = p_tilde(y) / p_n(y)"""
+    return log_unnorm_distr(y) - log_noise_distr(y)
+
+
 def cond_unnorm_weights(y: Tensor, yp: Tensor, unnorm_distr, noise_distr) -> Tensor:
     """Compute weights w(y) = p_tilde_theta(y) / p_n(y| yp) for cond. noise distr.
 
