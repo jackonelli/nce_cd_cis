@@ -37,31 +37,33 @@ class TestPersistentCnce(unittest.TestCase):
         """
         N, J, D = 2, 5, 3
         crit = PersistentCondNceCrit(None, None, J)
-        w_unnorm = torch.ones((N, J + 1), dtype=torch.long)
+        w_unnorm = torch.ones((N * J, 2), dtype=torch.long)
         # Zero weight for the actual sample.
         w_unnorm[0, 0] = 0.0
-        y_samples = torch.ones((N, J, D))
-        y, idx = torch.ones((N, D)), torch.zeros((N,), dtype=torch.long)
+        y_samples = torch.ones((N * J, 1, D))
+        y, idx = torch.ones((N * J, D)), torch.zeros((N,), dtype=torch.long)
         # Zero weight makes the updated persistent y be 1.
         crit._update_persistent_y(w_unnorm, y, y_samples, idx)
         # This val. is needed in the API, but should not be selected.
-        dummy_y = torch.randn(y.size())
+        dummy_y = torch.randn(N, J, D)
+
         y_p = crit.persistent_y(dummy_y, idx)
-        self.assertTrue(torch.allclose(y_p, torch.ones(y.size())))
+        self.assertTrue(torch.allclose(y_p, torch.ones(dummy_y.size())))
 
     def test_y_persistent_dim(self):
         """Check that the persistent samples are properly updated
 
         Checks that the persistent sample has the same dim as actual y.
         """
-        N, J, D = 1, 5, 1
+        N, J, D = 2, 5, 1
         crit = PersistentCondNceCrit(None, None, J)
-        w_unnorm = torch.ones((N, J + 1))
-        y_samples = torch.ones((N, J, D))
-        y, idx = torch.ones((N, 1)), torch.zeros((N,), dtype=torch.long)
-        crit._update_persistent_y(w_unnorm, y, y_samples, idx)
-        y_p = crit.persistent_y(torch.randn(y.size()), idx)
-        self.assertEqual(y_p.size(), y.size())
+        log_w_unnorm = torch.ones((N * J, 2))
+        y_samples = torch.ones((N * J, 1, D))
+        y, idx = torch.ones((N * J, D)), torch.zeros((N,), dtype=torch.long)
+        crit._update_persistent_y(torch.log(log_w_unnorm), y, y_samples, idx)
+        y_p = crit.persistent_y(torch.randn(N, J, D), idx)
+
+        self.assertEqual(y_p.size(), (N, J, D))
 
     def test_y_persistent_multi_dim(self):
         """Check that the persistent samples are properly updated
@@ -71,13 +73,15 @@ class TestPersistentCnce(unittest.TestCase):
         """
         N, J, D = 1, 5, 2
         crit = PersistentCondNceCrit(None, None, J)
-        w_unnorm = torch.ones((N, J + 1))
-        y_samples = torch.ones((N, J, D))
-        y, idx = torch.ones((N, D)), torch.zeros((N,), dtype=torch.long)
+        w_unnorm = torch.ones((N * J, 2))
+        y_samples = torch.ones((N * J, 1, D))
+        y, idx = torch.ones((N * J, D)), torch.zeros((N,), dtype=torch.long)
         crit._update_persistent_y(w_unnorm, y, y_samples, idx)
-        y_p = crit.persistent_y(torch.randn(y.size()), idx)
-        self.assertEqual(y_p.size(), y.size())
+        y_p = crit.persistent_y(torch.randn(N, J, D), idx)
+        self.assertEqual(y_p.size(), (N, J, D))
 
 
 if __name__ == "__main__":
-    unittest.main()
+    t = TestPersistentCnce()
+    t.test_y_persistent_update()
+    #unittest.main()

@@ -48,9 +48,9 @@ class CdCnceCrit(PartFnEstimator):
         y_0 = y.clone()
         for t in range(self.mcmc_steps):
 
-            # Get neg. samples
+            # Concatenate samples
             ys = concat_samples(y_0, y_samples)
-            assert ys.shape == (y_0.size(0), 2, y_0.size(1))
+            assert ys.shape == (y.shape[0], 2, y.shape[1])
 
             # Calculate and normalise weight ratios
             log_w_y = self._log_unnorm_w_ratio(y_0, y_samples).detach()
@@ -97,15 +97,18 @@ class CdCnceCrit(PartFnEstimator):
         return torch.exp(self._log_unnorm_w(y, y_samples))
 
     def _log_unnorm_w(self, y, y_samples):
+        # "Log weights of y (NxD) and y_samples (NxJxD)"
+        # Note: dimension of the final weight vector is NxJx2
+
         w_tilde_y = log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), y_samples, self._unnorm_distr.log_prob,
                                             self._noise_distr.log_prob)
         w_tilde_yp = log_cond_unnorm_weights(y_samples, y.reshape(y.size(0), 1, -1), self._unnorm_distr.log_prob,
                                              self._noise_distr.log_prob)
 
-        return torch.cat((w_tilde_y, w_tilde_yp))
+        return torch.stack((w_tilde_y, w_tilde_yp), dim=-1)
 
     def _log_unnorm_w_ratio(self, y, y_samples):
-        """Log weights of y (NxD) and y_samples (NxJxD)"""
+        """Log weight ratio of y (NxD) and y_samples (NxJxD)"""
 
         return log_cond_unnorm_weights_ratio(
             y.reshape(y.size(0), 1, -1),

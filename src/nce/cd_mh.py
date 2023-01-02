@@ -98,10 +98,13 @@ class CdMHCrit(PartFnEstimator):
         return torch.exp(self._log_unnorm_w(y, y_samples))
 
     def _log_unnorm_w(self, y, y_samples):
-        w_tilde_y = log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), y_samples, self._unnorm_distr.log_prob, self._noise_distr.log_prob)
-        w_tilde_yp = log_cond_unnorm_weights(y_samples, y.reshape(y.size(0), 1, -1), self._unnorm_distr.log_prob, self._noise_distr.log_prob)
 
-        return torch.cat((w_tilde_y, w_tilde_yp))
+        w_tilde_y = log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), y_samples, self._unnorm_distr.log_prob,
+                                            self._noise_distr.log_prob)
+        w_tilde_yp = log_cond_unnorm_weights(y_samples, y.reshape(y.size(0), 1, -1), self._unnorm_distr.log_prob,
+                                             self._noise_distr.log_prob)
+
+        return torch.stack((w_tilde_y, w_tilde_yp), dim=-1)
 
     def _log_unnorm_w_ratio(self, y, y_samples):
         """Log weights of y (NxD) and y_samples (NxJxD)"""

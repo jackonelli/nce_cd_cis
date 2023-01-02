@@ -54,6 +54,7 @@ class PartFnEstimator(ABC):
 
     def sample_noise(self, num_samples: int, y: Tensor):
         # Note: num_samples = samples / obs.
+
         return self._noise_distr.sample(torch.Size((y.size(0), num_samples)), y.reshape(y.size(0), 1, -1))
 
 

@@ -27,19 +27,17 @@ class PersistentCondNceCrit(CdCnceCrit):
             idx is not None
         ), "PersistentCondNceCrit requires an idx tensor that is not None"
 
-        y_p = self.persistent_y(y, idx)
-        y_samples = self.sample_noise(self._num_neg, y_p)
+        y = y.unsqueeze(dim=1).repeat(1, self._num_neg, 1)
+
+        assert torch.allclose(y[0, 0, :], y[0, 1, :])
+
+        y_p = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
+        y_samples = self.sample_noise(1, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
-        log_w_tilde = self._log_unnorm_w(y, y_samples)
+        log_w_tilde = self._log_unnorm_w(y_p, y_samples)  # Shape (NxJ)x2
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
 
-        y = torch.repeat_interleave(y, self._num_neg, dim=0)
-        y_p = torch.repeat_interleave(y_p, self._num_neg, dim=0)
-
-        assert torch.allclose(y_samples[0, :, :],
-                              y_samples.reshape(-1, 1, y.shape[-1])[:self._num_neg, 0, :], rtol=1e-3)
-
-        return self.calculate_inner_crit_grad(y_p, y_samples.reshape(-1, 1, y.shape[-1]), y)
+        return self.calculate_inner_crit_grad(y_p, y_samples, y.reshape(-1, y.shape[-1]))
 
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y
@@ -50,16 +48,21 @@ class PersistentCondNceCrit(CdCnceCrit):
         per_y = torch.empty(actual_y.size())
         for n, per_n in enumerate(idx):
             per_n = per_n.item()
-            per_y[n, :] = (
+            per_y[n, :, :] = (
                 self._persistent_y[per_n]
                 if self._persistent_y.get(per_n) is not None
-                else actual_y[n, :]
+                else actual_y[n, :, :]
             )
         return per_y
 
     def _update_persistent_y(self, log_w_unnorm, y, y_samples, idx):
         """Sample new persistent y"""
+
         ys = concat_samples(y, y_samples)
-        for n, _ in enumerate(ys):
-            sampled_idx = Categorical(logits=log_w_unnorm[n, :]).sample()
-            self._persistent_y[idx[n].item()] = ys[n, sampled_idx]
+        assert ys.shape == (y.shape[0], 2, y.shape[1])
+        assert len(idx) == (y.shape[0] / self._num_neg)
+
+        for n, i in zip(range(len(idx)), range(0, y.shape[0], self._num_neg)):
+            self._persistent_y[idx[n].item()] = torch.stack([ys[i+j,
+                                                             Categorical(logits=log_w_unnorm[i+j, :]).sample(), :]
+                                                             for j in range(self._num_neg)], dim=0)
