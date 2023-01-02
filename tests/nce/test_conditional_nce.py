@@ -5,7 +5,7 @@ from src.models.gaussian_model import GaussianModel
 from src.noise_distr.normal import MultivariateNormal
 from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
 from src.nce.cnce import CondNceCrit
-from src.part_fn_utils import unnorm_weights, cond_unnorm_weights
+from src.part_fn_utils import unnorm_weights, cond_unnorm_weights_ratio
 
 from tests.nce.test_binary_nce import sample_postive_test_samples
 
@@ -60,7 +60,7 @@ class TestCondNce(unittest.TestCase):
         # Evaluate criterion
         y_samples = criterion.sample_noise(num_neg_samples, y)
 
-        w_tilde = criterion._unnorm_w(y, y_samples)
+        w_tilde = torch.exp(criterion._log_unnorm_w_ratio(y, y_samples))
         res = criterion.inner_crit(y, y_samples)
 
         # Reference calculations (check so that weights are calculated and used as intended)
@@ -102,14 +102,14 @@ class TestCondNce(unittest.TestCase):
 
         # Evaluate criterion
         y_samples = criterion.sample_noise(num_neg_samples, y)
-        w_tilde = criterion._unnorm_w(y, y_samples)
+        w_tilde = torch.exp(criterion._log_unnorm_w_ratio(y, y_samples))
         res = criterion.inner_crit(y, y_samples)
 
         # Reference calculations (check so that weights are calculated and used as intended)
 
         w_tilde_ref = torch.cat(
             [
-                cond_unnorm_weights(
+                cond_unnorm_weights_ratio(
                     y[i, :].reshape(1, -1),
                     y_samples[i, :, :],
                     true_distr.prob,

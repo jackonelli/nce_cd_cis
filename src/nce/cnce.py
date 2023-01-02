@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import log_cond_unnorm_weights
+from src.part_fn_utils import log_cond_unnorm_weights, log_cond_unnorm_weights_ratio
 
 
 class CondNceCrit(PartFnEstimator):
@@ -18,7 +18,7 @@ class CondNceCrit(PartFnEstimator):
 
     def inner_crit(self, y: Tensor, y_samples):
 
-        log_w_tilde = self._log_unnorm_w(y, y_samples)
+        log_w_tilde = self._log_unnorm_w_ratio(y, y_samples)
         return torch.log(1 + torch.exp(-log_w_tilde)).mean()
 
     def part_fn(self, y, y_samples) -> Tensor:
@@ -26,13 +26,20 @@ class CondNceCrit(PartFnEstimator):
         pass
 
     def _unnorm_w(self, y, y_samples) -> Tensor:
-
         return torch.exp(self._log_unnorm_w(y, y_samples))
 
-    def _log_unnorm_w(self, y, y_samples) -> Tensor:
+    def _log_unnorm_w(self, y, y_samples):
+        w_tilde_y = log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), y_samples, self._unnorm_distr.log_prob,
+                                            self._noise_distr.log_prob)
+        w_tilde_yp = log_cond_unnorm_weights(y_samples, y.reshape(y.size(0), 1, -1), self._unnorm_distr.log_prob,
+                                             self._noise_distr.log_prob)
+
+        return torch.cat((w_tilde_y, w_tilde_yp))
+
+    def _log_unnorm_w_ratio(self, y, y_samples) -> Tensor:
         """Log weights of y (NxD) and y_samples (NxJxD)"""
 
-        return log_cond_unnorm_weights(
+        return log_cond_unnorm_weights_ratio(
             y.reshape(y.size(0), 1, -1),
             y_samples,
             self._unnorm_distr.log_prob,

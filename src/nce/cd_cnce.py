@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import log_cond_unnorm_weights, concat_samples
+from src.part_fn_utils import log_cond_unnorm_weights, log_cond_unnorm_weights_ratio, concat_samples
 
 from src.noise_distr.base import NoiseDistr
 from src.models.base_model import BaseModel
@@ -53,7 +53,7 @@ class CdCnceCrit(PartFnEstimator):
             assert ys.shape == (y_0.size(0), 2, y_0.size(1))
 
             # Calculate and normalise weight ratios
-            log_w_y = self._log_unnorm_w(y_0, y_samples).detach()
+            log_w_y = self._log_unnorm_w_ratio(y_0, y_samples).detach()
             w_y = 1 / (1 + torch.exp(-log_w_y))
             w = torch.cat((w_y, 1 - w_y), dim=1)
 
@@ -97,12 +97,22 @@ class CdCnceCrit(PartFnEstimator):
         return torch.exp(self._log_unnorm_w(y, y_samples))
 
     def _log_unnorm_w(self, y, y_samples):
+        w_tilde_y = log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), y_samples, self._unnorm_distr.log_prob,
+                                            self._noise_distr.log_prob)
+        w_tilde_yp = log_cond_unnorm_weights(y_samples, y.reshape(y.size(0), 1, -1), self._unnorm_distr.log_prob,
+                                             self._noise_distr.log_prob)
+
+        return torch.cat((w_tilde_y, w_tilde_yp))
+
+    def _log_unnorm_w_ratio(self, y, y_samples):
         """Log weights of y (NxD) and y_samples (NxJxD)"""
 
-        return log_cond_unnorm_weights(
+        return log_cond_unnorm_weights_ratio(
             y.reshape(y.size(0), 1, -1),
             y_samples,
             self._unnorm_distr.log_prob,
             self._noise_distr.log_prob,
         )
+
+
 
