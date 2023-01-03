@@ -72,3 +72,4 @@ class PersistentCondNceCrit(CdCnceCrit):
             self._persistent_y[idx[n].item()] = torch.stack([ys[i+j,
                                                              Categorical(logits=log_w_unnorm[i+j, 0, :]).sample(), :]
                                                              for j in range(self._num_neg)], dim=0)
+

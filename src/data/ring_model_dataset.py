@@ -11,9 +11,12 @@ class RingModelDataset(Dataset):
     def __init__(self, sample_size, num_dims, mu, precision, root_dir, transform=None):
         """
         Args:
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
+            sample_size: (int) number of samples to generate
+            num_dims: (int) dimension of data
+            mu: (tensor float) model mean.
+            precision: (tensor float) model precision
+            root_dir: (string) directory for saving data
+            transform: (callable, optional) optional data transform
         """
         self.root_dir = root_dir
         self.transform = transform
@@ -22,10 +25,10 @@ class RingModelDataset(Dataset):
         self.y = generate_ring_data(
             num_samples=self.num_samples, num_dims=num_dims, mu=mu, precision=precision
         )
-        np.save(self.root_dir, self.y)
+        np.save(self.root_dir, self.y.numpy())
 
     def get_full_data(self):
-        return torch.tensor(self.y)
+        return self.y
 
     def __len__(self):
         return self.num_samples
@@ -44,10 +47,10 @@ def generate_ring_data(num_samples, num_dims, mu, precision):
     # Adapted from https://github.com/ciwanceylan/CNCE-matlab/blob/master/matlab/synthetic_data/bin/data_generation/genRingData.m
     # They use a cutoff of 0.1 for the radii
 
-    u = np.random.normal(size=(num_samples, num_dims))
-    u = u / np.sqrt(np.sum(u ** 2, axis=-1, keepdims=True))
+    u = torch.randn(size=(num_samples, num_dims))
+    u = u / torch.sqrt(torch.sum(u ** 2, dim=-1, keepdim=True))
 
-    r = np.sqrt(1 / precision) * np.random.normal(size=(num_samples, 1)) + mu
+    r = torch.sqrt(1 / precision) * torch.randn(size=(num_samples, 1)) + mu
 
     return u * r
 

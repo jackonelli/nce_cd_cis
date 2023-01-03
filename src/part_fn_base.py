@@ -57,6 +57,5 @@ class PartFnEstimator(ABC):
 
         return self._noise_distr.sample(torch.Size((y.size(0), num_samples)), y.reshape(y.size(0), 1, -1))
 
-
     def get_model(self):
         return self._unnorm_distr

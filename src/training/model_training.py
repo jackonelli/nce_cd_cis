@@ -9,13 +9,19 @@ def train_model(
     evaluation_metric,
     train_loader,
     save_dir,
-    neg_sample_size=10,
     num_epochs=100,
+    weight_decay=0.0,
+    lr=0.1,
+    decaying_lr=False,
     stopping_condition=no_stopping,
 ):
 
     model = criterion.get_model()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+
+    if decaying_lr:
+        # Linearly decaying lr (run it for half of training time)
+        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, total_iters=int((num_epochs * len(train_loader)) / 2))
 
     metric = []
     for epoch in range(num_epochs):
@@ -28,8 +34,17 @@ def train_model(
             # Calculate and assign gradients
             criterion.calculate_crit_grad(y, idx)
 
+            # TODO: might be a better way to add wd
+            if weight_decay > 0.0:
+                # Update model gradients with weight decay grad.
+                for param in model.parameters():
+                    param.grad += weight_decay * param.detach().clone()
+
             # Take gradient step
             optimizer.step()
+
+            if decaying_lr:
+                scheduler.step()
 
             # Note: now logging this for every iteration (and not epoch)
             metric.append(evaluation_metric(model).detach().numpy())
@@ -51,3 +66,4 @@ def train_model(
         print("Data saved")
 
     return metric[-1]
+
