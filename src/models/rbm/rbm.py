@@ -34,14 +34,16 @@ class Rbm(BaseModel):
         return torch.matmul(h, self.weights.t()) + self.vis_bias.t()
 
     def sample_hidden(self, y: Tensor):
-        p_h = torch.sigmoid(self.hidden_model(y))
-        sample_h = torch.distributions.bernoulli.Bernoulli(p_h).sample()
+        z = self.hidden_model(y)
+        p_h = torch.sigmoid(z)
+        sample_h = torch.distributions.bernoulli.Bernoulli(logits=z).sample()
 
         return p_h, sample_h
 
     def sample_visible(self, h: Tensor):
-        p_v = torch.sigmoid(self.visible_model(h))
-        sample_v = torch.distributions.bernoulli.Bernoulli(p_v).sample()
+        z = self.visible_model(h)
+        p_v = torch.sigmoid(z)
+        sample_v = torch.distributions.bernoulli.Bernoulli(logits=z).sample()
 
         return p_v, sample_v
 

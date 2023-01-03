@@ -21,7 +21,7 @@ def train_model(
 
     if decaying_lr:
         # Linearly decaying lr (run it for half of training time)
-        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, total_iters=int((num_epochs * len(train_loader)) / 2))
+        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, total_iters=int((num_epochs * len(train_loader)) / 2))  
 
     metric = []
     for epoch in range(num_epochs):
