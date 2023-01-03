@@ -37,7 +37,7 @@ class TestPersistentCnce(unittest.TestCase):
         """
         N, J, D = 2, 5, 3
         crit = PersistentCondNceCrit(None, None, J)
-        w_unnorm = torch.ones((N * J, 2), dtype=torch.long)
+        w_unnorm = torch.ones((N * J, 1, 2), dtype=torch.long)
         # Zero weight for the actual sample.
         w_unnorm[0, 0] = 0.0
         y_samples = torch.ones((N * J, 1, D))
@@ -57,7 +57,7 @@ class TestPersistentCnce(unittest.TestCase):
         """
         N, J, D = 2, 5, 1
         crit = PersistentCondNceCrit(None, None, J)
-        log_w_unnorm = torch.ones((N * J, 2))
+        log_w_unnorm = torch.ones((N * J, 1, 2))
         y_samples = torch.ones((N * J, 1, D))
         y, idx = torch.ones((N * J, D)), torch.zeros((N,), dtype=torch.long)
         crit._update_persistent_y(torch.log(log_w_unnorm), y, y_samples, idx)
@@ -73,7 +73,7 @@ class TestPersistentCnce(unittest.TestCase):
         """
         N, J, D = 1, 5, 2
         crit = PersistentCondNceCrit(None, None, J)
-        w_unnorm = torch.ones((N * J, 2))
+        w_unnorm = torch.ones((N * J, 1, 2))
         y_samples = torch.ones((N * J, 1, D))
         y, idx = torch.ones((N * J, D)), torch.zeros((N,), dtype=torch.long)
         crit._update_persistent_y(w_unnorm, y, y_samples, idx)
@@ -82,6 +82,4 @@ class TestPersistentCnce(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    t = TestPersistentCnce()
-    t.test_y_persistent_update()
-    #unittest.main()
+    unittest.main()

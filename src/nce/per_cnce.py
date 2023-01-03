@@ -27,6 +27,11 @@ class PersistentCondNceCrit(CdCnceCrit):
             idx is not None
         ), "PersistentCondNceCrit requires an idx tensor that is not None"
 
+
+        # TODO: The best would be to restructure y as a N*J x D matrix throughout this whole process (as in cd_cnce)
+        #   This is in line with having pairs (y_0, y_1). Maybe, we could then make a dict with keys idx_0, ..., idx_J
+        #   or similar
+
         y = y.unsqueeze(dim=1).repeat(1, self._num_neg, 1)
 
         assert torch.allclose(y[0, 0, :], y[0, 1, :])
@@ -34,7 +39,7 @@ class PersistentCondNceCrit(CdCnceCrit):
         y_p = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
         y_samples = self.sample_noise(1, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
-        log_w_tilde = self._log_unnorm_w(y_p, y_samples)  # Shape (NxJ)x2
+        log_w_tilde = self._log_unnorm_w(y_p, y_samples)  # Shape (NxJ)x1x2
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
 
         return self.calculate_inner_crit_grad(y_p, y_samples, y.reshape(-1, y.shape[-1]))
@@ -45,6 +50,7 @@ class PersistentCondNceCrit(CdCnceCrit):
         Access the last selected y or return the y sampled from p_d
         if no last selected y exists
         """
+
         per_y = torch.empty(actual_y.size())
         for n, per_n in enumerate(idx):
             per_n = per_n.item()
@@ -64,5 +70,5 @@ class PersistentCondNceCrit(CdCnceCrit):
 
         for n, i in zip(range(len(idx)), range(0, y.shape[0], self._num_neg)):
             self._persistent_y[idx[n].item()] = torch.stack([ys[i+j,
-                                                             Categorical(logits=log_w_unnorm[i+j, :]).sample(), :]
+                                                             Categorical(logits=log_w_unnorm[i+j, 0, :]).sample(), :]
                                                              for j in range(self._num_neg)], dim=0)
