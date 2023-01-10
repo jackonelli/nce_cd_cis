@@ -1,4 +1,4 @@
-"""Normal (Gaussian) noise distributions"""
+"""Normal (Gaussian) proposal/noise distributions"""
 import torch
 import numpy as np
 from src.noise_distr.base import NoiseDistr

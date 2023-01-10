@@ -11,9 +11,9 @@ class DiagGaussianModel(BaseModel):
 
         self.mu = torch.nn.Parameter(mu.clone(), requires_grad=True)
         diag_elements = torch.diagonal(cov.clone())
-        assert torch.allclose(
-            cov - torch.diag(diag_elements), torch.zeros(cov.size())
-        ), "Expects diagonal cov. matrix"
+        assert diag_check(
+            cov
+        ), f"{self.__class__.__name__} expects diagonal cov. matrix"
         self._sqrt_diagonal = torch.nn.Parameter(
             torch.sqrt(diag_elements), requires_grad=True
         )
@@ -38,3 +38,8 @@ class GaussianModel(BaseModel):
 
     def log_prob(self, y: Tensor):
         return torch.distributions.MultivariateNormal(self.mu, self.cov).log_prob(y)
+
+
+def diag_check(cov: Tensor) -> bool:
+    diag_elements = torch.diagonal(cov.clone())
+    return torch.allclose(cov - torch.diag(diag_elements), torch.zeros(cov.size()))
