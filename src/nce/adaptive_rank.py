@@ -26,7 +26,8 @@ class AdaptiveRankKernel(PartFnEstimator):
         return (-torch.log(w_tilde[:, 0]) + torch.log(w_tilde.sum(dim=1))).mean()
 
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
-        y_samples = self.sample_noise(self._num_neg, y)
+        with torch.no_grad():
+                y_samples = self.sample_noise(self._num_neg, y)
         return self.calculate_inner_crit_grad(y, y_samples)
 
     def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor):
