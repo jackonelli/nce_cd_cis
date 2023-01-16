@@ -6,10 +6,10 @@ from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 
 
-class MnistDataset(Dataset):
+class MnistDatasetWLabs(Dataset):
     """MNIST dataset."""
 
-    def __init__(self, train=True, root_dir='./data', transform=None):
+    def __init__(self, train=True, root_dir='./data', transform=None, num_classes=10):
         """
         Args:
             train: (bool) if loading training (or test) data.
@@ -20,8 +20,15 @@ class MnistDataset(Dataset):
         self.transform = transform
 
         set = torchvision.datasets.MNIST(root=root_dir, train=train, download=True)
-        self.y = set.data.reshape(-1, 28**2) / 255
-        self.targets = set.targets
+
+        class_inds = (set.targets == 0)
+
+        if num_classes > 1:
+            for i in range(1, num_classes):
+                class_inds += (set.targets == i)
+
+        self.targets = torch.nn.functional.one_hot(set.targets[class_inds], num_classes=num_classes).float()
+        self.y = set.data[class_inds, :, :].reshape(-1, 28**2) / 255
         self.num_samples = self.y.shape[0]
 
     def get_full_data(self):
@@ -33,6 +40,7 @@ class MnistDataset(Dataset):
     def __getitem__(self, idx):
 
         sample = self.y[idx, :]
+        label = self.targets[idx, :]
 
         if self.transform:
             sample = self.transform(sample)
@@ -43,13 +51,13 @@ class MnistDataset(Dataset):
         img[img >= 0.5] = 1.0
         img[img < 0.5] = 0.0
 
-        return img, idx
+        return (img, label), idx
 
 
 def plot_mnist_example():
     """Check so that everything loads correctly"""
 
-    dataset = MnistDataset(
+    dataset = MnistDatasetWLabs(
         root_dir="datasets",
     )
 
@@ -58,7 +66,7 @@ def plot_mnist_example():
                                              shuffle=True,
                                              num_workers=0)
     dataiter = iter(dataloader)
-    images, _ = next(dataiter)
+    images, _, _ = next(dataiter)
 
     # show images
     plt.imshow(np.transpose(torchvision.utils.make_grid(images.reshape(-1, 1, 28, 28)).numpy(), (1, 2, 0)))

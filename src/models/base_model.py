@@ -18,7 +18,6 @@ class BaseModel(torch.nn.Module):
 
     def grad_log_prob(self, y: Tensor, weights=torch.tensor(1)):
         """ Calculate (weighted) gradient of log probability """
-
         self.clear_gradients()
 
         l = (weights * self.log_prob(y)).mean()

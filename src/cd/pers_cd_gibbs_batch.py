@@ -1,10 +1,4 @@
-"""Persistent Noise Contrastive Estimation (NCE) for the ranking criterion
-
-Inspired by Contrastive Divergence (CD) a persistent y is saved from the previous iteration.
-
-The method works like CD with Gibbs (`CdGibbsCrit`) but it has a persistent sample yp
-that is used to condition on when sampling noisy samples (for RBMs mainly).
-"""
+"""Persistent Contrastive divergence (CD) with Gibbs sampling (for RBMs) """
 
 from typing import Optional
 import torch
@@ -15,7 +9,7 @@ from src.noise_distr.base import NoiseDistr
 from src.cd.cd_gibbs import CdGibbsCrit
 
 
-class PersistentCdGibbsCrit(CdGibbsCrit):
+class PersistentCdGibbsCritBatch(CdGibbsCrit):
     """Persistent CD crit with Gibbs sampling"""
 
     def __init__(self, unnorm_distr: Rbm, noise_distr: NoiseDistr, num_neg_samples: int):
@@ -23,16 +17,20 @@ class PersistentCdGibbsCrit(CdGibbsCrit):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
         self._persistent_y = dict()
 
-    def crit(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
+    def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]):
         assert (
             idx is not None
         ), "PersistentCdGibbsCrit requires an idx tensor that is not None"
+
+        # TODO: this is a bit of an override, and should be made nice if we keep it
+        idx = torch.arange(start=0, end=y.shape[0])
+
         y_p = self.persistent_y(y, idx)
-        y_sample = self._unnorm_distr.sample(y_p, k=self.mcmc_steps)
+        h, y_sample, h_sample = self.gibbs_sample(y_p)
 
         self._update_persistent_y(y_p, idx)
 
-        return self.inner_crit(y_p, y_sample)
+        return self.calculate_inner_crit_grad((y_p, h), (y_sample, h_sample))
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ with CD

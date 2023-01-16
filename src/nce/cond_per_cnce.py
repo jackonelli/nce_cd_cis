@@ -1,4 +1,4 @@
-"""Persistent Conditional Noise Contrastive Estimation (CNCE)
+"""Persistent Conditional Noise Contrastive Estimation (CNCE) for conditional models (RBM)
 
 Inspired by Contrastive Divergence (CD) a persistent y is saved from the previous iteration.
 
@@ -10,11 +10,11 @@ import torch
 from torch import Tensor
 from torch.distributions import Categorical
 
-from src.nce.cd_cnce import CdCnceCrit
-from src.part_fn_utils import concat_samples, log_cond_unnorm_weights
+from src.nce.cond_cd_cnce import CondCdCnceCrit
+from src.part_fn_utils import concat_samples
 
 
-class PersistentCondNceCrit(CdCnceCrit):
+class CondPersistentCnceCrit(CondCdCnceCrit):
     """Persistent cond. NCE crit"""
 
     def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
@@ -27,22 +27,36 @@ class PersistentCondNceCrit(CdCnceCrit):
             idx is not None
         ), "PersistentCondNceCrit requires an idx tensor that is not None"
 
-
         # TODO: The best would be to restructure y as a N*J x D matrix throughout this whole process (as in cd_cnce)
         #   This is in line with having pairs (y_0, y_1). Maybe, we could then make a dict with keys idx_0, ..., idx_J
         #   or similar
 
+        y, x = y
         y = y.unsqueeze(dim=1).repeat(1, self._num_neg, 1)
+        x = x.unsqueeze(dim=1).repeat(1, self._num_neg, 1).reshape(-1, x.shape[-1])
 
         assert torch.allclose(y[0, 0, :], y[0, 1, :])
 
         y_p = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
+
         y_samples = self.sample_noise(1, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
-        log_w_tilde = self._log_unnorm_w(y_p, y_samples)  # Shape (NxJ)x1x2
+        log_w_tilde = self._log_unnorm_w((y_p, x), y_samples)  # Shape (NxJ)x1x2
+
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
 
-        return self.calculate_inner_crit_grad(y_p, y_samples, y.reshape(-1, y.shape[-1]))
+
+        # y_pt = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
+        #
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        # import torchvision
+        # plt.imshow(
+        #     np.transpose(torchvision.utils.make_grid(y_pt.reshape(-1, 1, 28, 28), nrow=4).numpy(), (1, 2, 0)))
+        #
+        # plt.show()
+
+        return self.calculate_inner_crit_grad((y_p, x), y_samples, (y.reshape(-1, y.shape[-1]), x))
 
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y

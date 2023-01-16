@@ -15,6 +15,9 @@ class Rbm(BaseModel):
         self.vis_bias = torch.nn.Parameter(vis_bias, requires_grad=True)
         self.hidden_bias = torch.nn.Parameter(hidden_bias, requires_grad=True)
 
+        self.p_h = torch.zeros((self.weights.shape[-1]))
+        self.h = torch.zeros((self.weights.shape[-1]))
+
     def log_prob(self, y: Tensor) -> Tensor:
         return - self.energy(y)
 
@@ -36,25 +39,38 @@ class Rbm(BaseModel):
     def sample_hidden(self, y: Tensor):
         z = self.hidden_model(y)
         p_h = torch.sigmoid(z)
-        sample_h = torch.distributions.bernoulli.Bernoulli(logits=z).sample()
+        h = torch.distributions.bernoulli.Bernoulli(logits=z).sample()
 
-        return p_h, sample_h
+        self.p_h = p_h
+        self.h = h
+
+        return p_h, h
 
     def sample_visible(self, h: Tensor):
         z = self.visible_model(h)
         p_v = torch.sigmoid(z)
-        sample_v = torch.distributions.bernoulli.Bernoulli(logits=z).sample()
+        v = torch.distributions.bernoulli.Bernoulli(logits=z).sample()
 
-        return p_v, sample_v
+        return p_v, v
+
+    def sample_from_hidden(self, h: Tensor, k=1):
+        """Sample from distribution"""
+
+        p_v, v = self.sample_visible(h)
+        for _ in range(k - 1):
+            _, h = self.sample_hidden(v)
+            p_v, v = self.sample_visible(h)
+
+        return p_v, v
 
     def sample(self, y: Tensor, k=1):
         """Sample from distribution"""
 
-        v = y.clone()
+        p_v, v = y.clone(), y.clone()
         for _ in range(k):
             _, h = self.sample_hidden(v)
-            _, v = self.sample_visible(h)
+            p_v, v = self.sample_visible(h)
 
-        return v
+        return p_v, v
 
 

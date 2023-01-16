@@ -90,6 +90,48 @@ def log_cond_unnorm_weights_ratio(
     )
 
 
+def cond_log_cond_unnorm_weights(
+        y: Tensor, x: Tensor, yp: Tensor, log_unnorm_distr, log_noise_distr
+) -> Tensor:
+    """Compute log weights log w(y|yp, x) = log_p_tilde_theta(y|x) / log_p_n(y| yp) for cond. model and noise distr.
+
+    Args:
+        y (tensor): Sampled y, extended by the actual sample, shape (N, J+1, D)
+        x (tensor): Extra information for y (i.e. class label), shape (N, C)
+        yp (tensor): Cond. value, shape (N, D)
+        unnorm_distr: unnorm pdf: p: R^NxD -> [0, inf)^N
+        noise_distr: pdf: p_n: R^NxD -> [0, inf)^N
+    Returns:
+        w_tilde (tensor): log unnorm. weights for all y, shape (N,)
+    """
+
+    return (log_unnorm_distr((y, x)) - log_noise_distr(y, yp))
+
+def cond_log_cond_unnorm_weights_ratio(
+        y: Tensor, x: Tensor, yp: Tensor, log_unnorm_distr, log_noise_distr
+) -> Tensor:
+    """Compute log weights ratio log w(y|yp, x)/w(yp|y, x) with w(y|yp, x) = p_tilde_theta(y | x) / p_n(y| yp) for
+    cond. model and noise distr.
+
+    Args:
+        y (tensor): Sampled y, extended by the actual sample, shape (N, J+1, D)
+        x (tensor): Extra information for y (i.e. class label), shape (N, C)
+        yp (tensor): Cond. value, shape (N, D)
+        unnorm_distr: unnorm pdf: p: R^NxD -> [0, inf)^N
+        noise_distr: pdf: p_n: R^NxD -> [0, inf)^N
+    Returns:
+        log_ratio (tensor): log of ratio of unnorm. weights for all y, shape (N,)
+    """
+    return (
+            cond_log_cond_unnorm_weights(y, x, yp, log_unnorm_distr, log_noise_distr)
+            - cond_log_cond_unnorm_weights(yp, x, y, log_unnorm_distr, log_noise_distr)
+    )
+
 def norm_weights(unnorm_weights: Tensor) -> Tensor:
     """Compute self-normalised weight w(y) = w_tilde(y) / sum_j w_tilde(y_j) for all y_j"""
     return unnorm_weights / unnorm_weights.sum()
+
+
+def outer_product(v, h):
+    """Compute outer product of 2D matrices"""
+    return v.reshape(v.shape[0], -1, 1) * h.reshape(h.shape[0], 1, -1)

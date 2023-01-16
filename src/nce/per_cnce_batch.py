@@ -14,7 +14,7 @@ from src.nce.cd_cnce import CdCnceCrit
 from src.part_fn_utils import concat_samples, log_cond_unnorm_weights
 
 
-class PersistentCondNceCrit(CdCnceCrit):
+class PersistentCondNceCritBatch(CdCnceCrit):
     """Persistent cond. NCE crit"""
 
     def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
@@ -27,12 +27,14 @@ class PersistentCondNceCrit(CdCnceCrit):
             idx is not None
         ), "PersistentCondNceCrit requires an idx tensor that is not None"
 
-
         # TODO: The best would be to restructure y as a N*J x D matrix throughout this whole process (as in cd_cnce)
         #   This is in line with having pairs (y_0, y_1). Maybe, we could then make a dict with keys idx_0, ..., idx_J
         #   or similar
 
         y = y.unsqueeze(dim=1).repeat(1, self._num_neg, 1)
+
+        # TODO: this is a bit of an override, and should be made nice if we keep it
+        idx = torch.arange(start=0, end=y.shape[0])
 
         assert torch.allclose(y[0, 0, :], y[0, 1, :])
 
@@ -54,7 +56,6 @@ class PersistentCondNceCrit(CdCnceCrit):
         per_y = torch.empty(actual_y.size())
         for n, per_n in enumerate(idx):
             per_n = per_n.item()
-
             per_y[n, :, :] = (
                 self._persistent_y[per_n]
                 if self._persistent_y.get(per_n) is not None
