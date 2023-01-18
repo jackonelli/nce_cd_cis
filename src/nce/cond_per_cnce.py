@@ -45,18 +45,18 @@ class CondPersistentCnceCrit(CondCdCnceCrit):
 
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
 
-
-        # y_pt = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
-        #
-        # import matplotlib.pyplot as plt
-        # import numpy as np
-        # import torchvision
-        # plt.imshow(
-        #     np.transpose(torchvision.utils.make_grid(y_pt.reshape(-1, 1, 28, 28), nrow=4).numpy(), (1, 2, 0)))
-        #
-        # plt.show()
-
         return self.calculate_inner_crit_grad((y_p, x), y_samples, (y.reshape(-1, y.shape[-1]), x))
+
+    # def log_part_fn(self, y: tuple, idx: Optional[Tensor]) -> Tensor:
+    #
+    #     y, x = y
+    #     y = y.unsqueeze(dim=1).repeat(1, self._num_neg, 1)
+    #     x = x.unsqueeze(dim=1).repeat(1, self._num_neg, 1).reshape(-1, x.shape[-1])
+    #
+    #     y_p = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
+    #     y_samples = self.sample_noise(1, y_p)
+    #
+    #     return self.inner_log_part_fn((y_p, x), y_samples)
 
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y
@@ -87,4 +87,6 @@ class CondPersistentCnceCrit(CondCdCnceCrit):
             self._persistent_y[idx[n].item()] = torch.stack([ys[i+j,
                                                              Categorical(logits=log_w_unnorm[i+j, 0, :]).sample(), :]
                                                              for j in range(self._num_neg)], dim=0)
+
+
 

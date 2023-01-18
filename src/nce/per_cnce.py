@@ -44,6 +44,14 @@ class PersistentCondNceCrit(CdCnceCrit):
 
         return self.calculate_inner_crit_grad(y_p, y_samples, y.reshape(-1, y.shape[-1]))
 
+    def log_part_fn(self, y: tuple) -> Tensor:
+        y, x = y
+        y = torch.repeat_interleave(y, self._num_neg, dim=0)
+        x = torch.repeat_interleave(x, self._num_neg, dim=0)
+        y_samples = self.sample_noise(1, y)
+
+        return self.inner_crit((y, x), y_samples)
+
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y
 

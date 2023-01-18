@@ -77,17 +77,42 @@ class CondCdCnceCrit(CdCnceCrit):
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y
-                sample_inds = torch.distributions.bernoulli.Bernoulli(
-                    probs=1 - w_y
-                ).sample()
-                y_0 = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
-
+                y_0, y_samples = self._resample(ys, w_y)
                 assert y_0.shape == y.shape
 
-                # Sample neg. samples
-                y_samples = self.sample_noise(1, y_0)
-
         self._unnorm_distr.set_gradients(grads)
+
+    def log_part_fn(self, y: tuple, _idx: Optional[Tensor]) -> Tensor:
+        y, x = y
+        y = torch.repeat_interleave(y, self._num_neg, dim=0)
+        x = torch.repeat_interleave(x, self._num_neg, dim=0)
+        y_samples = self.sample_noise(1, y)
+
+        return self.inner_log_part_fn((y, x), y_samples)
+
+    def inner_log_part_fn(self, y: tuple, y_samples) -> Tensor:
+
+        y, x = y
+        y_0 = y.clone()
+
+        log_z = 0
+        for t in range(self.mcmc_steps):
+
+            ys = concat_samples(y_0, y_samples)
+            assert ys.shape == (y.shape[0], 2, y.shape[1])
+
+            log_w_y = self._log_unnorm_w_ratio((y_0, x), y_samples)
+            w_y = 1 / (1 + torch.exp(-log_w_y))
+            w = torch.cat((w_y, 1 - w_y), dim=1)
+
+            log_z += ((w * self._unnorm_distr.log_prob((ys, x.unsqueeze(dim=1)))).sum(dim=1)).mean()  # TODO: Normalised weights, right?
+
+            if (t + 1) < self.mcmc_steps:
+                # Sample y
+                y_0, y_samples = self._resample(ys, w_y)
+                assert y_0.shape == y.shape
+
+        return log_z / torch.tensor(self.mcmc_steps)
 
     def _log_unnorm_w(self, y, y_samples):
         # "Log weights of y (NxD) and y_samples (NxJxD)"
@@ -114,4 +139,8 @@ class CondCdCnceCrit(CdCnceCrit):
                 self._unnorm_distr.log_prob,
                 self._noise_distr.log_prob)
 
-    def 
+
+
+
+
+

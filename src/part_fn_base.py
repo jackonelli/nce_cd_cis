@@ -17,8 +17,13 @@ class PartFnEstimator(ABC):
         self._noise_distr = noise_distr
         self._num_neg = num_neg_samples
 
-    def log_part_fn(self, y, y_samples) -> Tensor:
-        return torch.log(self.log_part_fn(y, y_samples))
+    def log_part_fn(self, y, _idx: Optional[Tensor]) -> Tensor:
+        y_samples = self.sample_noise(self._num_neg, y.reshape(y.size(0), 1, -1))
+
+        return self.inner_log_part_fn(y, y_samples)
+
+    def inner_log_part_fn(self, y, y_samples) -> Tensor:
+        return torch.log(self.part_fn(y, y_samples))
 
     def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
         y_samples = self.sample_noise(self._num_neg, y.reshape(y.size(0), 1, -1))
@@ -48,6 +53,12 @@ class PartFnEstimator(ABC):
     def get_model_gradients(self):
         return self._unnorm_distr.get_gradients()
 
+    def outer_part_fn(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
+        y_samples = self.sample_noise(self._num_neg, y.reshape(y.size(0), 1, -1))
+
+        return self.inner_crit(y, y_samples)
+
+
     @abstractmethod
     def part_fn(self, y, y_samples) -> Tensor:
         pass
@@ -59,3 +70,5 @@ class PartFnEstimator(ABC):
 
     def get_model(self):
         return self._unnorm_distr
+
+

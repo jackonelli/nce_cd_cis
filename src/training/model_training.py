@@ -13,6 +13,7 @@ def train_model(
     weight_decay=0.0,
     lr=0.1,
     decaying_lr=False,
+    num_epochs_decay=100,
     stopping_condition=no_stopping,
     Adam=False,
 ):
@@ -26,7 +27,7 @@ def train_model(
 
     if decaying_lr:
         # Linearly decaying lr (run it for half of training time)
-        num_epochs_decay = 100 if num_epochs > 100 else num_epochs
+        num_epochs_decay = num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
         scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1,
                                                       total_iters=int((num_epochs_decay * len(train_loader))))
 
@@ -56,7 +57,7 @@ def train_model(
             # Note: now logging this for every iteration (and not epoch)
             metric.append(evaluation_metric(model).detach().numpy())
 
-        if np.mod(epoch + 1, 1) == 0:
+        if np.mod(epoch + 1, 10) == 0:
             print('[%d] evaluation metric: %.3f' % (epoch + 1, metric[-1]))
             torch.save(model.state_dict(), "res/model_" + str(epoch + 1))
 
@@ -74,4 +75,7 @@ def train_model(
         print("Data saved")
 
     return metric[-1]
+
+
+
 

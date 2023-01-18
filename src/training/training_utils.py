@@ -64,3 +64,21 @@ def add_to_npy_file(file_name, addition):
 def remove_file(file_name):
     if os.path.exists(Path(file_name)):
         os.remove(file_name)
+
+
+def normalised_log_likelihood(data_loader, criterion):
+
+    model = criterion.get_model()
+
+    #with torch.no_grad: # or put model in eval mode
+    log_p_tilde = 0
+    log_z = 0
+    N = 0
+    for i, (y, idx) in enumerate(data_loader, 0):
+        log_p_tilde += model.log_prob(y).sum()
+        log_z += criterion.outer_part_fn(y) * y.shape[0]
+
+        N += y.shape[0]
+
+    return log_p_tilde - log_z / N
+

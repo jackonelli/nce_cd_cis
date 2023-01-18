@@ -77,17 +77,49 @@ class CdCnceCrit(PartFnEstimator):
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y
-                sample_inds = torch.distributions.bernoulli.Bernoulli(
-                    probs=1 - w_y
-                ).sample()
-                y_0 = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
-
+                y_0, y_samples = self._resample(ys, w_y)
                 assert y_0.shape == y.shape
 
-                # Sample neg. samples
-                y_samples = self.sample_noise(1, y_0)
-
         self._unnorm_distr.set_gradients(grads)
+
+    def _resample(self, ys, w_y):
+        # Sample y
+        sample_inds = torch.distributions.bernoulli.Bernoulli(
+            probs=1 - w_y
+        ).sample()
+        y = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
+
+        # Sample neg. samples
+        y_samples = self.sample_noise(1, y)
+
+        return y, y_samples
+
+    def log_part_fn(self, y, _idx: Optional[Tensor]) -> Tensor:
+        y_samples = self.sample_noise(self._num_neg, y.reshape(y.size(0), 1, -1))
+
+        return self.inner_log_part_fn(y, y_samples)
+
+    def inner_log_part_fn(self, y, y_samples) -> Tensor:
+
+        y_0 = y.clone()
+        log_z = 0
+        for t in range(self.mcmc_steps):
+
+            ys = concat_samples(y_0, y_samples)
+            assert ys.shape == (y.shape[0], 2, y.shape[1])
+
+            log_w_y = self._log_unnorm_w_ratio(y_0, y_samples)
+            w_y = 1 / (1 + torch.exp(-log_w_y))
+            w = torch.cat((w_y, 1 - w_y), dim=1)
+
+            log_z += ((w * self._unnorm_distr.log_prob(ys)).sum(dim=1)).mean()   # TODO: Normalised weights, right?
+
+            if (t + 1) < self.mcmc_steps:
+                # Sample y
+                y_0, y_samples = self._resample(ys, w_y)
+                assert y_0.shape == y.shape
+
+        return log_z / torch.tensor(self.mcmc_steps)
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ"""
@@ -116,6 +148,9 @@ class CdCnceCrit(PartFnEstimator):
             self._unnorm_distr.log_prob,
             self._noise_distr.log_prob,
         )
+
+
+
 
 
 
