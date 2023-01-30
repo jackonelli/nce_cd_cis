@@ -1,3 +1,4 @@
+from typing import Optional
 import torch
 from torch import Tensor
 
@@ -8,7 +9,7 @@ class BaseModel(torch.nn.Module):
 
         return torch.exp(self.log_prob(y))
 
-    def log_prob(self, y: Tensor) -> Tensor:
+    def log_prob(self, y: Tensor, x: Optional[Tensor] = None) -> Tensor:
         """Compute log of unnorm prob: log p_tilde(y)"""
         pass
 

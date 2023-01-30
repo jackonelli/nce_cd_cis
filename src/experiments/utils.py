@@ -1,16 +1,81 @@
+"""Experiment utilities"""
+from pathlib import Path
+from typing import List
 import torch
+from torch import Tensor
 from scipy.linalg import sqrtm
 import matplotlib.pyplot as plt
+import numpy as np
 
 
-def generate_tikz_data_table(file_path, data, header):
-    assert len(header) == data.size(1), "Num columns and labels mismatch."
+def generate_bounds(data, lower_pctl=25, upper_pctl=75):
+    assert lower_pctl < upper_pctl
+    median, lower, upper = (
+        np.median(data, axis=0),
+        np.percentile(data, lower_pctl, axis=0),
+        np.percentile(data, upper_pctl, axis=0),
+    )
+    return median, lower, upper
+
+
+def table_data(median, lower, upper):
+    iters = np.arange(1, len(median) + 1)
+    err_low = median - lower
+    err_upp = upper - median
+    return iters, median, err_low, err_upp
+
+
+def skip_list_item(lst, nth: int):
+    """Skip every nth element in list"""
+    return list(
+        map(
+            lambda val: val[1],
+            filter(lambda idx_row: (idx_row[0] % nth == 0), enumerate(lst)),
+        )
+    )
+
+
+def format_table(iters, median, err_low, err_upp, header):
+    """Format tikz table
+
+    Args:
+        data: rows with samples
+        header: list of strings describing the columns (e.g. x, y, z)
+    """
     str_ = [",".join(header) + "\n"]
-    for row in data:
-        str_.append(",".join(map(str, row.numpy())) + "\n")
+    for it, med, low, upp in zip(iters, median, err_low, err_upp):
+        str_.append(f"{it},{med},{low},{upp}\n")
+    return str_
 
-    with open(file_path, "w") as f:
-        f.writelines(str_)
+
+def process_plot_data(data: Tensor, max_iters: int, res: int):
+    """Generate seq. for x-axis and modify resolution
+    Args:
+        data: (N, D) N data points, D columns (e.g. D=3: p_d(x), p_theta(x), q_phi(x))
+        max_iters: must be smaller than N.
+        res: number of steps between data points.
+    """
+    iters = torch.arange(start=0, end=max_iters, step=res)
+    data = data[iters, :]
+    data = torch.column_stack((iters, data))
+    data[:, 0] += 1
+    return data
+
+
+def nan_pad(data: Tensor, length: int):
+    """Pad tensor with NaN
+
+    Args:
+        data: shape (N, )
+        length: length >= N
+    """
+    assert data.dim() == 1, "Expects 1D array, with shape (N, )"
+    N = data.size(0)
+    assert length >= N, "Padding length must be larger than data length"
+    padded = torch.empty((length,))
+    padded[:N] = data
+    padded[N:] = torch.nan
+    return padded
 
 
 def mvn_curve(mu, cov, std=1, res=100):

@@ -1,4 +1,6 @@
-"""This code generates the figure 1"""
+"""This code generates the data for the
+"Adaptive proposal distribution" toy example
+"""
 
 from pathlib import Path
 import argparse
@@ -22,125 +24,164 @@ from src.training.model_training import (
 from src.data.normal import MultivariateNormalData
 from src.training.training_utils import (
     MvnKlDiv,
-    no_change_stopping_condition,
+    no_stopping,
 )
-from src.experiments.utils import generate_tikz_data_table
+from src.experiments.utils import generate_bounds, table_data, format_table
+
+D, N, J = 5, 128, 10  # Dimension, Num. data samples, Num neg. samples
+# Initial values for p_theta (model distribution)
+INIT_MU = 4.0 * torch.ones(
+    D,
+)
+INIT_COV = 4.0 * torch.eye(D)
+
+MU_STAR = torch.zeros(
+    D,
+)
+COV_STAR = torch.eye(D)
+BATCH_SIZE = 32
 
 
 def main(args):
-    D, N, J = 5, 100, 10  # Dimension, Num. data samples, Num neg. samples
-    mu_star, cov_star = (
-        torch.ones(
-            D,
-        ),
-        torch.eye(D),
-    )
-
-    # Data distribution
-    p_d = MultivariateNormal(mu_star, cov_star)
-    # Model distribution
-    init_mu, init_cov = (
-        5.0
-        * torch.ones(
-            D,
-        ),
-        4.0 * torch.eye(D),
-    )
+    if args.save_dir is not None:
+        assert args.save_dir.exists(), f"Save dir. '{args.save_dir}' does not exist."
 
     # Optimisation
     num_epochs = args.num_epochs
-    batch_size = N
-    learn_rate = args.base_lr * batch_size ** 0.5
+    learn_rate = args.base_lr * BATCH_SIZE ** 0.5
+    # Options for decaying learning rate.
+    scheduler_opts = (num_epochs * (N // BATCH_SIZE), 0.01)
 
     # Metrics
-    kl_div = MvnKlDiv(p_d.mu, p_d.cov).metric
-    metric = kl_div
+    metric = MvnKlDiv(MU_STAR, COV_STAR).metric
 
-    # q = p_d
-    p_t_data_noise = DiagGaussianModel(init_mu.clone(), init_cov.clone())
-    print("Training with q = p_d")
-
-    training_data = MultivariateNormalData(mu_star, cov_star, N)
+    training_data = MultivariateNormalData(MU_STAR, COV_STAR, N)
     train_loader = torch.utils.data.DataLoader(
-        training_data, batch_size=batch_size, shuffle=True
-    )
-    _, p_d_metrics = train_model(
-        NceRankCrit(p_t_data_noise, p_d, J),
-        metric,
-        train_loader,
-        None,
-        neg_sample_size=J,
-        num_epochs=num_epochs,
-        stopping_condition=no_change_stopping_condition,
-        lr=learn_rate,
-    )
-    # q = p_theta
-    p_t_model_noise = DiagGaussianModel(init_mu.clone(), init_cov.clone())
-    print("Training with q = p_theta")
-
-    _, p_t_metrics = train_model_model_proposal(
-        p_t_model_noise,
-        NceRankCrit,
-        metric,
-        train_loader,
-        None,
-        J,
-        num_epochs,
-        lr=learn_rate,
-        stopping_condition=no_change_stopping_condition,
+        training_data, batch_size=BATCH_SIZE, shuffle=True
     )
 
-    # Adaptive model
-    p_theta = DiagGaussianModel(init_mu.clone(), init_cov.clone())
-    q_phi = AdaptiveDiagGaussianModel(mu_star.clone(), cov_star.clone())
-    p_crit = NceRankCrit(p_theta, q_phi, J)
-    q_crit = AdaptiveRankKernel(p_theta, q_phi, J)
+    p_d_metrics = torch.empty((args.num_runs, (N // BATCH_SIZE * args.num_epochs) + 1))
+    p_t_metrics = torch.empty(p_d_metrics.size())
+    q_phi_metrics = torch.empty(p_d_metrics.size())
+    for m in range(args.num_runs):
+        print(f"Run {m+1}/{args.num_runs}")
+        p_d, p_t_data_noise, p_t_model_noise = create_distr()
+        # q = q_phi
+        p_theta = DiagGaussianModel(INIT_MU.clone(), INIT_COV.clone())
+        # Note: we initialise q = p_d to make it a fair comparison.
+        q_phi = AdaptiveDiagGaussianModel(MU_STAR.clone(), COV_STAR.clone())
+        p_crit = NceRankCrit(p_theta, q_phi, J)
+        q_crit = AdaptiveRankKernel(p_theta, q_phi, J)
 
-    _, q_phi_metrics = train_model_adaptive_proposal(
-        p_theta,
-        q_phi,
-        p_crit,
-        q_crit,
-        metric,
-        train_loader,
-        None,
-        neg_sample_size=J,
-        num_epochs=num_epochs,
-        stopping_condition=no_change_stopping_condition,
-        lr=learn_rate,
-    )
+        _, q_phi_metrics[m, :] = train_model_adaptive_proposal(
+            p_theta,
+            q_phi,
+            p_crit,
+            q_crit,
+            metric,
+            train_loader,
+            None,
+            neg_sample_size=J,
+            num_epochs=num_epochs,
+            stopping_condition=no_stopping,
+            lr=learn_rate,
+            scheduler_opts=scheduler_opts,
+        )
+        # # q = p_d
+        # _, p_d_metrics[m, :] = train_model(
+        #     NceRankCrit(p_t_data_noise, p_d, J),
+        #     metric,
+        #     train_loader,
+        #     None,
+        #     neg_sample_size=J,
+        #     num_epochs=num_epochs,
+        #     stopping_condition=no_stopping,
+        #     lr=learn_rate,
+        #     scheduler_opts=scheduler_opts,
+        # )
+
+        # # q = p_theta
+        # _, p_t_metrics[m, :] = train_model_model_proposal(
+        #     p_t_model_noise,
+        #     NceRankCrit,
+        #     metric,
+        #     train_loader,
+        #     None,
+        #     J,
+        #     num_epochs,
+        #     lr=learn_rate,
+        #     stopping_condition=no_stopping,
+        #     scheduler_opts=scheduler_opts,
+        # )
+
+        # q = q_phi
+        p_theta = DiagGaussianModel(INIT_MU.clone(), INIT_COV.clone())
+        # Note: we initialise q = p_d to make it a fair comparison.
+        q_phi = AdaptiveDiagGaussianModel(MU_STAR.clone(), COV_STAR.clone())
+        p_crit = NceRankCrit(p_theta, q_phi, J)
+        q_crit = AdaptiveRankKernel(p_theta, q_phi, J)
+
+        _, q_phi_metrics[m, :] = train_model_adaptive_proposal(
+            p_theta,
+            q_phi,
+            p_crit,
+            q_crit,
+            metric,
+            train_loader,
+            None,
+            neg_sample_size=J,
+            num_epochs=num_epochs,
+            stopping_condition=no_stopping,
+            lr=learn_rate,
+            scheduler_opts=scheduler_opts,
+        )
+    if args.save_dir:
+        # Save torch tensors:
+        print(f"Saving KL metrics in '{args.save_dir}'")
+        for data, name in [
+            (p_d_metrics, "p_d"),
+            (p_t_metrics, "p_t"),
+            (q_phi_metrics, "q_f"),
+        ]:
+            torch.save(data, args.save_dir / f"{args.num_runs}_runs_kl_raw_{name}.pth")
+            with open(args.save_dir / f"{args.num_runs}_runs_{name}.txt", "w") as f:
+                f.writelines(
+                    format_table(
+                        *table_data(*generate_bounds(data)), ["t", "kl", "low", "upp"]
+                    )
+                )
 
     plot_kl_div(p_d_metrics, p_t_metrics, q_phi_metrics)
-    if args.save_dir:
-        data_file_path = args.save_dir / "klData.dat"
-        assert args.save_dir.exists(), f"Save dir. '{args.save_dir}' does not exist."
-        print(f"Saving KL metrics to '{data_file_path}'")
-        iters = torch.arange(start=0, end=q_phi_metrics.size(0), step=args.data_res)
-        data = torch.column_stack(
-            (iters, p_d_metrics[iters], p_t_metrics[iters], q_phi_metrics[iters])
-        )
-        generate_tikz_data_table(
-            data_file_path, data, ["t", "pdata", "ptheta", "adaptive"]
-        )
+
+
+def create_distr():
+
+    # Data distribution
+    p_d = MultivariateNormal(MU_STAR, COV_STAR)
+    # Model distribution
+    p_t_data_noise = DiagGaussianModel(INIT_MU.clone(), INIT_COV.clone())
+    p_t_model_noise = DiagGaussianModel(INIT_MU.clone(), INIT_COV.clone())
+    return p_d, p_t_data_noise, p_t_model_noise
 
 
 def plot_kl_div(p_d_metrics, p_t_metrics, q_phi_metrics):
     _, ax = plt.subplots()
-    ax.plot(torch.arange(p_d_metrics.size(0)), p_d_metrics, "-r", label="$q=p_d$")
-    ax.plot(
-        torch.arange(p_t_metrics.size(0)), p_t_metrics, "-b", label="$q=p_{\\theta}$"
-    )
-    ax.plot(
-        torch.arange(q_phi_metrics.size(0)),
-        q_phi_metrics,
-        "g--",
-        label="$q=q_{\\varphi}$",
-    )
+    it, med, low, upp = table_data(*generate_bounds(p_d_metrics.numpy()))
+    ax.errorbar(it, med, [low, upp], label="$q=p_d$")
+
+    it, med, low, upp = table_data(*generate_bounds(p_t_metrics.numpy()))
+    ax.errorbar(it, med, [low, upp], label="$q=p_t$")
+
+    it, med, low, upp = table_data(*generate_bounds(q_phi_metrics.numpy()))
+    ax.errorbar(it, med, [low, upp], label="$q=p_{\\theta}$")
+
     ax.legend()
-    # ax.set_xlim([0, 250])
+    ax.set_xlim([1, it.max() + 1])
     ax.set_title("Choice of proposal distribution")
     ax.set_xlabel("Iter. step $t$")
     ax.set_ylabel("KL$(p_d || p_{\\theta})$")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
     plt.show()
 
 
@@ -149,7 +190,10 @@ def parse_args():
         "Toy example with different proposal distributions."
     )
     parser.add_argument(
-        "--num-epochs", default=250, type=int, help="Number of epochs to train for."
+        "--num-epochs", default=2000, type=int, help="Number of epochs to train for."
+    )
+    parser.add_argument(
+        "--num-runs", default=20, type=int, help="Number of runs to average over."
     )
     parser.add_argument(
         "--base-lr",
