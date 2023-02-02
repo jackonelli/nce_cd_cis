@@ -12,6 +12,12 @@ sklearn = "*"
 matplotlib = "*"
 jupyter = "*"
 ipython = "*"
+opencv-python = "*"
+# EBMs for regression req's
+ninja = "*"
+yacs = "*"
+cython = "*"
+tqdm = "*"
 
 [dev-packages]
 pytest = "*"

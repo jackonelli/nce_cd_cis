@@ -1,4 +1,4 @@
-"""Normal (Gaussian) noise distributions"""
+"""Normal (Gaussian) proposal/noise distributions"""
 import torch
 from torch import Tensor
 import numpy as np
@@ -31,7 +31,3 @@ class MultivariateNormal(NoiseDistr):
     def log_prob(self, samples, x=0):
         assert samples.size(-1) == self.dim
         return self._inner_distr.log_prob(samples)
-
-
-
-

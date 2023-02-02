@@ -4,4 +4,8 @@ __pycache__
 venv
 datasets/
 res/
+fig/
+*.png
 *.npy
+*.pkl
+*.pth

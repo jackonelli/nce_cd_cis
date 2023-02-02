@@ -10,7 +10,7 @@ from src.nce.cd_cnce import CdCnceCrit
 from tests.nce.test_binary_nce import sample_postive_test_samples
 
 
-class TestCdRank(unittest.TestCase):
+class TestCdCnce(unittest.TestCase):
     def test_criterion_grad_unc_distr(self):
         """Check that criterion gives same gradient as NCE ranking for 1 step, when noise distr. is not conditional"""
 
@@ -31,7 +31,9 @@ class TestCdRank(unittest.TestCase):
         noise_distr = MultivariateNormal(mu_noise, cov_noise)
 
         mcmc_steps = 1
-        criterion = CdCnceCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
+        criterion = CdCnceCrit(
+            true_distr, noise_distr, num_neg_samples, mcmc_steps, save_metrics=False
+        )
 
         y = torch.repeat_interleave(y, num_neg_samples, dim=0)
         y_samples = criterion.sample_noise(1, y)
@@ -70,7 +72,9 @@ class TestCdRank(unittest.TestCase):
         noise_distr = ConditionalMultivariateNormal(cov_noise)
 
         mcmc_steps = 1
-        criterion = CdCnceCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
+        criterion = CdCnceCrit(
+            true_distr, noise_distr, num_neg_samples, mcmc_steps, save_metrics=False
+        )
 
         y = torch.repeat_interleave(y, num_neg_samples, dim=0)
         y_samples = criterion.sample_noise(1, y)
@@ -107,7 +111,9 @@ class TestCdRank(unittest.TestCase):
         noise_distr = ConditionalMultivariateNormal(cov_noise)
 
         mcmc_steps = 3
-        criterion = CdCnceCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
+        criterion = CdCnceCrit(
+            true_distr, noise_distr, num_neg_samples, mcmc_steps, save_metrics=False
+        )
         criterion.calculate_crit_grad(y, None)
 
 

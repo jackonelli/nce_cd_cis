@@ -3,7 +3,11 @@ from typing import Optional
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import log_cond_unnorm_weights, log_cond_unnorm_weights_ratio, concat_samples
+from src.part_fn_utils import (
+    log_cond_unnorm_weights,
+    log_cond_unnorm_weights_ratio,
+    concat_samples,
+)
 
 from src.noise_distr.base import NoiseDistr
 from src.models.base_model import BaseModel
@@ -52,15 +56,27 @@ class CdMHCrit(PartFnEstimator):
 
             # Calculate weight ratios (acceptance prob.)
             log_w_y = self._log_unnorm_w_ratio(y_0, y_samples).detach()
-            w_y = torch.exp(- log_w_y)
+            w_y = torch.exp(-log_w_y)
             w_y[w_y >= 1.0] = 1.0
             w = torch.cat((1 - w_y, w_y), dim=1)
 
             if self.save_acc_prob:
                 # Ref. CNCE acc. prob.
                 acc_prob_cnce = 1 - 1 / (1 + torch.exp(-log_w_y))
-                add_to_npy_file("res/" + "cd_mh_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy", w_y.numpy())
-                add_to_npy_file("res/" + "cd_mh_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy", acc_prob_cnce.numpy())
+                add_to_npy_file(
+                    "res/"
+                    + "cd_mh_num_neg_"
+                    + str(self._num_neg)
+                    + "_cd_mh_acc_prob.npy",
+                    w_y.numpy(),
+                )
+                add_to_npy_file(
+                    "res/"
+                    + "cd_mh_num_neg_"
+                    + str(self._num_neg)
+                    + "_cd_cnce_acc_prob.npy",
+                    acc_prob_cnce.numpy(),
+                )
 
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
@@ -99,10 +115,18 @@ class CdMHCrit(PartFnEstimator):
 
     def _log_unnorm_w(self, y, y_samples):
 
-        w_tilde_y = log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), y_samples, self._unnorm_distr.log_prob,
-                                            self._noise_distr.log_prob)
-        w_tilde_yp = log_cond_unnorm_weights(y_samples, y.reshape(y.size(0), 1, -1), self._unnorm_distr.log_prob,
-                                             self._noise_distr.log_prob)
+        w_tilde_y = log_cond_unnorm_weights(
+            y.reshape(y.size(0), 1, -1),
+            y_samples,
+            self._unnorm_distr.log_prob,
+            self._noise_distr.log_prob,
+        )
+        w_tilde_yp = log_cond_unnorm_weights(
+            y_samples,
+            y.reshape(y.size(0), 1, -1),
+            self._unnorm_distr.log_prob,
+            self._noise_distr.log_prob,
+        )
 
         return torch.stack((w_tilde_y, w_tilde_yp), dim=-1)
 
