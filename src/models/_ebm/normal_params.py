@@ -17,7 +17,7 @@ which is an unnormalised normal pdf.
 """
 from math import pi
 import torch
-from src.models.ebm.base import Ebm
+from src.models._ebm.base import Ebm
 
 
 class NormalEbm(Ebm):
