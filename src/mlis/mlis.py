@@ -6,8 +6,8 @@ from src.part_fn_utils import unnorm_weights
 
 
 class MlisCrit(PartFnEstimator):
-    def __init__(self, unnorm_distr, noise_distr):
-        super().__init__(unnorm_distr, noise_distr)
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
     def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         return -torch.log(self._unnorm_distr(y)) + self.log_part_fn(None, y_samples)
@@ -18,4 +18,6 @@ class MlisCrit(PartFnEstimator):
         return w_tilde.mean()
 
     def _unnorm_w(self, _y, y_samples) -> Tensor:
-        return unnorm_weights(y_samples, self._unnorm_distr.prob, self._noise_distr.prob)
+        return unnorm_weights(
+            y_samples, self._unnorm_distr.prob, self._noise_distr.prob
+        )
