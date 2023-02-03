@@ -1,7 +1,7 @@
 import unittest
 import torch
 
-from src.models._ebm.normal_params import NormalEbm
+from src.models.ebm.normal_params import NormalEbm
 
 
 class TestNormalEbm(unittest.TestCase):

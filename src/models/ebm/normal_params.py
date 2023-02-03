@@ -1,7 +1,6 @@
-"""Toy example model with a specific energy based model (EBM)
-for estimating parameters of a normal distribution.
+"""Normal (Gaussian) distribution parameterised as an EBM.
 
-The parameters are
+Toy model to showcase the EBM class. The parameters are
 
     theta = [mu sigma^2]
 
@@ -11,13 +10,13 @@ with energy
 
 With the exponential function as the positive mapping the full model becomes
 
-    s(y) = exp( - E_theta(y) ) = exp( - (y - mu)^2 / (2 sigma^2) )
+    p_tilde_theta(y) = exp( - E_theta(y) ) = exp( - (y - mu)^2 / (2 sigma^2) )
 
 which is an unnormalised normal pdf.
 """
 from math import pi
 import torch
-from src.models._ebm.base import Ebm
+from src.models.ebm.base import Ebm
 
 
 class NormalEbm(Ebm):
@@ -26,15 +25,12 @@ class NormalEbm(Ebm):
         self.mu = mu
         self.sigma_sq = sigma_sq
 
-    def energy(self, y):
+    def energy(self, y, x=None):
         dist_sq = (y - self.mu) ** 2
         return dist_sq / (2 * self.sigma_sq)
 
     def true_part_fn(self):
         return normal_part_fn(self.sigma_sq)
-
-    def prob(self, y):
-        return self.unnorm_prob(y) / self.true_part_fn()
 
     def log_prob(self, y):
         return -self.energy(y) - torch.log(self.true_part_fn())
