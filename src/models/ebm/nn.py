@@ -1,15 +1,23 @@
 """NN-EBM
 
 EBM where the energy is computed by a neural network (NN).
+
+This model is adapted from the paper
+    "Learning Proposals for Practical Energy-Based Regression"
+
+    Paper: https://proceedings.mlr.press/v151/gustafsson22a.html
+    Code: https://github.com/fregu856/ebms_proposals
 """
 
-from src.models.ebm.base import Ebm
+from src.models.ebm.base import EbmBase
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
-class NnEbm(Ebm):
+class NnEbm(EbmBase):
+    """See base class for documentation"""
+
     def __init__(self, input_dim=1, hidden_dim=10):
         super().__init__()
 
@@ -20,7 +28,7 @@ class NnEbm(Ebm):
         self.fc2_xy = nn.Linear(hidden_dim, hidden_dim)
         self.fc3_xy = nn.Linear(hidden_dim, 1)
 
-    def forward(self, x_feature, y):
+    def energy(self, y, x):
         # (x_feature has shape: (batch_size, hidden_dim))
         # (y has shape (batch_size, num_samples)) (num_sampes==1 when running on (x_i, y_i))
 
@@ -30,12 +38,12 @@ class NnEbm(Ebm):
         batch_size, num_samples = y.shape
 
         # Replicate
-        x_feature = x_feature.view(batch_size, 1, -1).expand(
+        x = x.view(batch_size, 1, -1).expand(
             -1, num_samples, -1
         )  # (shape: (batch_size, num_samples, hidden_dim))
 
         # resize to batch dimension
-        x_feature = x_feature.reshape(
+        x = x.reshape(
             batch_size * num_samples, -1
         )  # (shape: (batch_size*num_samples, hidden_dim))
         y = y.reshape(
@@ -50,7 +58,7 @@ class NnEbm(Ebm):
         )  # (shape: (batch_size*num_samples, hidden_dim))
 
         xy_feature = torch.cat(
-            [x_feature, y_feature], 1
+            [x, y_feature], 1
         )  # (shape: (batch_size*num_samples, 2*hidden_dim))
 
         xy_feature = F.relu(
@@ -59,10 +67,10 @@ class NnEbm(Ebm):
         xy_feature = (
             F.relu(self.fc2_xy(xy_feature)) + xy_feature
         )  # (shape: (batch_size*num_samples, hidden_dim))
-        score = self.fc3_xy(xy_feature)  # (shape: (batch_size*num_samples, 1))
+        energy = self.fc3_xy(xy_feature)  # (shape: (batch_size*num_samples, 1))
 
-        score = score.view(
+        energy = energy.view(
             batch_size, num_samples
         )  # (shape: (batch_size, num_samples))
 
-        return score
+        return energy

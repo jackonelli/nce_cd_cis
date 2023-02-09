@@ -16,10 +16,10 @@ which is an unnormalised normal pdf.
 """
 from math import pi
 import torch
-from src.models.ebm.base import Ebm
+from src.models.ebm.base import EbmBase
 
 
-class NormalEbm(Ebm):
+class NormalEbm(EbmBase):
     def __init__(self, mu, sigma_sq):
         super().__init__(torch.exp)
         self.mu = mu
@@ -30,9 +30,15 @@ class NormalEbm(Ebm):
         return dist_sq / (2 * self.sigma_sq)
 
     def true_part_fn(self):
+        """Exact normalisation for the normal EBM"""
         return normal_part_fn(self.sigma_sq)
 
     def log_prob(self, y):
+        """Compute energy E_theta(y, x)
+
+        This method overrides the general log_prob method of the EBM base class
+        since we for this toy model have access to an exact normalisation.
+        """
         return -self.energy(y) - torch.log(self.true_part_fn())
 
 

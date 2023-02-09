@@ -7,7 +7,6 @@ from src.models.base_model import BaseModel
 
 # Adapted partly from https://blog.paperspace.com/beginners-guide-to-boltzmann-machines-pytorch/
 class Rbm(BaseModel):
-
     def __init__(self, weights, vis_bias, hidden_bias):
         super().__init__()
 
@@ -16,16 +15,21 @@ class Rbm(BaseModel):
         self.hidden_bias = torch.nn.Parameter(hidden_bias, requires_grad=True)
 
     def log_prob(self, y: Tensor) -> Tensor:
-        return - self.energy(y)
+        return -self.energy(y)
 
     def energy(self, y: Tensor):
         # From http: // swoh.web.engr.illinois.edu / courses / IE598 / handout / rbm.pdf
-        return - (torch.matmul(y, self.vis_bias) +
-                  torch.log(1 + torch.exp(self.hidden_model(y))).sum(dim=-1, keepdim=True)).reshape(y.shape[0], -1)
+        return -(
+            torch.matmul(y, self.vis_bias)
+            + torch.log(1 + torch.exp(self.hidden_model(y))).sum(dim=-1, keepdim=True)
+        ).reshape(y.shape[0], -1)
 
     def total_energy(self, v: Tensor, h: Tensor):
-        return - (torch.matmul(v, self.vis_bias) + torch.matmul(h, self.hidden_bias)
-                  + (v * torch.matmul(h, self.weights.t())).sum(dim=-1, keepdim=True)).reshape(v.shape[0], -1)
+        return -(
+            torch.matmul(v, self.vis_bias)
+            + torch.matmul(h, self.hidden_bias)
+            + (v * torch.matmul(h, self.weights.t())).sum(dim=-1, keepdim=True)
+        ).reshape(v.shape[0], -1)
 
     def hidden_model(self, y: Tensor):
         return torch.matmul(y, self.weights) + self.hidden_bias.t()
@@ -54,5 +58,3 @@ class Rbm(BaseModel):
             _, v = self.sample_visible(h)
 
         return v
-
-

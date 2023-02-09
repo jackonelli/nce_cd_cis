@@ -6,7 +6,7 @@ The model is specified as
 
 where the unnormalised model is parameterised by the energy E_theta(y, x):
 
-    p_tilde_theta(y| x) = exp(- E_theta(y, x))
+    p_tilde_theta(y | x) = exp(- E_theta(y, x))
 """
 from abc import abstractmethod
 from typing import Optional
@@ -15,7 +15,7 @@ from torch import Tensor
 from src.models.base_model import BaseModel
 
 
-class Ebm(BaseModel):
+class EbmBase(BaseModel):
     def __init__(self, pos_map=torch.exp):
         self._pos_map = pos_map
 
@@ -29,5 +29,8 @@ class Ebm(BaseModel):
 
     @abstractmethod
     def energy(self, y: Tensor, x: Optional[Tensor]) -> Tensor:
-        """Compute energy"""
+        """Compute energy E_theta(y, x)
+
+        This method is implemented by the actual class.
+        """
         pass
