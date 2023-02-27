@@ -13,12 +13,14 @@ def train_model(
     weight_decay=0.0,
     lr=0.1,
     decaying_lr=False,
+    lr_factor=0.1,
     num_epochs_decay=100,
     stopping_condition=no_stopping,
     Adam=False,
+    device=torch.device("cpu")
 ):
 
-    model = criterion.get_model()
+    model = criterion.get_model().to(device)
 
     if Adam:
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -28,7 +30,7 @@ def train_model(
     if decaying_lr:
         # Linearly decaying lr (run it for half of training time)
         num_epochs_decay = num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
-        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1,
+        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=lr_factor,
                                                       total_iters=int((num_epochs_decay * len(train_loader))))
 
     metric = []
@@ -36,6 +38,11 @@ def train_model(
 
         old_params = torch.nn.utils.parameters_to_vector(model.parameters())
         for i, (y, idx) in enumerate(train_loader, 0):
+
+            if type(y) is tuple or type(y) is list:
+                y = (y[0].to(device), y[1].to(device))
+            else:
+                y = y.to(device)
 
             optimizer.zero_grad()
 

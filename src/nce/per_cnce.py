@@ -17,10 +17,12 @@ from src.part_fn_utils import concat_samples, log_cond_unnorm_weights
 class PersistentCondNceCrit(CdCnceCrit):
     """Persistent cond. NCE crit"""
 
-    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, save_acc_prob=False):
         mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
         self._persistent_y = dict()
+        self.save_acc_prob = save_acc_prob
+        self.name = "pers_cnce"
 
     def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
         assert (
@@ -44,13 +46,6 @@ class PersistentCondNceCrit(CdCnceCrit):
 
         return self.calculate_inner_crit_grad(y_p, y_samples, y.reshape(-1, y.shape[-1]))
 
-    def log_part_fn(self, y: tuple) -> Tensor:
-        y, x = y
-        y = torch.repeat_interleave(y, self._num_neg, dim=0)
-        x = torch.repeat_interleave(x, self._num_neg, dim=0)
-        y_samples = self.sample_noise(1, y)
-
-        return self.inner_crit((y, x), y_samples)
 
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y

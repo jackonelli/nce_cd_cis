@@ -17,9 +17,9 @@ from src.part_fn_utils import concat_samples
 class CondPersistentCnceCrit(CondCdCnceCrit):
     """Persistent cond. NCE crit"""
 
-    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int):
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, cond_noise=False):
         mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
-        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps, cond_noise)
         self._persistent_y = dict()
 
     def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
@@ -38,14 +38,17 @@ class CondPersistentCnceCrit(CondCdCnceCrit):
         assert torch.allclose(y[0, 0, :], y[0, 1, :])
 
         y_p = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
+        y_p_old = y_p.detach().clone()
 
-        y_samples = self.sample_noise(1, y_p)
+        y_samples = self.sample_noise(1, (y_p, x))
         # NB We recompute w_tilde in inner_crit to comply with the API.
         log_w_tilde = self._log_unnorm_w((y_p, x), y_samples)  # Shape (NxJ)x1x2
 
         self._update_persistent_y(log_w_tilde, y_p, y_samples, idx)
 
-        return self.calculate_inner_crit_grad((y_p, x), y_samples, (y.reshape(-1, y.shape[-1]), x))
+        assert torch.allclose(y_p, y_p_old)
+
+        return self.calculate_inner_crit_grad((y_p_old, x), y_samples, (y.reshape(-1, y.shape[-1]), x))
 
     # def log_part_fn(self, y: tuple, idx: Optional[Tensor]) -> Tensor:
     #

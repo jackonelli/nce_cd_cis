@@ -3,7 +3,8 @@ from typing import Optional
 import torch
 from torch import Tensor
 from src.nce.cd_cnce import CdCnceCrit
-from src.part_fn_utils import cond_log_cond_unnorm_weights, cond_log_cond_unnorm_weights_ratio, concat_samples
+from src.part_fn_utils import cond_log_cond_unnorm_weights, cond_log_cond_unnorm_weights_ratio, \
+    cond_x2_log_cond_unnorm_weights, cond_x2_log_cond_unnorm_weights_ratio, concat_samples
 
 from src.noise_distr.base import NoiseDistr
 from src.models.rbm.conditional_rbm import CondRbm
@@ -18,9 +19,19 @@ class CondCdCnceCrit(CdCnceCrit):
         noise_distr: NoiseDistr,
         num_neg_samples: int,
         mcmc_steps: int,
-        save_acc_prob=False,
+        cond_noise=False,
+        save_acc_prob = False
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps, save_acc_prob)
+
+        if cond_noise:
+            self._log_unnorm_w = self._log_unnorm_w_cond_noise
+            self._log_unnorm_w_ratio = self._log_unnorm_w_ratio_cond_noise
+            self.sample_noise = self.sample_cond_noise
+        else:
+            self._log_unnorm_w = self._log_unnorm_w_uncond_noise
+            self._log_unnorm_w_ratio = self._log_unnorm_w_ratio_uncond_noise
+            self.sample_noise = self.sample_uncond_noise
 
     def calculate_crit_grad(self, y: tuple, _idx: Optional[Tensor]):
         # We will have N*J pairs
@@ -28,7 +39,7 @@ class CondCdCnceCrit(CdCnceCrit):
         y, x = y
         y = torch.repeat_interleave(y, self._num_neg, dim=0)
         x = torch.repeat_interleave(x, self._num_neg, dim=0)
-        y_samples = self.sample_noise(1, y)
+        y_samples = self.sample_noise(1, (y, x))
 
         return self.calculate_inner_crit_grad((y, x), y_samples)
 
@@ -114,7 +125,7 @@ class CondCdCnceCrit(CdCnceCrit):
 
         return log_z / torch.tensor(self.mcmc_steps)
 
-    def _log_unnorm_w(self, y, y_samples):
+    def _log_unnorm_w_uncond_noise(self, y, y_samples):
         # "Log weights of y (NxD) and y_samples (NxJxD)"
         # Note: dimension of the final weight vector is NxJx2
 
@@ -128,7 +139,7 @@ class CondCdCnceCrit(CdCnceCrit):
 
         return torch.stack((w_tilde_y, w_tilde_yp), dim=-1)
 
-    def _log_unnorm_w_ratio(self, y, y_samples):
+    def _log_unnorm_w_ratio_uncond_noise(self, y, y_samples):
         """Log weight ratio of y (NxD) and y_samples (NxJxD)"""
 
         y, x = y
@@ -139,6 +150,43 @@ class CondCdCnceCrit(CdCnceCrit):
                 self._unnorm_distr.log_prob,
                 self._noise_distr.log_prob)
 
+    def sample_uncond_noise(self, num_samples: int, y: tuple):
+        # Note: num_samples = samples / obs.
+
+        y, x = y
+        return self._noise_distr.sample(torch.Size((y.size(0), num_samples)), y.reshape(y.size(0), 1, -1))
+
+    def _log_unnorm_w_cond_noise(self, y, y_samples):
+        # "Log weights of y (NxD) and y_samples (NxJxD)"
+        # Note: dimension of the final weight vector is NxJx2
+
+        y, x = y
+
+        w_tilde_y = cond_x2_log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), x.reshape(y.size(0), 1, -1), y_samples,
+                                                    self._unnorm_distr.log_prob, self._noise_distr.log_prob)
+
+        w_tilde_yp = cond_x2_log_cond_unnorm_weights(y_samples, x.reshape(y.size(0), 1, -1), y.reshape(y.size(0), 1, -1),
+                                                     self._unnorm_distr.log_prob, self._noise_distr.log_prob)
+
+        return torch.stack((w_tilde_y, w_tilde_yp), dim=-1)
+
+    def _log_unnorm_w_ratio_cond_noise(self, y, y_samples):
+        """Log weight ratio of y (NxD) and y_samples (NxJxD)"""
+
+        y, x = y
+        return cond_x2_log_cond_unnorm_weights_ratio(
+                y.reshape(y.size(0), 1, -1),
+                x.reshape(y.size(0), 1, -1),
+                y_samples,
+                self._unnorm_distr.log_prob,
+                self._noise_distr.log_prob)
+
+    def sample_cond_noise(self, num_samples: int, y: tuple):
+        # Note: num_samples = samples / obs.
+
+        y, x = y
+        return self._noise_distr.sample(torch.Size((y.size(0), num_samples)),
+                                        (y.reshape(y.size(0), 1, -1), x.reshape(y.size(0), 1, -1)))
 
 
 

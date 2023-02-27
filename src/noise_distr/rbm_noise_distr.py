@@ -11,11 +11,15 @@ class RbmNoiseDistr(NoiseDistr):
         self._inner_distr = rbm
 
     def sample(self, size: torch.Size, x: Tensor):
-        h = torch.rand((size[0] * size[-1], 1, self._inner_distr.weights.shape[-1]))
-        return self._inner_distr.sample_from_hidden(h).detach().clone()
+        #h = torch.rand((size[0] * size[-1], 1, self._inner_distr.weights.shape[-1]))
+        #_, v_sample = self._inner_distr.sample_from_hidden(h)
+        #return v_sample.detach().clone()
+        x = torch.repeat_interleave(x, size[-1], dim=0)
+        _, y_sample = self._inner_distr.sample(x)
+        return y_sample.detach().clone()
 
     def log_prob(self, samples, x: Tensor):
-        return self._inner_distr.log_prob(samples).detach().clone()
+        return self._inner_distr.log_prob(samples).detach().clone() # + const.
 
 
 class ConditionalRbmNoiseDistr(NoiseDistr):
@@ -26,8 +30,8 @@ class ConditionalRbmNoiseDistr(NoiseDistr):
 
     def sample(self, size: torch.Size, x: Tensor):
         x = torch.repeat_interleave(x, size[-1], dim=0)
-        _, y_sample = self._inner_distr.sample(x).detach().clone()
-        return y_sample
+        _, y_sample = self._inner_distr.sample(x)
+        return y_sample.detach().clone()
 
     def log_prob(self, samples, x: Tensor):
         # TODO: Kan jag på något sätt beräkna conditional prob? Men då måste jag spara h (om jag inte kan marginalisera över denna)

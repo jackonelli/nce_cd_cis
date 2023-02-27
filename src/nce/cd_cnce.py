@@ -24,6 +24,7 @@ class CdCnceCrit(PartFnEstimator):
 
         self.mcmc_steps = mcmc_steps
         self.save_acc_prob = save_acc_prob
+        self.name = "cd_cnce"
 
     def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         pass
@@ -61,9 +62,9 @@ class CdCnceCrit(PartFnEstimator):
                 # Ref. MH acceptance prob.
                 acc_prob_mh = torch.exp(- log_w_y)
                 acc_prob_mh[acc_prob_mh >= 1.0] = 1.0
-                add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy",
+                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy",
                                 (1 - w_y).numpy())
-                add_to_npy_file("res/" + "cd_cnce_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy",
+                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy",
                                 acc_prob_mh.numpy())
 
             # Calculate gradients of log prob

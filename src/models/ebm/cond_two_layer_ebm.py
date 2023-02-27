@@ -4,6 +4,7 @@ from torch import Tensor
 from src.models.base_model import BaseModel
 
 from src.training.training_utils import no_change_stopping_condition
+from src.part_fn_utils import cond_log_cond_unnorm_weights_ratio, cond_x2_log_cond_unnorm_weights_ratio
 
 
 class CondEbm(BaseModel):
@@ -36,7 +37,38 @@ class CondEbm(BaseModel):
         y, x = y
         return - self.energy(y, x)
 
-    def sample(self, num_samples=1, lr=0.1, num_epochs=100):
+    def sample(self, noise_distr, num_samples=1, k=100):
+        y_samples = []
+        class_distr = torch.distributions.one_hot_categorical.OneHotCategorical(torch.tensor([1 / self.input_bias.shape[0]] * self.input_bias.shape[0]))
+
+        for i in range(num_samples):
+            y = torch.distributions.bernoulli.Bernoulli(0.5).sample((1, self.input_weights.shape[0]))
+            x = class_distr.sample((1,))
+
+            y_0 = y.clone()
+            for j in range(k):
+                y_p = noise_distr.sample(torch.Size((y_0.shape[0], 1)), (y_0, x))
+
+                acc_prob = torch.exp(- self._log_unnorm_w_ratio((y_0, x), y_p, noise_distr).detach())
+                if torch.rand(1) < acc_prob:
+                    y_0 = y_p
+
+            y_samples.append(y_0.clone())  # / torch.sqrt(torch.sum(y**2, dim=-1, keepdim=True))).detach().clone())
+
+        return torch.cat(y_samples, dim=0)
+
+    def _log_unnorm_w_ratio(self, y, y_samples, noise_distr):
+        """Log weight ratio of y (NxD) and y_samples (NxJxD)"""
+
+        y, x = y
+        return cond_x2_log_cond_unnorm_weights_ratio(
+                y.reshape(y.size(0), 1, -1),
+                x.reshape(y.size(0), 1, -1),
+                y_samples,
+                self.log_prob,
+                noise_distr.log_prob)
+
+    def sample_old(self, num_samples=1, lr=0.1, num_epochs=100):
 
         y_samples = []
         class_distr = torch.distributions.one_hot_categorical.OneHotCategorical(torch.tensor([1 / self.input_bias.shape[0]] * self.input_bias.shape[0]))

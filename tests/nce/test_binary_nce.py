@@ -97,8 +97,8 @@ class TestBinaryNCE(unittest.TestCase):
         training_data = RingModelDataset(
             sample_size=num_samples,
             num_dims=num_dims,
-            mu=mu.numpy(),
-            precision=torch.exp(log_precision).numpy(),
+            mu=mu,
+            precision=torch.exp(log_precision),
             root_dir="test_data",
         )
         train_loader = torch.utils.data.DataLoader(

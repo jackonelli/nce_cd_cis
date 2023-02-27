@@ -11,7 +11,7 @@ from src.models.base_model import BaseModel
 from src.training.training_utils import add_to_npy_file
 
 
-class CdMHCrit(PartFnEstimator):
+class CdMHCnceCrit(PartFnEstimator):
     def __init__(
         self,
         unnorm_distr: BaseModel,

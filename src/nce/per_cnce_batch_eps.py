@@ -14,14 +14,15 @@ from src.nce.cd_cnce import CdCnceCrit
 from src.part_fn_utils import concat_samples, log_cond_unnorm_weights
 
 
-class PersistentCondNceCritBatch(CdCnceCrit):
+class PersistentCondNceCritBatchEps(CdCnceCrit):
     """Persistent cond. NCE crit"""
 
-    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, save_acc_prob=False):
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, eps=0.1):
         mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
-        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps, save_acc_prob)
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
         self._persistent_y = dict()
-        self.name = "pers_cnce"
+        self._eps = eps
+        self._eps_distr = torch.distributions.bernoulli.Bernoulli(probs=self._eps)
 
     def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
         assert (
@@ -48,6 +49,7 @@ class PersistentCondNceCritBatch(CdCnceCrit):
 
         return self.calculate_inner_crit_grad(y_p, y_samples, y.reshape(-1, y.shape[-1]))
 
+
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y
 
@@ -59,11 +61,16 @@ class PersistentCondNceCritBatch(CdCnceCrit):
         for n, per_n in enumerate(idx):
             per_n = per_n.item()
             per_y[n, :, :] = (
-                self._persistent_y[per_n]
+                self._sample_pers(actual_y[n, :, :], self._persistent_y[per_n])
                 if self._persistent_y.get(per_n) is not None
                 else actual_y[n, :, :]
             )
         return per_y
+
+    def _sample_pers(self, y, y_p):
+        assert y.ndim == 2
+        sample_inds = self._eps_distr.sample((y.shape[0], 1))
+        return sample_inds * y + (1 - sample_inds) * y_p
 
     def _update_persistent_y(self, log_w_unnorm, y, y_samples, idx):
         """Sample new persistent y"""

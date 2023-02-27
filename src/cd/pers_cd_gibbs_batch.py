@@ -16,6 +16,8 @@ class PersistentCdGibbsCritBatch(CdGibbsCrit):
         mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
         self._persistent_y = dict()
+        self._eps = 0.05
+        self._eps_distr = torch.distributions.bernoulli.Bernoulli(probs=self._eps)
 
     def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]):
         assert (
@@ -38,21 +40,42 @@ class PersistentCdGibbsCritBatch(CdGibbsCrit):
         # TODO: idx parameter
         return super().part_fn(y, y_samples)
 
+    # def persistent_y(self, actual_y: Tensor, idx: Tensor):
+    #     """Get persistent y
+    #
+    #     Access the last selected y or return the y sampled from p_d
+    #     if no last selected y exists
+    #     """
+    #     per_y = torch.empty(actual_y.size())
+    #     for n, per_n in enumerate(idx):
+    #         per_n = per_n.item()
+    #         per_y[n, :] = (
+    #             self._persistent_y[per_n]
+    #             if self._persistent_y.get(per_n) is not None
+    #             else actual_y[n, :]
+    #         )
+    #     return per_y
+
     def persistent_y(self, actual_y: Tensor, idx: Tensor):
         """Get persistent y
 
         Access the last selected y or return the y sampled from p_d
         if no last selected y exists
         """
+
         per_y = torch.empty(actual_y.size())
         for n, per_n in enumerate(idx):
             per_n = per_n.item()
             per_y[n, :] = (
-                self._persistent_y[per_n]
+                self._sample_pers(actual_y[n, :], self._persistent_y[per_n])
                 if self._persistent_y.get(per_n) is not None
                 else actual_y[n, :]
             )
         return per_y
+
+    def _sample_pers(self, y, y_p):
+        sample_inds = self._eps_distr.sample((1,))
+        return sample_inds * y + (1 - sample_inds) * y_p
 
     def _update_persistent_y(self, y, idx):
         """Assign new persistent y"""

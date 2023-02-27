@@ -46,10 +46,10 @@ class MnistDatasetWLabs(Dataset):
             sample = self.transform(sample)
 
         # TODO: could also take threshold att 0.5
-        #img = torch.distributions.bernoulli.Bernoulli(sample).sample()
-        img = sample.clone()
-        img[img >= 0.5] = 1.0
-        img[img < 0.5] = 0.0
+        img = torch.distributions.bernoulli.Bernoulli(sample).sample()
+        #img = sample.clone()
+        #img[img >= 0.5] = 1.0
+        #img[img < 0.5] = 0.0
 
         return (img, label), idx
 
