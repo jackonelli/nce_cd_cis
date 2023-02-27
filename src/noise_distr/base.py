@@ -23,6 +23,3 @@ class NoiseDistr(ABC):
         return torch.exp(self.log_prob(samples, x))
 
 
-def unnorm_weights(y, unnorm_distr, noise_distr):
-    """Compute w_tilde(y) = p_tilde(y) / p_n(y)"""
-    return unnorm_distr(y) / noise_distr(y)
