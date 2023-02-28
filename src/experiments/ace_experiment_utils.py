@@ -7,7 +7,7 @@ import torch
 class MaskGenerator(ABC):
     def __init__(
         self,
-        seed=None,
+        seed=1,
     ):
         self.gen = torch.Generator().manual_seed(seed)    #device="cuda"
 
@@ -23,7 +23,7 @@ class UniformMaskGenerator(MaskGenerator):
     def call(self, num_samples, num_features):
 
         # For each obs., observe 0 to num_features-1 features
-        k = torch.randint(low=0, high=num_features-1, size=num_samples, generator=self.gen)
+        k = torch.randint(low=0, high=num_features-1, size=(num_samples,), generator=self.gen)
 
         result = []
         for i in range(num_samples):

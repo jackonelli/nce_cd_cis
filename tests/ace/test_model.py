@@ -4,9 +4,9 @@ import torch
 from src.models.ace.ace_model import AceModel
 
 
-class TestBinaryNCE(unittest.TestCase):
+class TestAceModel(unittest.TestCase):
     def test_forward(self):
-
+        # Just test so that everything seems to run ok
         num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
         num_context_units = torch.randint(low=1, high=10, size=torch.Size((1,))).item()
 

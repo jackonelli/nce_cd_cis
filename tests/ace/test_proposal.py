@@ -4,9 +4,9 @@ import torch
 from src.noise_distr.ace_proposal import AceProposal
 
 
-class TestBinaryNCE(unittest.TestCase):
+class TestAceProposal(unittest.TestCase):
     def test_forward(self):
-
+        # Just test so that everything seems to run ok
         num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
         num_context_units = torch.randint(low=1, high=10, size=torch.Size((1,))).item()
 

@@ -64,7 +64,7 @@ class AceProposal(BaseModel):
         # Note: expect x to be a tuple (observed input, observed_mask)
 
         # Calculate log prob conditionen on x
-        proposal_distr, _ = self.forward(x)
+        proposal_distr, _ = self.forward(samples)
 
         return self.inner_log_prob(proposal_distr, samples).reshape()
 
