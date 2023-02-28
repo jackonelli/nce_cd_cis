@@ -36,7 +36,7 @@ class PersistentCondNceCrit(CdCnceCrit):
 
         assert torch.allclose(y[0, 0, :], y[0, 1, :])
 
-        y_p = self.persistent_y(y, idx).reshape(-1, y.shape[-1])
+        y_p = self.persistent_y(y, idx).reshape(-1, y.shape[-1]).detach().clone()
         y_samples = self.sample_noise(1, y_p)
         # NB We recompute w_tilde in inner_crit to comply with the API.
         log_w_tilde = self._log_unnorm_w(y_p, y_samples)  # Shape (NxJ)x1x2
