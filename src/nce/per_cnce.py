@@ -11,18 +11,19 @@ from torch import Tensor
 from torch.distributions import Categorical
 
 from src.nce.cd_cnce import CdCnceCrit
-from src.part_fn_utils import concat_samples, log_cond_unnorm_weights
+from src.part_fn_utils import concat_samples
 
 
 class PersistentCondNceCrit(CdCnceCrit):
     """Persistent cond. NCE crit"""
 
     def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, save_acc_prob=False):
-        mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
+        mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps)
         self._persistent_y = dict()
         self.save_acc_prob = save_acc_prob
         self.name = "pers_cnce"
+        print('Initialised')
 
     def calculate_crit_grad(self, y: Tensor, idx: Optional[Tensor]) -> Tensor:
         assert (
@@ -71,9 +72,9 @@ class PersistentCondNceCrit(CdCnceCrit):
         ys = concat_samples(y, y_samples)
         assert ys.shape == (y.shape[0], 2, y.shape[1])
         assert len(idx) == (y.shape[0] / self._num_neg)
-
-        for n, i in zip(range(len(idx)), range(0, y.shape[0], self._num_neg)):
-            self._persistent_y[idx[n].item()] = torch.stack([ys[i+j,
-                                                             Categorical(logits=log_w_unnorm[i+j, 0, :]).sample(), :]
-                                                             for j in range(self._num_neg)], dim=0)
+        with torch.no_grad():
+            for n, i in zip(range(len(idx)), range(0, y.shape[0], self._num_neg)):
+                self._persistent_y[idx[n].item()] = torch.stack([ys[i+j,
+                                                                 Categorical(logits=log_w_unnorm[i+j, 0, :]).sample(), :]
+                                                                 for j in range(self._num_neg)], dim=0)
 
