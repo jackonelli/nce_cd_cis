@@ -39,7 +39,7 @@ class AceProposal(BaseModel):
         return self.inner_sample(proposal_distr, size) # TODO: Need to check so that size is correct
 
     def inner_sample(self, distr, size):
-        return distr.inner_sample(size).transpose(0, 1)
+        return distr.sample(size).transpose(0, 1)
 
     def forward(self, x: tuple):
         # Note: expect x to be a tuple (observed input, observed_mask)
@@ -69,7 +69,7 @@ class AceProposal(BaseModel):
         return self.inner_log_prob(proposal_distr, samples).reshape()
 
     def inner_log_prob(self, distr, samples):
-        return distr.inner_log_prob(samples)
+        return distr.log_prob(samples)
 
     def create_proposal_distr(self, params, eps=1e-3):
         logits = params[..., :self.num_components]

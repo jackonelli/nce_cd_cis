@@ -12,7 +12,7 @@ class AceModel(BaseModel):
         super(AceModel, self).__init__()
 
         self.num_features = num_features
-        self.input_dim = 2 * num_features + num_context_units
+        self.input_dim = num_features + num_context_units + 1
 
         # TODO: handle this in nicer way (or always use relu)
         if activation == "relu":
@@ -47,7 +47,6 @@ class AceModel(BaseModel):
         return torch.nn.Softplus()(self.output_layer(x))
 
     def log_prob(self, y: tuple):
-
         return - torch.clip(self.energy(y), 0.0, self.energy_clip)
 
 

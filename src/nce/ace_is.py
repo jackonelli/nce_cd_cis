@@ -17,82 +17,59 @@ class AceIsCrit(PartFnEstimator):
         unnorm_distr: AceModel,
         noise_distr: AceProposal,
         num_neg_samples: int,
-        mcmc_steps: int,
         alpha: float = 0.0
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
-        self.mcmc_steps = mcmc_steps
+        self.mcmc_steps = 1 # For now, this option is not available
         self.alpha = alpha  # For regularisation
-        self.mask_generator = UniformMaskGenerator() # TODO: set seed?
+        self.mask_generator = UniformMaskGenerator()  # TODO: set seed?
 
-    def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
-        pass
-
-    def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
+    def crit(self, y: Tensor, _idx: Optional[Tensor]):
         # Mask input
         y_o, y_u, observed_mask = self._mask_input(y)
 
         q, context = self._noise_distr.forward(y_o, observed_mask)
         y_samples = self.inner_sample_noise(q, num_samples=self._num_neg).detach().clone()
 
-        return self.calculate_inner_crit_grad(q, context, (y_o, y_u, observed_mask), y_samples)
+        return self.inner_crit(q, context, (y_o, y_u, observed_mask), y_samples)
 
-    def calculate_inner_crit_grad(self, q, context, y: tuple, y_samples: Tensor, y_base=None):
+    def inner_crit(self, q, context, y: tuple, y_samples: Tensor, y_base=None):
+
+        # Note that we calculate the criterion and not the gradient directly
+        # TODO: For persistance (y_base is not None), it might be easier to ass y_base also to ys
 
         # Mask input
         y_o, y_u, observed_mask = y
+        y_samples_u = y_samples * (1 - observed_mask)
 
         # Calculate log prob for proposal
-        log_noise_distr_y = self._noise_distr.inner_log_prob(q, y_u) * (1 - observed_mask)
-        log_noise_distr_samples = self._noise_distr.inner_log_prob(q, y_samples.transpose(0, 1)).transpose(0, 1) \
-                                  * (1 - observed_mask).unsqueeze(dim=1)
+        log_q_y = self._noise_distr.inner_log_prob(q, y_u) * (1 - observed_mask)
+        log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples.transpose(0, 1)).transpose(0, 1)
+        log_q_y_samples *= (1 - observed_mask).unsqueeze(dim=1)
 
         q_mean = q.mean() * (1 - observed_mask)
 
+        # Calculate log prob for model
+        y_u_i, y_i, tiled_context = self._generate_model_input(y_u, y_samples_u, context)
+        log_p_ys = self._unnorm_distr((y_u_i, y_i, tiled_context)).reshape(-1, self._num_neg + 1, y_o.shape[-1])
+        log_p_ys *= (1 - observed_mask).unsqueeze(dim=1)
 
+        assert log_p_ys.shape[0] == y_o.shape[0]
 
-        if y_base is None:
-            # Gradient of mean is same as mean of gradient
-            grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
-        else:
-            grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
+        # Calculate weights
+        log_p_y, log_p_y_samples = log_p_ys[:, 0, :], log_p_ys[:, 1:, :] # TODO: not last col?
 
+        log_w_tilde_y = log_p_y - log_q_y
+        log_w_tilde_y_samples = (log_p_y_samples - log_q_y_samples) * (1 - observed_mask).unsqueeze(dim=1)
 
-        grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
-        y_0 = y.clone()
-        for t in range(self.mcmc_steps):
-            # Get neg. samples
-            ys = concat_samples(y_0, y_samples)
+        log_z = (torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.tensor(self._num_neg))) * (1 - observed_mask)
 
-            # Calculate and normalise weights
-            w = self._norm_w(y_0, y_samples).detach()
+        loss = log_p_y - log_z
+        is_weights = torch.nn.Softmax(dim=-1)(log_w_tilde_y_samples)
+        energy_mean = torch.sum(is_weights * y_samples_u) * (1 - observed_mask)
 
-            # Calculate gradients of log prob
-            grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
-
-            # Sum over samples, mean over iter.
-            grads = [
-                grad + ((self._num_neg + 1) / self.mcmc_steps) * grad_log_prob
-                for grad, grad_log_prob in zip(grads, grads_log_prob)
-            ]
-
-            if (t + 1) < self.mcmc_steps:
-                # Sample y for next step
-                sample_inds = torch.distributions.one_hot_categorical.OneHotCategorical(
-                    probs=w
-                ).sample()
-                y_0 = ys[sample_inds.bool(), :]
-
-                assert y_0.shape == y.shape
-
-                # Sample neg. samples
-                y_samples = self.sample_noise(self._num_neg, y_0)
-
-                # TODO: resample mask?
-
-        # Assign calculated gradients to model parameters
-        self._unnorm_distr.set_gradients(grads)
+        return loss
 
     def sample_noise(self, num_samples: int, y: Tensor, q=None):
         return self._noise_distr.sample(torch.Size((num_samples,)), y)
@@ -111,16 +88,22 @@ class AceIsCrit(PartFnEstimator):
 
     def _generate_model_input(self, y_u, y_samples, context, selected_features=None):
 
-        # TODO: consider selected_features for inference
+        # TODO: should I not mask y_samples?
         ys_u = concat_samples(y_u, y_samples)
 
-        u_i = torch.broadcast_to(torch.range(0, y_u.shape[-1], dtype=torch.int32),
+        # TODO: This means select all?
+        u_i = torch.broadcast_to(torch.arange(0, y_u.shape[-1], dtype=torch.int64),
             [y_u.shape[0], 1 + self._num_neg, y_u.shape[-1]],
         )
 
+        # TODO: consider selected_features for inference
         if selected_features is not None:
             ys_u = ys_u[:, :, selected_features]# TODO: does this work as I think?
             u_i = u_i[:, :, selected_features]
-            context = context[:, selected_features]
+            context = context[:, selected_features, :]
 
-        tiled_context = context.unsqueeze(dim=1)
+        y_u_i = ys_u.reshape(-1)
+        u_i = u_i.reshape(-1)
+        tiled_context = torch.tile(context.unsqueeze(dim=1), [1, 1 + self._num_neg, 1, 1]).reshape(-1, context.shape[-1])
+
+        return y_u_i, u_i, tiled_context

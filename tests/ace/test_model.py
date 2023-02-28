@@ -14,19 +14,20 @@ class TestBinaryNCE(unittest.TestCase):
 
         num_samples = 100
         input = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
-                                                  scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample((num_samples, 1))
+                                                  scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample((num_samples,))
 
         observed = torch.distributions.bernoulli.Bernoulli(0.5).sample((num_samples, num_features))
         masked_input = input * observed
 
         context = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_context_units,))),
-                                                    scale=torch.exp(torch.randn(torch.Size((num_context_units,))))).sample((num_samples, num_features))
+                                                    scale=torch.exp(torch.randn(torch.Size((num_context_units,))))).sample((num_samples,))
 
-        unobserved = torch.randint(low=0, high=num_features, size=(num_samples,))
+        unobserved = torch.broadcast_to(torch.arange(0, num_features, dtype=torch.int64), [num_samples, num_features])
 
-        output = model.log_prob((masked_input, unobserved, context))
+        output = model.log_prob((masked_input.reshape(-1), unobserved.reshape(-1),
+                                 torch.tile(context.unsqueeze(dim=1), [1, num_features, 1]).reshape(-1, num_context_units)))
 
-        assert output.shape == (num_samples, 1)
+        assert output.shape == (num_samples * num_features, 1)
 
 
 if __name__ == "__main__":

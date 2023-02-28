@@ -38,6 +38,7 @@ class CdRankCrit(PartFnEstimator):
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
 
         grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
+
         y_0 = y.clone()
         for t in range(self.mcmc_steps):
 
