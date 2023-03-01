@@ -33,11 +33,9 @@ class AceModel(BaseModel):
     def energy(self, y: tuple):
         # Note: expect y to be a tuple (masked input (unobserved set to 0), index of unobserved input, context (from proposal net))
 
-        # TODO: Fourth input? And is it only the context of the unobserved input that should be provided? Guess so?
         x_u_i, u_i, context = y
         u_i_one_hot = torch.nn.functional.one_hot(u_i, self.num_features)
 
-        # TODO: fix this (with dimensions)
         h = torch.cat((x_u_i.unsqueeze(dim=-1), u_i_one_hot, context), dim=-1)
         x = self.activation_fun()(self.input_layer(h))
 

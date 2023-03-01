@@ -2,8 +2,7 @@ from typing import Optional, Tuple
 import torch
 import numpy as np
 
-from src.training.training_utils import no_stopping
-from src.models.ace.ace_model import ResidualBlock
+from src.training.training_utils import no_stopping, PolynomialLr
 
 def train_model(
     criterion,
@@ -94,10 +93,14 @@ def train_ace_model(
     optimizer = torch.optim.SGD(list(model.parameters()) + list(proposal.parameters()), lr=lr)
 
     if scheduler_opts is not None:
-        # Linearly decaying lr (run it for half of training time)
+        # Polynomial decaying lr
+        # What happens after num_steps_decay?
         num_steps_decay, lr_factor = scheduler_opts
-        scheduler = torch.optim.lr_scheduler.PolynomialLR(
-            optimizer, total_iters=num_steps_decay)
+       # scheduler = torch.optim.lr_scheduler.PolynomialLR(
+        #    optimizer, total_iters=num_steps_decay)
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
+                                                      lr_lambda=PolynomialLr(num_steps_decay, lr,
+                                                                             lr * lr_factor).decayed_learning_rate)
 
     batch_metrics = []
     batch_metrics.append(evaluation_metric(model))
@@ -126,7 +129,6 @@ def train_ace_model(
                 for param in proposal.parameters():
                     if isinstance(param, torch.nn.Parameter):
                         param.grad += weight_decay * param.detach().clone()
-
 
             # Take gradient step
             optimizer.step()

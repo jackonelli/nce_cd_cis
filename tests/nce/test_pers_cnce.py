@@ -80,6 +80,9 @@ class TestPersistentCnce(unittest.TestCase):
         y_p = crit.persistent_y(torch.randn(N, J, D), idx)
         self.assertEqual(y_p.size(), (N, J, D))
 
+    def test_grad(self):
+        # Check so that y_p does not affect gradient
+        pass
 
 if __name__ == "__main__":
     unittest.main()

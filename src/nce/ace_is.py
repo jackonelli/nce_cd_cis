@@ -56,8 +56,8 @@ class AceIsCrit(PartFnEstimator):
         q_mean = q.mean * (1 - observed_mask)
 
         # Calculate log prob for model
-        y_u_i, y_i, tiled_context = self._generate_model_input(y_u, y_samples_u, context)
-        log_p_tilde_ys = self._unnorm_distr((y_u_i, y_i, tiled_context)).reshape(-1, self._num_neg + 1, y_o.shape[-1])
+        y_u_i, u_i, tiled_context = self._generate_model_input(y_u, y_samples_u, context) # TODO: detach på context??
+        log_p_tilde_ys = self._unnorm_distr.log_prob((y_u_i, u_i, tiled_context)).reshape(-1, self._num_neg + 1, y_o.shape[-1])
         log_p_tilde_ys *= (1 - observed_mask).unsqueeze(dim=1)
 
         assert log_p_tilde_ys.shape[0] == y_o.shape[0]
@@ -80,8 +80,6 @@ class AceIsCrit(PartFnEstimator):
         if self.energy_reg != 0.0:
             p_loss += self.energy_reg * torch.nn.MSELoss()(log_p_y, log_q_y.detach().clone())
 
-        #p_loss = log_p_tilde_ys.mean()
-
         loss = q_loss + p_loss
 
         return loss, p_loss, q_loss
@@ -95,7 +93,6 @@ class AceIsCrit(PartFnEstimator):
         # This should automatically assign gradients to model parameters
         loss, _, _ = self.crit(y, _idx)
         loss.backward()
-        self.crit(y, _idx).backward()
 
     def calculate_crit_grad_p(self, y: Tensor, _idx: Optional[Tensor]):
         # Entry for testing
@@ -164,7 +161,7 @@ class AceIsCrit(PartFnEstimator):
 
         # TODO: consider selected_features for inference
         if selected_features is not None:
-            ys_u = ys_u[:, :, selected_features]# TODO: does this work as I think?
+            ys_u = ys_u[:, :, selected_features]# TODO: does this work as I intend?
             u_i = u_i[:, :, selected_features]
             context = context[:, selected_features, :]
 

@@ -64,3 +64,16 @@ def add_to_npy_file(file_name, addition):
 def remove_file(file_name):
     if os.path.exists(Path(file_name)):
         os.remove(file_name)
+
+# Polynomial decaying lr according to keras
+class PolynomialLr:
+    def __init__(self, decay_steps, initial_lr, end_lr=1e-7, power=1.0):
+        self.decay_steps = decay_steps
+        self.initial_lr = initial_lr
+        self.end_lr = end_lr
+        self.power = power
+
+    def decayed_learning_rate(self, step):
+        step = min(step, self.decay_steps)
+        return ((self.initial_lr - self.end_lr) *  (1 - step / self.decay_steps)**(self.power)) + self.end_lr
+
