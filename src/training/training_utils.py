@@ -65,8 +65,9 @@ def remove_file(file_name):
     if os.path.exists(Path(file_name)):
         os.remove(file_name)
 
-# Polynomial decaying lr according to keras
+
 class PolynomialLr:
+    """Polynomial decaying lr according to keras"""
     def __init__(self, decay_steps, initial_lr, end_lr=1e-7, power=1.0):
         self.decay_steps = decay_steps
         self.initial_lr = initial_lr
@@ -77,3 +78,15 @@ class PolynomialLr:
         step = min(step, self.decay_steps)
         return ((self.initial_lr - self.end_lr) *  (1 - step / self.decay_steps)**(self.power)) + self.end_lr
 
+
+def get_ace_losses(data_loader, criterion, device):
+    loss, loss_q, loss_p = 0, 0, 0
+
+    for (y, idx_) in data_loader:
+        y = y.to(device)
+        l, l_p, l_q = criterion.crit(y, None)
+        loss += l * y.shape[0]
+        loss_p += l_p * y.shape[0]
+        loss_q += l_q * y.shape[0]
+
+    return loss / len(data_loader.dataset), loss_p / len(data_loader.dataset), loss_q / len(data_loader.dataset)

@@ -2,7 +2,7 @@ from typing import Optional, Tuple
 import torch
 import numpy as np
 
-from src.training.training_utils import no_stopping, PolynomialLr
+from src.training.training_utils import no_stopping, PolynomialLr, get_ace_losses
 
 def train_model(
     criterion,
@@ -74,12 +74,11 @@ def train_model(
 
 def train_ace_model(
     criterion,
-    evaluation_metric,
     train_loader,
+    validation_loader,
     save_dir,
     weight_decay=0.0,
     decaying_lr=False,
-    neg_sample_size: int = 10,
     num_epochs: int = 100,
     stopping_condition=no_stopping,
     lr: float = 0.1,
@@ -94,7 +93,6 @@ def train_ace_model(
 
     if scheduler_opts is not None:
         # Polynomial decaying lr
-        # What happens after num_steps_decay?
         num_steps_decay, lr_factor = scheduler_opts
        # scheduler = torch.optim.lr_scheduler.PolynomialLR(
         #    optimizer, total_iters=num_steps_decay)
@@ -102,9 +100,8 @@ def train_ace_model(
                                                       lr_lambda=PolynomialLr(num_steps_decay, lr,
                                                                              lr * lr_factor).decayed_learning_rate)
 
-    batch_metrics = []
-    batch_metrics.append(evaluation_metric(model))
-    batch_losses = []
+    losses, losses_p, losses_q = [], [], []
+    val_losses, val_losses_p, val_losses_q = [], [], []
 
     for epoch in range(num_epochs):
 
@@ -135,11 +132,23 @@ def train_ace_model(
             if decaying_lr:
                 scheduler.step()
 
-            # Note: now logging this for every iteration (and not epoch)
-            with torch.no_grad():
-                loss = criterion.crit(y, None)
-                batch_losses.append(loss.item())
-            batch_metrics.append(evaluation_metric(model))
+        # Note: now logging this for every epoch
+        with torch.no_grad():
+
+            loss, loss_p, loss_q = get_ace_losses(train_loader, criterion, device)
+            losses.append(loss)
+            losses_p.append(loss_p)
+            losses_q.append(loss_q)
+
+            print("[Epoch {}]  Loss model: {:.3f} | Loss proposal: {:.3f}".format(epoch + 1, loss_p, loss_q))
+
+            if np.mod(epoch + 1, 1) == 0:
+                val_loss, val_loss_p, val_loss_q = get_ace_losses(validation_loader, criterion, device)
+                val_losses.append(val_loss)
+                val_losses_p.append(val_loss_p)
+                val_losses_q.append(val_loss_q)
+
+                print("[Epoch {}]  Loss model: {:.3f} | Loss proposal: {:.3f}".format(epoch + 1, val_loss_p, val_loss_q))
 
         if stopping_condition(
             torch.nn.utils.parameters_to_vector(model.parameters()), old_params
@@ -150,7 +159,9 @@ def train_ace_model(
     # print("Finished training")
 
     if save_dir is not None:
-        np.save(save_dir, batch_metrics)
+        np.save(save_dir, torch.tensor(val_losses))
         print("Data saved")
 
-    return torch.tensor(batch_losses), torch.tensor(batch_metrics)
+    return torch.tensor(losses), torch.tensor(val_losses)
+
+

@@ -28,8 +28,19 @@ class UniformMaskGenerator(MaskGenerator):
         result = []
         for i in range(num_samples):
             mask = torch.zeros(num_features)
-            inds = torch.randperm(num_features)[:k[i]]
+            inds = torch.randperm(num_features, generator=self.gen)[:k[i]]
             mask[inds] = 1
             result.append(mask)
 
         return torch.vstack(result)
+
+
+class BernoulliMaskGenerator(MaskGenerator):
+    def __init__(self, p=0.5, **kwargs):
+        super().__init__(**kwargs)
+
+        self.p = p
+
+    def call(self, num_samples, num_features):
+        return torch.bernoulli(torch.tensor([self.p] * num_samples * num_features),
+                               generator=self.gen).reshape(num_samples, num_features)

@@ -4,11 +4,11 @@ import torch
 from torch import Tensor
 
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import log_unnorm_weights, concat_samples
+from src.part_fn_utils import concat_samples
 
 from src.noise_distr.ace_proposal import AceProposal
 from src.models.ace.ace_model import AceModel
-from src.experiments.ace_experiment_utils import UniformMaskGenerator
+from src.experiments.ace_exp_utils import UniformMaskGenerator, BernoulliMaskGenerator
 
 
 class AceIsCrit(PartFnEstimator):
@@ -42,37 +42,19 @@ class AceIsCrit(PartFnEstimator):
         # Note: y, y_samples are tuples
         # TODO: For persistance (y_base is not None), it might be easier to ass y_base also to ys
 
-        # Mask input
         y_o, y_u, observed_mask, context = y
         y_samples, q = y_samples
 
-        y_samples_u = y_samples * (1 - observed_mask).unsqueeze(dim=1)
+        log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples = \
+            self._log_probs(y_o, y_u, y_samples, observed_mask, context, q)
 
-        # Calculate log prob for proposal
-        log_q_y = self._noise_distr.inner_log_prob(q, y_u) * (1 - observed_mask)
-        log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples.transpose(0, 1)).transpose(0, 1)
-        log_q_y_samples *= (1 - observed_mask).unsqueeze(dim=1)
-
-        q_mean = q.mean * (1 - observed_mask)
-
-        # Calculate log prob for model
-        y_u_i, u_i, tiled_context = self._generate_model_input(y_u, y_samples_u, context) # TODO: detach på context??
-        log_p_tilde_ys = self._unnorm_distr.log_prob((y_u_i, u_i, tiled_context)).reshape(-1, self._num_neg + 1, y_o.shape[-1])
-        log_p_tilde_ys *= (1 - observed_mask).unsqueeze(dim=1)
-
-        assert log_p_tilde_ys.shape[0] == y_o.shape[0]
-
-        # Calculate weights
-        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_ys[:, 0, :], log_p_tilde_ys[:, 1:, :]  # TODO: not last col?
-
-        log_w_tilde_y = log_p_tilde_y - log_q_y.detach().clone()
         log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples.detach().clone()) * (1 - observed_mask).unsqueeze(dim=1)
-
-        log_z = (torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.tensor(self._num_neg))) * (1 - observed_mask)
+        log_z = (torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.tensor(self._num_neg))) * (
+                    1 - observed_mask)
 
         log_p_y = log_p_tilde_y - log_z
-        is_weights = torch.nn.Softmax(dim=-1)(log_w_tilde_y_samples)
-        energy_mean = torch.sum(is_weights * y_samples_u) * (1 - observed_mask)
+        #is_weights = torch.nn.Softmax(dim=-1)(log_w_tilde_y_samples)
+        #energy_mean = torch.sum(is_weights * y_samples_u) * (1 - observed_mask)
 
         p_loss = - self.alpha * torch.mean(torch.sum(log_p_y, dim=-1))
         q_loss = - torch.mean(torch.sum(log_q_y, dim=-1))
@@ -140,34 +122,125 @@ class AceIsCrit(PartFnEstimator):
 
         return y_samples
 
-    def part_fn(self, y, y_samples) -> Tensor:
+    def part_fn(self, y, num_samples=1000) -> Tensor:
         """Compute Ẑ"""
         pass
 
-    def _mask_input(self, y):
-        observed_mask = self.mask_generator(y.shape[0], y.shape[-1])
+    def log_likelihood(self, y, num_samples=20, num_permutations=1):
+        # Likelihood estimates are computed with 20,000 importance samples for POWER, GAS, and HEPMASS,
+        # 10,000 importance samples for MINIBOONE, and 3,000 importance samples for BSDS.
+        # Results are averaged over 5 observed masks.
+
+        with torch.no_grad:
+            y_o, y_u, observed_mask = self._mask_input(y, mask=BernoulliMaskGenerator())
+
+            ll = []
+            for _ in range(num_permutations):
+                log_p = self.single_permutation_ll(y, observed_mask, num_samples)
+                ll.append(log_p)
+
+        return torch.stack(ll, dim=0)
+
+    def single_permutation_ll(self, y, observed_mask, num_samples=20):
+
+        # Create random permutations of query
+        expanded_y, expanded_observed_mask, selected_features = [], [], []
+        for i in range(y.shape[0]):
+            y, mask, sf = self._permute_mask(y[i, :], observed_mask[i, :])
+            expanded_y.append(y)
+            expanded_observed_mask.append(mask)
+            selected_features.append(sf)
+
+        expanded_y, expanded_observed_mask, selected_features = torch.stack(expanded_y, dim=0), \
+                                                                torch.stack(expanded_observed_mask, dim=0), \
+                                                                torch.stack(selected_features, dim=0)
+
+        # TODO: check this; I don't know why they need a ragged tensor and why they handle the tensors like they are 3-dimensional
+        #       Because of this, I skip some of their steps here
+
+        # Calculate log likelihood
+        expanded_y_o, expanded_y_u = expanded_y * expanded_observed_mask, expanded_y * (1- expanded_observed_mask)
+        q, context = self._noise_distr.forward((expanded_y_o, observed_mask))
+        y_samples = self.inner_sample_noise(q, num_samples=num_samples)
+
+        # Calculate log prob for model
+        log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples \
+            = self._log_probs(expanded_y_o, expanded_y_u, y_samples, observed_mask, context, q)
+
+        # Estimate z with importance sampling
+        log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples) * (1 - observed_mask).unsqueeze(dim=1)
+
+        log_z = (torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.tensor(num_samples))) * (
+                1 - observed_mask)
+
+        return (log_p_tilde_y - log_z).sum() # TODO: mean over obs. (as in loss)?
+
+    def _permute_mask(self, y, observed_mask):
+        query = 1 - observed_mask
+        u_inds = torch.nonzero(query).squeeze(dim=1)
+        u_inds = u_inds[torch.randperm(u_inds.shape[0])]
+
+        # "Exclusive" cumsum
+        expanded_mask = torch.cumsum(torch.nn.functional.one_hot(u_inds, y.shape[-1]), dim=0)
+        expanded_mask[-1, :] = 0
+        expanded_mask = expanded_mask.roll(shifts=1, dims=0)
+
+        expanded_mask += observed_mask.unsqueeze(dim=0)
+        y = torch.tile(y.unsqueeze(dim=0), [u_inds.shape[0], 1])
+
+        return y, expanded_mask, u_inds.unsqueeze(dim=1)
+
+    def _log_probs(self, y_o, y_u, y_samples, observed_mask, context, q):
+            """Helper function for calculating p_y, p_y_samples, q_y, q_y_samples"""
+
+            # Mask samples
+            y_samples_u = y_samples * (1 - observed_mask).unsqueeze(dim=1)
+
+            # Calculate log prob for proposal
+            log_q_y = self._noise_distr.inner_log_prob(q, y_u) * (1 - observed_mask)
+            log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples.transpose(0, 1)).transpose(0, 1)
+            log_q_y_samples *= (1 - observed_mask).unsqueeze(dim=1)
+
+            # q_mean = q.mean * (1 - observed_mask)
+
+            # Calculate log prob for model
+            y_u_i, u_i, tiled_context = self._generate_model_input(y_u, y_samples_u, context)
+            log_p_tilde_ys = self._unnorm_distr.log_prob((y_u_i, u_i, tiled_context)).reshape(-1, y_samples.shape[1] + 1,
+                                                                                              y_o.shape[-1])
+            log_p_tilde_ys *= (1 - observed_mask).unsqueeze(dim=1)
+
+            assert log_p_tilde_ys.shape[0] == y_o.shape[0]
+            log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_ys[:, 0, :], log_p_tilde_ys[:, 1:, :]  # TODO: not last col?
+
+            return log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples
+
+    def _mask_input(self, y, mask=None):
+        if mask is None:
+            observed_mask = self.mask_generator(y.shape[0], y.shape[-1])
+        else:
+            observed_mask = mask(y.shape[0], y.shape[-1])
 
         return y * observed_mask, y * (1 - observed_mask), observed_mask
 
-    def _generate_model_input(self, y_u, y_samples, context, selected_features=None):
+    def _generate_model_input(self, y_u, y_samples_u, context, selected_features=None):
 
         # TODO: should I not mask y_samples?
-        ys_u = concat_samples(y_u, y_samples)
+        ys_u = concat_samples(y_u, y_samples_u)
 
         # TODO: This means select all?
         u_i = torch.broadcast_to(torch.arange(0, y_u.shape[-1], dtype=torch.int64),
-            [y_u.shape[0], 1 + self._num_neg, y_u.shape[-1]],
-        )
+                                 [y_u.shape[0], 1 + y_samples_u.shape[1], y_u.shape[-1]],
+                                 )
 
-        # TODO: consider selected_features for inference
         if selected_features is not None:
-            ys_u = ys_u[:, :, selected_features]# TODO: does this work as I intend?
-            u_i = u_i[:, :, selected_features]
-            context = context[:, selected_features, :]
+            # TODO: test this somehow
+            ys_u = torch.gather(ys_u, dim=-1, index=selected_features.repeat(1, ys_u.shape[-1]).unsqueeze(dim=-1))
+            u_i = torch.gather(u_i, dim=-1, index=selected_features.repeat(1, u_i.shape[-1]).unsqueeze(dim=-1))
+            context = torch.gather(context, dim=1, index=selected_features.repeat(1, context.shape[-1]).unsqueeze(dim=1))
 
         y_u_i = ys_u.reshape(-1)
         u_i = u_i.reshape(-1)
-        tiled_context = torch.tile(context.unsqueeze(dim=1), [1, 1 + self._num_neg, 1, 1]).reshape(-1, context.shape[-1])
+        tiled_context = torch.tile(context.unsqueeze(dim=1), [1, 1 + y_samples_u.shape[1], 1, 1]).reshape(-1, context.shape[-1])
 
         return y_u_i, u_i, tiled_context
 
