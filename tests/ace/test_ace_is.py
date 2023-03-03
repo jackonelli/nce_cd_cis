@@ -7,6 +7,7 @@ from src.noise_distr.ace_proposal import AceProposal
 
 from src.experiments.ace_exp_utils import UniformMaskGenerator
 
+
 class TestAceIs(unittest.TestCase):
     def test_crit(self):
         # Just test so that everything seems to run ok

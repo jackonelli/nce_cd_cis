@@ -118,7 +118,6 @@ def train_ace_model(
             if weight_decay > 0.0:
                 # Update model gradients with weight decay grad.
 
-                # TODO: does this cover all parameters? (i.e. we get gradient of e.g activation/dropout layer?)
                 for param in model.parameters():
                     if isinstance(param, torch.nn.Parameter):
                         param.grad += weight_decay * param.detach().clone()
@@ -159,7 +158,11 @@ def train_ace_model(
     # print("Finished training")
 
     if save_dir is not None:
-        np.save(save_dir, torch.tensor(val_losses))
+        np.save(save_dir + "_train_loss", torch.tensor(losses))
+        np.save(save_dir + "_val_loss", torch.tensor(val_losses))
+        torch.save(proposal.state_dict(), save_dir + "_proposal")
+        torch.save(model.state_dict(), save_dir + "_model")
+
         print("Data saved")
 
     return torch.tensor(losses), torch.tensor(val_losses)
