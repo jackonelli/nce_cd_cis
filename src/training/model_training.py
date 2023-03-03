@@ -4,6 +4,7 @@ import numpy as np
 
 from src.training.training_utils import no_stopping, PolynomialLr, get_ace_losses
 
+
 def train_model(
     criterion,
     evaluation_metric,
@@ -84,15 +85,16 @@ def train_ace_model(
     lr: float = 0.1,
     scheduler_opts: Optional[Tuple[int, float]] = None,
     evaluation_freq=5000,
+    validation_freq=5000,
     device=torch.device("cpu")
 ):
 
     model = criterion.get_model().to(device)
     proposal = criterion.get_proposal().to(device)
 
-    best_model = model.state_dict().detach().clone()
-    best_proposal = proposal.state_dict.detach().clone()
-    best_loss_p = - 1e6
+    torch.save(model.state_dict(), save_dir + "_model")
+    torch.save(proposal.state_dict(), save_dir + "_proposal")
+    best_loss_p = 1e6
     optimizer = torch.optim.SGD(list(model.parameters()) + list(proposal.parameters()), lr=lr)
     if scheduler_opts is not None:
         # Polynomial decaying lr
@@ -151,26 +153,30 @@ def train_ace_model(
                     print("[Step {}]  Loss model: {:.3f} | Loss proposal: {:.3f} "
                           "| Loss total: {:.3f}".format(step + 1, loss_p, loss_q, loss))
 
+                if np.mod(step + 1, validation_freq) == 0:
+
                     val_loss, val_loss_p, val_loss_q = get_ace_losses(validation_loader, criterion, device)
                     val_losses.append(val_loss)
                     val_losses_p.append(val_loss_p)
                     val_losses_q.append(val_loss_q)
 
-                    if val_loss_p > best_loss_p:
-                        print("New best model with validation loss {}".format(val_loss_p))
-                        best_model = model.state_dict.clone()
-                        best_proposal = model.state_dict.clone()
-                        best_loss_p = val_loss_p
-
                     print("[Step {}]  Val loss model: {:.3f} | Val loss proposal: {:.3f} "
                           "| Val loss total: {:.3f}".format(step + 1, val_loss_p, val_loss_q, val_loss))
 
-                else:
-                    # TODO: it is a bit unnecessary to recalculate this
-                    loss, loss_p, loss_q = criterion.crit(y, None)
+                    if val_loss_p < best_loss_p:
+                        print("New best model with validation loss {}".format(val_loss_p))
+                        torch.save(model.state_dict(), save_dir + "_model")
+                        torch.save(proposal.state_dict(), save_dir + "_proposal")
+                        best_loss_p = val_loss_p
 
-                    print("[Step {}]  Loss model: {:.3f} | Loss proposal: {:.3f} "
-                          "| Loss total: {:.3f}".format(step + 1, loss_p, loss_q, loss))
+
+
+                # else:
+                #     # TODO: it is a bit unnecessary to recalculate this
+                #     loss, loss_p, loss_q = criterion.crit(y, None)
+                #
+                #     print("[Step {}]  Loss model: {:.3f} | Loss proposal: {:.3f} "
+                #           "| Loss total: {:.3f}".format(step + 1, loss_p, loss_q, loss))
 
                 model.train()
                 proposal.train()
@@ -180,8 +186,7 @@ def train_ace_model(
     if save_dir is not None:
         np.save(save_dir + "_train_loss", torch.tensor(losses))
         np.save(save_dir + "_val_loss", torch.tensor(val_losses))
-        torch.save(best_model, save_dir + "_proposal")
-        torch.save(best_proposal, save_dir + "_model")
+
 
         print("Data saved")
 

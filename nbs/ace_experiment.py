@@ -9,7 +9,7 @@ from src.models.ace.ace_model import AceModel
 from src.noise_distr.ace_proposal import AceProposal
 
 from src.training.model_training import train_ace_model
-
+from src.experiments.ace_exp_utils import UniformMaskGenerator
 
 def main(args):
 
@@ -50,7 +50,8 @@ def run_train(train_loader, validation_loader, save_dir, args):
     proposal = AceProposal(num_features=num_features, num_context_units=args.num_context_units,
                            num_blocks=args.proposal_num_blocks, num_hidden_units=args.proposal_num_hidden,
                            dropout_rate=args.dropout_rate)
-    crit = AceIsCrit(model, proposal, args.num_negative, alpha=args.alpha, energy_reg=args.energy_reg)
+    crit = AceIsCrit(model, proposal, args.num_negative, alpha=args.alpha, energy_reg=args.energy_reg,
+                     device=torch.device(args.device))
 
     train_ace_model(crit, train_loader, validation_loader, save_dir, weight_decay=0.0, decaying_lr=True,
                     num_training_steps=args.num_training_steps, num_warm_up_steps=args.num_warm_up_steps,
@@ -73,7 +74,8 @@ def run_test(test_loader, save_dir, args):
     proposal.load_state_dict(torch.load(save_dir + "_proposal"))
     model, proposal = model.to(device), proposal.to(device)
 
-    crit = AceIsCrit(model, proposal, args.num_negative, alpha=args.alpha, energy_reg=args.energy_reg)
+    crit = AceIsCrit(model, proposal, args.num_negative, alpha=args.alpha, energy_reg=args.energy_reg,
+                     device=torch.device(args.device))
 
     ll = 0
     for (y, idx_) in test_loader:

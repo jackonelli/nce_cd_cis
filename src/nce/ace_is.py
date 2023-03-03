@@ -18,14 +18,20 @@ class AceIsCrit(PartFnEstimator):
         noise_distr: AceProposal,
         num_neg_samples: int,
         alpha: float = 1.0,
-        energy_reg: float = 0.0
+        energy_reg: float = 0.0,
+        mask_generator=None,
+        device=torch.device("cpu")
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
-        self.mcmc_steps = 1 # For now, this option is not available
+        self.mcmc_steps = 1  # For now, this option is not available
         self.alpha = alpha  # For regularisation
         self.energy_reg = energy_reg  # TODO: In other code, they assign this to the data
-        self.mask_generator = UniformMaskGenerator()  # TODO: set seed?
+        self.device = device
+        if mask_generator is None:
+            self.mask_generator = UniformMaskGenerator(device=self.device)
+        else:
+            self.mask_generator = mask_generator  # TODO: set seed?
 
     def crit(self, y: Tensor, _idx: Optional[Tensor]):
         # Mask input
@@ -54,7 +60,6 @@ class AceIsCrit(PartFnEstimator):
         log_p_y = log_p_tilde_y - log_z
         #is_weights = torch.nn.Softmax(dim=-1)(log_w_tilde_y_samples)
         #energy_mean = torch.sum(is_weights * y_samples_u) * (1 - observed_mask)
-
         p_loss = - self.alpha * torch.mean(torch.sum(log_p_y, dim=-1))
         q_loss = - torch.mean(torch.sum(log_q_y, dim=-1))
 
@@ -72,7 +77,7 @@ class AceIsCrit(PartFnEstimator):
         self._noise_distr.clear_gradients()
 
         # This should automatically assign gradients to model parameters
-        loss, _, _ = self.crit(y, _idx)
+        loss, lp, lq = self.crit(y, _idx)
         loss.backward()
 
     def calculate_crit_grad_p(self, y: Tensor, _idx: Optional[Tensor]):
@@ -217,7 +222,7 @@ class AceIsCrit(PartFnEstimator):
             assert log_p_tilde_ys.shape[0] == y_o.shape[0]
             log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_ys[:, 0, :], log_p_tilde_ys[:, 1:, :]  # TODO: not last col?
 
-            return log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples
+            return log_p_tilde_y, log_p_tilde_y_samples, log_q_y.type(torch.float32), log_q_y_samples.type(torch.float32)
 
     def _mask_input(self, y, mask=None):
         if mask is None:
@@ -232,7 +237,7 @@ class AceIsCrit(PartFnEstimator):
         # TODO: should I not mask y_samples?
         ys_u = concat_samples(y_u, y_samples_u)
 
-        u_i = torch.broadcast_to(torch.arange(0, y_u.shape[-1], dtype=torch.int64),
+        u_i = torch.broadcast_to(torch.arange(0, y_u.shape[-1], dtype=torch.int64, device=self.device),
                                  [y_u.shape[0], 1 + y_samples_u.shape[1], y_u.shape[-1]],
                                  )
 
