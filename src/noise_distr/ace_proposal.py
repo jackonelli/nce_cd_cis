@@ -6,8 +6,7 @@ from src.models.ace.ace_model import ResidualBlock
 
 class AceProposal(BaseModel):
     def __init__(self, num_features: int, num_context_units: int = 64, num_components: int = 10,
-                 num_blocks: int = 4, num_hidden_units: int = 512, activation: str = "relu", dropout_rate: float = 0.0,
-                 **kwargs): # TODO: ta bort kwargs?
+                 num_blocks: int = 4, num_hidden_units: int = 512, activation: str = "relu", dropout_rate: float = 0.0):
 
         super(AceProposal, self).__init__()
 
@@ -45,7 +44,8 @@ class AceProposal(BaseModel):
         # Note: expect x to be a tuple (observed input, observed_mask)
         x_o, mask = x
 
-        h = torch.cat((x_o, mask), dim=-1)
+        h = torch.cat((x_o, mask), dim=-1).type(torch.float32)
+
         x = self.activation_fun()(self.input_layer(h))
 
         for module in self.residual_blocks:

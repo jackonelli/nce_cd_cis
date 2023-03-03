@@ -40,7 +40,6 @@ class AceIsCrit(PartFnEstimator):
 
         # Note that we calculate the criterion and not the gradient directly
         # Note: y, y_samples are tuples
-        # TODO: For persistance (y_base is not None), it might be easier to ass y_base also to ys
 
         y_o, y_u, observed_mask, context = y
         y_samples, q = y_samples
@@ -130,6 +129,9 @@ class AceIsCrit(PartFnEstimator):
         # Likelihood estimates are computed with 20,000 importance samples for POWER, GAS, and HEPMASS,
         # 10,000 importance samples for MINIBOONE, and 3,000 importance samples for BSDS.
         # Results are averaged over 5 observed masks.
+
+        self._unnorm_distr.eval()  # TODO: check so that this works
+        self._noise_distr.eval()
 
         with torch.no_grad():
             y_o, y_u, observed_mask = self._mask_input(y, mask=BernoulliMaskGenerator())

@@ -7,7 +7,7 @@ from src.models.base_model import BaseModel
 class AceModel(BaseModel):
 
     def __init__(self, num_features: int, num_context_units: int, num_blocks: int = 4, num_hidden_units: int = 128,
-                 activation: str = "relu", dropout_rate: float = 0.0, energy_clip: float = 30.0, **kwargs): # TODO: BEHÖVS KWARGS?
+                 activation: str = "relu", dropout_rate: float = 0.0, energy_clip: float = 30.0):
 
         super(AceModel, self).__init__()
 
@@ -36,7 +36,7 @@ class AceModel(BaseModel):
         x_u_i, u_i, context = y
         u_i_one_hot = torch.nn.functional.one_hot(u_i, self.num_features)
 
-        h = torch.cat((x_u_i.unsqueeze(dim=-1), u_i_one_hot, context), dim=-1)
+        h = torch.cat((x_u_i.unsqueeze(dim=-1), u_i_one_hot, context), dim=-1).type(torch.float32)
         x = self.activation_fun()(self.input_layer(h))
 
         for module in self.residual_blocks:

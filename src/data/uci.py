@@ -33,13 +33,13 @@ class UCIDataset(Dataset):
                 self.y += np.random.normal(loc=0.0, scale=noise_scale, size=self.y.shape)
 
             self.num_samples = self.y.shape[0]
-            self.features = self.y.shape[-1]
+            self.num_features = self.y.shape[-1]
 
         else:
             print("Unknown dataset, could not load data.")
             self.y = None
             self.num_samples = 0
-            self.features = 0
+            self.num_features = 0
 
     def get_full_data(self):
         return self.y
