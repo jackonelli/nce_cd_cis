@@ -76,7 +76,7 @@ class PolynomialLr:
 
     def decayed_learning_rate(self, step):
         step = min(step, self.decay_steps)
-        return ((self.initial_lr - self.end_lr) *  (1 - step / self.decay_steps)**(self.power)) + self.end_lr
+        return ((self.initial_lr - self.end_lr) * (1 - step / self.decay_steps)**self.power) + self.end_lr
 
 
 def get_ace_losses(data_loader, criterion, device):

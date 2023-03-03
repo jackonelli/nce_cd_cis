@@ -24,7 +24,7 @@ class AceIsCrit(PartFnEstimator):
 
         self.mcmc_steps = 1 # For now, this option is not available
         self.alpha = alpha  # For regularisation
-        self.energy_reg = energy_reg # TODO: In other code, they assign this to the data
+        self.energy_reg = energy_reg  # TODO: In other code, they assign this to the data
         self.mask_generator = UniformMaskGenerator()  # TODO: set seed?
 
     def crit(self, y: Tensor, _idx: Optional[Tensor]):
@@ -131,7 +131,7 @@ class AceIsCrit(PartFnEstimator):
         # 10,000 importance samples for MINIBOONE, and 3,000 importance samples for BSDS.
         # Results are averaged over 5 observed masks.
 
-        with torch.no_grad:
+        with torch.no_grad():
             y_o, y_u, observed_mask = self._mask_input(y, mask=BernoulliMaskGenerator())
 
             ll = []
@@ -146,32 +146,34 @@ class AceIsCrit(PartFnEstimator):
         # Create random permutations of query
         expanded_y, expanded_observed_mask, selected_features = [], [], []
         for i in range(y.shape[0]):
-            y, mask, sf = self._permute_mask(y[i, :], observed_mask[i, :])
-            expanded_y.append(y)
-            expanded_observed_mask.append(mask)
-            selected_features.append(sf)
+            if torch.count_nonzero(1 - observed_mask[i, :]) > 0:
+                y_e, mask, sf = self._permute_mask(y[i, :], observed_mask[i, :])
+                expanded_y.append(y_e)
+                expanded_observed_mask.append(mask)
+                selected_features.append(sf)
 
-        expanded_y, expanded_observed_mask, selected_features = torch.stack(expanded_y, dim=0), \
-                                                                torch.stack(expanded_observed_mask, dim=0), \
-                                                                torch.stack(selected_features, dim=0)
+        expanded_y, expanded_observed_mask, selected_features = torch.cat(expanded_y, dim=0), \
+                                                                torch.cat(expanded_observed_mask, dim=0), \
+                                                                torch.cat(selected_features, dim=0)
 
         # TODO: check this; I don't know why they need a ragged tensor and why they handle the tensors like they are 3-dimensional
         #       Because of this, I skip some of their steps here
 
         # Calculate log likelihood
-        expanded_y_o, expanded_y_u = expanded_y * expanded_observed_mask, expanded_y * (1- expanded_observed_mask)
-        q, context = self._noise_distr.forward((expanded_y_o, observed_mask))
+        expanded_y_o, expanded_y_u = expanded_y * expanded_observed_mask, expanded_y * (1 - expanded_observed_mask)
+        q, context = self._noise_distr.forward((expanded_y_o, expanded_observed_mask))
         y_samples = self.inner_sample_noise(q, num_samples=num_samples)
 
         # Calculate log prob for model
         log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples \
-            = self._log_probs(expanded_y_o, expanded_y_u, y_samples, observed_mask, context, q)
+            = self._log_probs(expanded_y_o, expanded_y_u, y_samples, expanded_observed_mask, context, q)
 
         # Estimate z with importance sampling
-        log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples) * (1 - observed_mask).unsqueeze(dim=1)
+        log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples) \
+                                * (1 - expanded_observed_mask).unsqueeze(dim=1)
 
         log_z = (torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.tensor(num_samples))) * (
-                1 - observed_mask)
+                1 - expanded_observed_mask)
 
         return (log_p_tilde_y - log_z).sum() # TODO: mean over obs. (as in loss)?
 
@@ -181,7 +183,8 @@ class AceIsCrit(PartFnEstimator):
         u_inds = u_inds[torch.randperm(u_inds.shape[0])]
 
         # "Exclusive" cumsum
-        expanded_mask = torch.cumsum(torch.nn.functional.one_hot(u_inds, y.shape[-1]), dim=0)
+
+        expanded_mask = torch.cumsum(torch.nn.functional.one_hot(u_inds, y.shape[-1]).float(), dim=0)
         expanded_mask[-1, :] = 0
         expanded_mask = expanded_mask.roll(shifts=1, dims=0)
 
@@ -227,15 +230,13 @@ class AceIsCrit(PartFnEstimator):
         # TODO: should I not mask y_samples?
         ys_u = concat_samples(y_u, y_samples_u)
 
-        # TODO: This means select all?
         u_i = torch.broadcast_to(torch.arange(0, y_u.shape[-1], dtype=torch.int64),
                                  [y_u.shape[0], 1 + y_samples_u.shape[1], y_u.shape[-1]],
                                  )
 
         if selected_features is not None:
-            # TODO: test this somehow
-            ys_u = torch.gather(ys_u, dim=-1, index=selected_features.repeat(1, ys_u.shape[-1]).unsqueeze(dim=-1))
-            u_i = torch.gather(u_i, dim=-1, index=selected_features.repeat(1, u_i.shape[-1]).unsqueeze(dim=-1))
+            ys_u = torch.gather(ys_u, dim=-1, index=selected_features.repeat(1, ys_u.shape[1]).unsqueeze(dim=-1))
+            u_i = torch.gather(u_i, dim=-1, index=selected_features.repeat(1, u_i.shape[1]).unsqueeze(dim=-1))
             context = torch.gather(context, dim=1, index=selected_features.repeat(1, context.shape[-1]).unsqueeze(dim=1))
 
         y_u_i = ys_u.reshape(-1)

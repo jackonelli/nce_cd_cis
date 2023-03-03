@@ -7,9 +7,12 @@ import torch
 class MaskGenerator(ABC):
     def __init__(
         self,
-        seed=1,
+        seed=None,
     ):
-        self.gen = torch.Generator().manual_seed(seed)    #device="cuda"
+        if seed is not None:
+            self.gen = torch.Generator().manual_seed(seed)    #device="cuda"
+        else:
+            self.gen = None
 
     def __call__(self, num_samples, num_features):
         return self.call(num_samples, num_features)
