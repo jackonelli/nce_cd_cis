@@ -1,7 +1,7 @@
 import unittest
 import torch
 
-from src.nce.ace_is import AceIsCrit
+from src.ace.ace_is import AceIsCrit
 from src.models.ace.ace_model import AceModel, ResidualBlock
 from src.noise_distr.ace_proposal import AceProposal
 
@@ -52,8 +52,6 @@ class TestAceIs(unittest.TestCase):
             else:
                 print("Note: param is not torch.nn.Parameter")
 
-        # Check that parameters of proposal have NOT been updated
-        # TODO: should it be updated based on context??
         for param in proposal.parameters():
             if isinstance(param, torch.nn.Parameter):
                 pass
@@ -63,6 +61,7 @@ class TestAceIs(unittest.TestCase):
 
         # Update only for proposal
         model.clear_gradients()
+        proposal.clear_gradients()
         crit.calculate_crit_grad_q(y, 0)
 
         # Check that parameters of model have NOT been updated
@@ -199,6 +198,70 @@ class TestAceIs(unittest.TestCase):
         ll = crit.log_likelihood(y, num_is_samples)
         assert ll.shape == torch.Size([1])
         assert not torch.isnan(ll) or torch.isinf(ll)
+
+    def test_eval(self):
+        # Check so that model.eval() turns of dropout correctly
+        num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
+        num_context_units = torch.randint(low=1, high=10, size=torch.Size((1,))).item()
+        num_negative = torch.randint(low=2, high=5, size=torch.Size((1,))).item()
+
+        dropout_rate = 0.5
+        model = AceModel(num_features=num_features, num_context_units=num_context_units, dropout_rate=dropout_rate)
+        proposal = AceProposal(num_features=num_features, num_context_units=num_context_units, dropout_rate=dropout_rate)
+        crit = AceIsCrit(model, proposal, 1, energy_reg=0.1)
+
+        num_samples = 100
+        y = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
+                                              scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample(
+            (num_samples,))
+
+        y_samples = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
+                                              scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample(
+            (num_samples, num_negative))
+
+
+
+        def get_output(proposal, model, y_o, y_u, y_samples_u, observed_mask):
+            _, context = proposal.forward((y_o, observed_mask))
+
+            y_u_i, u_i, tiled_context = crit._generate_model_input(y_u, y_samples_u, context)
+            log_p_tilde_ys = model.log_prob((y_u_i, u_i, tiled_context)).reshape(-1, y_samples_u.shape[1] + 1,
+                                                                                 y_u.shape[-1])
+
+            return context, log_p_tilde_ys
+
+        # Run once without eval
+        y_o, y_u, observed_mask = crit._mask_input(y)
+        y_samples_u = y_samples * (1 - observed_mask).unsqueeze(dim=1)
+
+        context_1, log_p_tilde_ys_1 = get_output(proposal, model, y_o, y_u, y_samples_u, observed_mask)
+
+        # Use eval
+        proposal.eval()
+        model.eval()
+
+        context_2, log_p_tilde_ys_2 = get_output(proposal, model, y_o, y_u, y_samples_u, observed_mask)
+
+        # These should not be the same if dropout_rate > 0 (although it might not be impossible)
+        if dropout_rate > 0.0:
+            assert not torch.allclose(context_1, context_2)
+            assert not torch.allclose(log_p_tilde_ys_1, log_p_tilde_ys_2)
+
+        # Run again to see that we get the same res.
+        context_3, log_p_tilde_ys_3 = get_output(proposal, model, y_o, y_u, y_samples_u, observed_mask)
+
+        # This should have given the same output
+        assert torch.allclose(context_2, context_3)
+        assert torch.allclose(log_p_tilde_ys_2, log_p_tilde_ys_3)
+
+        # If we go back to train mode
+        proposal.train()
+        model.train()
+
+        context_4, log_p_tilde_ys_4 = get_output(proposal, model, y_o, y_u, y_samples_u, observed_mask)
+        if dropout_rate > 0.0:
+            assert not torch.allclose(context_3, context_4)
+            assert not torch.allclose(log_p_tilde_ys_3, log_p_tilde_ys_4)
 
 
 if __name__ == "__main__":

@@ -77,5 +77,6 @@ def parse_args():
     parser.add_argument("--save_dir", type=str, default="./res", help="Save directory")
     parser.add_argument("--data_dir", type=str, default="./data", help="Data directory")
     parser.add_argument("--device", type=str, default="cpu", help="Device (cpu/cuda)")
+    parser.add_argument("--reps", type=int, default=1, help="Number of times to repeat experiment")
 
     return parser.parse_args()

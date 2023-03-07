@@ -95,7 +95,7 @@ def train_ace_model(
     torch.save(model.state_dict(), save_dir + "_model")
     torch.save(proposal.state_dict(), save_dir + "_proposal")
     best_loss_p = 1e6
-    optimizer = torch.optim.SGD(list(model.parameters()) + list(proposal.parameters()), lr=lr)
+    optimizer = torch.optim.Adam(list(model.parameters()) + list(proposal.parameters()), lr=lr)
     if scheduler_opts is not None:
         # Polynomial decaying lr
         num_steps_decay, lr_factor = scheduler_opts
@@ -168,8 +168,6 @@ def train_ace_model(
                         torch.save(model.state_dict(), save_dir + "_model")
                         torch.save(proposal.state_dict(), save_dir + "_proposal")
                         best_loss_p = val_loss_p
-
-
 
                 # else:
                 #     # TODO: it is a bit unnecessary to recalculate this
