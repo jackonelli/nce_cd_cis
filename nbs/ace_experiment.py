@@ -21,19 +21,20 @@ def main(args):
 
     base_dir = "nbs/res/ace/"
 
-    crits = [AceIsCrit, AceCisCrit, AceCisPers]
-    crit_lab = ["ace_is", "ace_cis", "ace_cis_pers"]
+    crits = [AceIsCrit]#, AceCisCrit, AceCisPers]
+    crit_lab = ["ace_is"]#, "ace_cis", "ace_cis_pers"]
 
-    ll = torch.zeros((args.reps, len(crits)))
+    ll, ll_std = torch.zeros((args.reps, len(crits))), torch.zeros((args.reps, len(crits)))
     for i in range(args.reps):
         train_loader, validation_loader, test_loader = load_data(data_name, data_root_dir, args)
 
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
-            save_dir = base_dir + lab + "_rep_" + str(i) + "_"
+            save_dir = base_dir + lab + "_rep_" + str(i)
 
             run_train(train_loader, validation_loader, crit, save_dir, args)
-            ll[i, j] = run_test(test_loader, crit, save_dir, args)
-            print("Test log. likelihood: {}".format(ll[i, j]))
+            ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
+            print("Test log. likelihood, mean: {}".format(ll[i, j]))
+            print("Test log. likelihood, std: {}".format(ll_std[i, j]))
 
 
 def load_data(name, root_dir, args):
@@ -86,12 +87,13 @@ def run_test(test_loader, criterion, save_dir, args):
     crit = criterion(model, proposal, args.num_negative, alpha=args.alpha, energy_reg=args.energy_reg,
                      device=torch.device(args.device))
 
-    ll = 0
+    ll = torch.zeros((args.num_permutations,))
+    # TODO: Use same observed mask for all models? And same random permutations? (In that case I will need to generate term here and send them into the ll function)
     for (y, idx_) in test_loader:
         y = y.to(device)
-        ll += crit.log_likelihood(y, args.num_is_samples)
+        ll += crit.log_likelihood(y, args.num_is_samples, args.num_permutations) * y.shape[0]
 
-    return ll
+    return (ll / test_loader.dataset.num_samples).mean(), (ll / test_loader.dataset.num_samples).std()
 
 
 if __name__ == '__main__':

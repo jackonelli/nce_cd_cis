@@ -14,9 +14,11 @@ class AceCisAltCrit(AceIsCrit):
         noise_distr: AceProposal,
         num_neg_samples: int,
         alpha: float = 1.0,
-        energy_reg: float = 0.0
+        energy_reg: float = 0.0,
+        mask_generator=None,
+        device=torch.device("cpu")
     ):
-        super().__init__(unnorm_distr, noise_distr, num_neg_samples, alpha, energy_reg)
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples, alpha, energy_reg, mask_generator, device)
 
     def inner_crit(self, y: tuple, y_samples: tuple, y_base=None, return_weights=False):
 

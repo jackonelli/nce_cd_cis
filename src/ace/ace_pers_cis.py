@@ -22,9 +22,11 @@ class AceCisPers(AceCisAltCrit):
         noise_distr: AceProposal,
         num_neg_samples: int,
         alpha: float = 1.0,
-        energy_reg: float = 0.0
+        energy_reg: float = 0.0,
+        mask_generator=None,
+        device=torch.device("cpu")
     ):
-        super().__init__(unnorm_distr, noise_distr, num_neg_samples, alpha, energy_reg)
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples, alpha, energy_reg, mask_generator, device)
         self._persistent_y = dict()
 
     def crit(self, y: Tensor, idx: Optional[Tensor]):

@@ -1,6 +1,4 @@
 import numpy as np
-import torch
-import torchvision
 from torch.utils.data import Dataset
 
 
@@ -21,6 +19,13 @@ class UCIDataset(Dataset):
         self.set = set
         self.root_dir = root_dir
         self.transform = transform
+        self.noise_scale = noise_scale
+
+        if self.noise_scale > 0.0:
+            self.transform = GaussianNoiseTransform(noise_scale).transform
+        else:
+            self.transform = None
+
         if self.name in available_datasets:
 
             if set not in ["train", "val", "test"]:
@@ -28,9 +33,6 @@ class UCIDataset(Dataset):
                 self.set = "train"
 
             self.y = np.loadtxt(self.root_dir + self.name + "_" + self.set + ".txt")
-
-            if noise_scale > 0.0:
-                self.y += np.random.normal(loc=0.0, scale=noise_scale, size=self.y.shape)
 
             self.num_samples = self.y.shape[0]
             self.num_features = self.y.shape[-1]
@@ -52,8 +54,16 @@ class UCIDataset(Dataset):
         sample = self.y[idx, :]
 
         if self.transform:
+            print("Applying transform")
             sample = self.transform(sample)
 
         return sample, idx
 
+
+class GaussianNoiseTransform:
+    def __init__(self, noise_scale):
+        self.noise_scale = noise_scale
+
+    def transform(self, y):
+        return y + np.random.normal(loc=0.0, scale=self.noise_scale, size=y.shape)
 

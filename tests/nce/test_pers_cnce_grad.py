@@ -43,12 +43,17 @@ class TestPersistentCnceGrad(unittest.TestCase):
         grad_2 = [param.grad.detach().clone() for param in true_distr.parameters()]
 
         # Use detach on y_p
-        crit.calculate_inner_crit_grad(y_p.detach().clone(), y_samples.detach().clone(), y.reshape(-1, y.shape[-1]))
+        crit.calculate_inner_crit_grad(y_p.detach().clone(), y_samples, y.reshape(-1, y.shape[-1]))
         grad_3 = [param.grad.detach().clone() for param in true_distr.parameters()]
 
-        for g1, g2, g3 in zip(grad_1, grad_2, grad_3):
+        # Use detach on y_p an y_samples
+        crit.calculate_inner_crit_grad(y_p.detach().clone(), y_samples.detach().clone(), y.reshape(-1, y.shape[-1]))
+        grad_4 = [param.grad.detach().clone() for param in true_distr.parameters()]
+
+        for g1, g2, g3, g4 in zip(grad_1, grad_2, grad_3, grad_4):
             assert torch.allclose(g1, g2)
             assert torch.allclose(g1, g3)
+            assert torch.allclose(g1, g4)
 
 
 if __name__ == "__main__":

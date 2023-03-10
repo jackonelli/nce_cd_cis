@@ -89,6 +89,8 @@ def train_ace_model(
     device=torch.device("cpu")
 ):
 
+    #num_epochs = np.ceil(num_training_steps / validation_freq)
+
     model = criterion.get_model().to(device)
     proposal = criterion.get_proposal().to(device)
 
