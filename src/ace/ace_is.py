@@ -20,7 +20,8 @@ class AceIsCrit(PartFnEstimator):
         alpha: float = 1.0,
         energy_reg: float = 0.0,
         mask_generator=None,
-        device=torch.device("cpu")
+        device=torch.device("cpu"),
+        batch_size=None
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
@@ -142,18 +143,19 @@ class AceIsCrit(PartFnEstimator):
         # 10,000 importance samples for MINIBOONE, and 3,000 importance samples for BSDS.
         # Results are averaged over 5 observed masks.
 
-        self._unnorm_distr.eval()  # TODO: check so that this works
+        self._unnorm_distr.eval()
         self._noise_distr.eval()
 
         with torch.no_grad():
-            y_o, y_u, observed_mask = self._mask_input(y, mask=BernoulliMaskGenerator(device=self.device))
 
             if num_permutations == 1:
+                y_o, y_u, observed_mask = self._mask_input(y, mask=BernoulliMaskGenerator(device=self.device))
                 return self.single_permutation_ll(y, observed_mask, num_samples)
 
             else:
-                ll = torch.zeros((num_permutations,))
+                ll = torch.zeros((num_permutations,)).to(self.device)
                 for i in range(num_permutations):
+                    y_o, y_u, observed_mask = self._mask_input(y, mask=BernoulliMaskGenerator(device=self.device))
                     ll[i] = self.single_permutation_ll(y, observed_mask, num_samples)
 
                 return ll
@@ -217,8 +219,12 @@ class AceIsCrit(PartFnEstimator):
             # Calculate log prob for proposal
             log_q_y = self._noise_distr.inner_log_prob(q, y_u) * (1 - observed_mask)
             log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples.transpose(0, 1)).transpose(0, 1)
-            log_q_y_samples *= (1 - observed_mask).unsqueeze(dim=1)
+            #log_q_y_samples_ref = torch.stack([self._noise_distr.inner_log_prob(q, y_samples[:, i, :]) for i in range(y_samples.shape[1])], dim=1)
 
+            #assert torch.allclose(log_q_y_samples, log_q_y_samples_ref)
+            assert log_q_y_samples.shape == y_samples.shape
+
+            log_q_y_samples = log_q_y_samples * (1 - observed_mask).unsqueeze(dim=1)
             # q_mean = q.mean * (1 - observed_mask)
 
             # Calculate log prob for model

@@ -21,15 +21,15 @@ def main(args):
 
     base_dir = "nbs/res/ace/"
 
-    crits = [AceIsCrit]#, AceCisCrit, AceCisPers]
-    crit_lab = ["ace_is"]#, "ace_cis", "ace_cis_pers"]
+    crits = [AceIsCrit, AceCisCrit, AceCisPers]
+    crit_lab = ["ace_is", "ace_cis", "ace_cis_pers"]
 
     ll, ll_std = torch.zeros((args.reps, len(crits))), torch.zeros((args.reps, len(crits)))
     for i in range(args.reps):
         train_loader, validation_loader, test_loader = load_data(data_name, data_root_dir, args)
 
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
-            save_dir = base_dir + lab + "_rep_" + str(i)
+            save_dir = base_dir + lab + "_rep_" + str(i) + "_"
 
             run_train(train_loader, validation_loader, crit, save_dir, args)
             ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
@@ -85,9 +85,9 @@ def run_test(test_loader, criterion, save_dir, args):
     model, proposal = model.to(device), proposal.to(device)
 
     crit = criterion(model, proposal, args.num_negative, alpha=args.alpha, energy_reg=args.energy_reg,
-                     device=torch.device(args.device))
+                     device=device)
 
-    ll = torch.zeros((args.num_permutations,))
+    ll = torch.zeros((args.num_permutations,)).to(device)
     # TODO: Use same observed mask for all models? And same random permutations? (In that case I will need to generate term here and send them into the ll function)
     for (y, idx_) in test_loader:
         y = y.to(device)

@@ -196,7 +196,7 @@ class TestAceIs(unittest.TestCase):
             (num_samples,))
 
         ll = crit.log_likelihood(y, num_is_samples)
-        assert ll.shape == torch.Size([1])
+        assert ll.shape == torch.Size([])
         assert not torch.isnan(ll) or torch.isinf(ll)
 
     def test_eval(self):
@@ -218,8 +218,6 @@ class TestAceIs(unittest.TestCase):
         y_samples = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
                                               scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample(
             (num_samples, num_negative))
-
-
 
         def get_output(proposal, model, y_o, y_u, y_samples_u, observed_mask):
             _, context = proposal.forward((y_o, observed_mask))
@@ -262,6 +260,37 @@ class TestAceIs(unittest.TestCase):
         if dropout_rate > 0.0:
             assert not torch.allclose(context_3, context_4)
             assert not torch.allclose(log_p_tilde_ys_3, log_p_tilde_ys_4)
+
+    def test_proposal_log_prob(self):
+        num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
+        num_context_units = torch.randint(low=1, high=10, size=torch.Size((1,))).item()
+
+        proposal = AceProposal(num_features=num_features, num_context_units=num_context_units)
+
+        num_samples = 100
+        input = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
+                                                  scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample(
+            (num_samples,))
+
+        observed = torch.distributions.bernoulli.Bernoulli(0.5).sample((num_samples, num_features))
+        masked_input = input * observed
+
+        distr, context = proposal.forward((masked_input, observed))
+
+        num_negative = torch.randint(low=1, high=5, size=torch.Size((1,))).item()
+        y_samples = proposal.inner_sample(distr, torch.Size((num_negative,)))
+
+        #y_samples = torch.distributions.normal.Normal(loc=0, scale=1).sample(sample_shape=(num_samples, num_negative, num_features))
+
+        log_q_y_samples = proposal.inner_log_prob(distr, y_samples.transpose(0, 1)).transpose(0, 1)
+        log_q_y_samples_ref = torch.stack([proposal.inner_log_prob(distr, y_samples[:, i, :])
+                                           for i in range(y_samples.shape[1])], dim=1)
+
+        assert torch.allclose(log_q_y_samples, log_q_y_samples_ref)
+
+        #log_q_y_samples *= (1 - observed).unsqueeze(dim=1)
+
+        #torch.mean(log_q_y_samples).backward()
 
 
 if __name__ == "__main__":

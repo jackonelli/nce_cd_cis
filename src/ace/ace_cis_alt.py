@@ -1,5 +1,7 @@
 """Noise Contrastive Estimation (NCE) for ACE (calculating loss with persistent y)"""
+from typing import Optional
 import torch
+from torch import Tensor
 
 from src.noise_distr.ace_proposal import AceProposal
 from src.models.ace.ace_model import AceModel
@@ -16,11 +18,26 @@ class AceCisAltCrit(AceIsCrit):
         alpha: float = 1.0,
         energy_reg: float = 0.0,
         mask_generator=None,
-        device=torch.device("cpu")
+        device=torch.device("cpu"),
+        batch_size=None
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, alpha, energy_reg, mask_generator, device)
 
-    def inner_crit(self, y: tuple, y_samples: tuple, y_base=None, return_weights=False):
+    def crit(self, y: Tensor, _idx: Optional[Tensor]):
+        # Mask input
+        y_o, y_u, observed_mask = self._mask_input(y)
+
+        q, context = self._noise_distr.forward((y_o, observed_mask))
+        y_samples = self.inner_sample_noise(q, num_samples=self._num_neg)
+
+        if _idx is None:
+            loss, p_loss, q_loss = self.inner_crit((y_u, observed_mask, context), (y_samples, q))
+        else:
+            loss, p_loss, q_loss, _ = self.inner_pers_crit((y_u, observed_mask, context), (y_samples, q))
+
+        return loss, p_loss, q_loss
+
+    def inner_pers_crit(self, y: tuple, y_samples: tuple, y_base=None):
 
         # Note that we calculate the criterion and not the gradient directly
         # Note: y, y_samples are tuples
@@ -36,7 +53,7 @@ class AceCisAltCrit(AceIsCrit):
         else:
             y_u = y_base * (1 - observed_mask)
 
-        log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples = \
+        log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples, _ = \
             self._log_probs(y_u, y_samples, observed_mask, context, q)
 
         assert log_p_tilde_y_samples.shape == (y_u.shape[0], 1 + self._num_neg, y_u.shape[-1])
@@ -63,10 +80,7 @@ class AceCisAltCrit(AceIsCrit):
                     1 - observed_mask)
             p_loss += self.energy_reg * torch.nn.MSELoss()(log_p_tilde_y - log_z, log_q_y.detach().clone())
 
+        # Note: gradient w.r.t. context might be different
         loss = q_loss + p_loss
 
-        if return_weights:
-            return loss, p_loss, q_loss, log_w_tilde_y_samples
-
-        else:
-            return loss, p_loss, q_loss
+        return loss, p_loss, q_loss, log_w_tilde_y_samples.detach().clone()

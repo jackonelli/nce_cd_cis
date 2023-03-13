@@ -54,7 +54,6 @@ class UCIDataset(Dataset):
         sample = self.y[idx, :]
 
         if self.transform:
-            print("Applying transform")
             sample = self.transform(sample)
 
         return sample, idx

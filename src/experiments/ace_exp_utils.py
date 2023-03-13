@@ -42,8 +42,8 @@ class UniformMaskGenerator(MaskGenerator):
 
 
 class BernoulliMaskGenerator(MaskGenerator):
-    def __init__(self, p=0.5, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, p=0.5, seed=None, device=torch.device("cpu")):
+        super().__init__(seed, device)
 
         self.p = p
 

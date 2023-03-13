@@ -49,7 +49,7 @@ class TestAceCisAlt(unittest.TestCase):
         y_samples = crit.inner_sample_noise(q, num_samples=num_negative)
 
         # Calculate grads.
-        loss, _, _ = crit.inner_crit((y_u, observed_mask, context), (y_samples, q))
+        loss, _, _ = crit.inner_pers_crit((y_u, observed_mask, context), (y_samples, q))
         loss.backward(retain_graph=True)
         grad_model = [param.grad.detach().clone() for param in model.parameters()]
         grad_proposal = [param.grad.detach().clone() for param in proposal.parameters()]

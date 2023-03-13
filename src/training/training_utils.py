@@ -82,7 +82,7 @@ class PolynomialLr:
 def get_ace_losses(data_loader, criterion, device):
     loss, loss_q, loss_p = 0, 0, 0
 
-    for (y, idx_) in data_loader:
+    for (y, idx) in data_loader:
         y = y.to(device)
         l, l_p, l_q = criterion.crit(y, None)
         loss += l * y.shape[0]

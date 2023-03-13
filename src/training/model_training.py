@@ -120,9 +120,9 @@ def train_ace_model(
             # Calculate and assign gradients
 
             if step < num_warm_up_steps:
-                criterion.calculate_crit_grad_q(y, idx)
+                criterion.calculate_crit_grad_q(y, y.shape[0])
             else:
-                criterion.calculate_crit_grad(y, idx)
+                criterion.calculate_crit_grad(y, y.shape[0])
 
             if weight_decay > 0.0:
                 # Update model gradients with weight decay grad.

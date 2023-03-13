@@ -7,7 +7,7 @@ from src.models.ace.ace_model import AceModel
 from src.ace.ace_is import AceIsCrit
 
 
-class AceCisCrit(AceIsCrit):
+class AceCisAdaCrit(AceIsCrit):
     def __init__(
         self,
         unnorm_distr: AceModel,
@@ -46,7 +46,13 @@ class AceCisCrit(AceIsCrit):
         assert log_p_y.shape == (y_u.shape[0], y_u.shape[-1])
 
         p_loss = - self.alpha * torch.mean(torch.sum(log_p_y, dim=-1))
-        q_loss = - torch.mean(torch.sum(log_q_y, dim=-1))
+
+        weights = torch.nn.Softmax(dim=1)(log_w_tilde_y_s).detach().clone()
+        log_q_y_s = torch.cat((log_q_y.unsqueeze(dim=1), log_q_y_samples), dim=1) * (1 - observed_mask).unsqueeze(dim=1)
+        assert log_q_y_s.shape == (y_u.shape[0], 1 + self._num_neg, y_u.shape[-1])
+
+        q_loss = - torch.mean(torch.sum(weights * log_q_y_s, dim=(1, -1)))
+        #q_loss = - torch.mean(torch.sum(weights[:, 0, :] * log_q_y + torch.sum(weights[:, 1:, :] * log_q_y_samples, dim=1), dim=-1))
 
         if self.energy_reg != 0.0:
             p_loss += self.energy_reg * torch.nn.MSELoss()(log_p_y, log_q_y.detach().clone())
