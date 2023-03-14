@@ -141,6 +141,8 @@ def train_ace_model(
             if decaying_lr:
                 scheduler.step()
 
+
+            # TODO: Reset trainloader?
             # Note: now logging this for every epoch
             with torch.no_grad():
                 model.eval()
