@@ -58,6 +58,7 @@ class AceIsCrit(PartFnEstimator):
         assert log_q_y.shape == (y_u.shape[0], y_u.shape[-1])
 
         log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples.detach().clone()) * (1 - observed_mask).unsqueeze(dim=1)
+        log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples.detach().clone()) * (1 - observed_mask).unsqueeze(dim=1)
         log_z = (torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.tensor(self._num_neg))) * (
                     1 - observed_mask)
 
@@ -210,47 +211,45 @@ class AceIsCrit(PartFnEstimator):
         return y, expanded_mask, u_inds.unsqueeze(dim=1)
 
     def _log_probs(self, y_u, y_samples, observed_mask, context, q, selected_features=None):
-            """Helper function for calculating p_y, p_y_samples, q_y, q_y_samples"""
+        """Helper function for calculating p_y, p_y_samples, q_y, q_y_samples"""
 
-            # Mask samples
-            y_samples_u = y_samples * (1 - observed_mask).unsqueeze(dim=1)
-            assert y_samples_u.shape == y_samples.shape
+        # Mask samples
+        y_samples_u = y_samples * (1 - observed_mask).unsqueeze(dim=1)
+        assert y_samples_u.shape == y_samples.shape
 
-            # Calculate log prob for proposal
-            log_q_y = self._noise_distr.inner_log_prob(q, y_u) * (1 - observed_mask)
-            log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples.transpose(0, 1)).transpose(0, 1)
-            #log_q_y_samples_ref = torch.stack([self._noise_distr.inner_log_prob(q, y_samples[:, i, :]) for i in range(y_samples.shape[1])], dim=1)
+        # Calculate log prob for proposal
+        log_q_y = self._noise_distr.inner_log_prob(q, y_u) * (1 - observed_mask)
+        log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples.transpose(0, 1)).transpose(0, 1)
+        log_q_y_samples = log_q_y_samples * (1 - observed_mask).unsqueeze(dim=1)
 
-            #assert torch.allclose(log_q_y_samples, log_q_y_samples_ref)
-            assert log_q_y_samples.shape == y_samples.shape
+        assert log_q_y_samples.shape == y_samples.shape
 
-            log_q_y_samples = log_q_y_samples * (1 - observed_mask).unsqueeze(dim=1)
-            # q_mean = q.mean * (1 - observed_mask)
+        # q_mean = q.mean * (1 - observed_mask)
 
-            # Calculate log prob for model
-            # TODO: when selected_features is None; isn't it unnecessary still that we do predictions for all features (as we mask the observed later on)
-            y_u_i, u_i, tiled_context = self._generate_model_input(y_u, y_samples_u, context, selected_features)
-            log_p_tilde_ys = self._unnorm_distr.log_prob((y_u_i, u_i, tiled_context))\
+        # Calculate log prob for model
+        # TODO: when selected_features is None; isn't it unnecessary still that we do predictions for all features (as we mask the observed later on)
+        y_u_i, u_i, tiled_context = self._generate_model_input(y_u, y_samples_u, context, selected_features)
+        log_p_tilde_ys = self._unnorm_distr.log_prob((y_u_i, u_i, tiled_context))\
 
-            if selected_features is None:
-                log_p_tilde_ys = log_p_tilde_ys.reshape(-1, y_samples.shape[1] + 1, y_u.shape[-1])
-            else:
-                assert selected_features.ndim == 2
-                log_p_tilde_ys = log_p_tilde_ys.reshape(-1, y_samples.shape[1] + 1, selected_features.shape[-1])
+        if selected_features is None:
+            log_p_tilde_ys = log_p_tilde_ys.reshape(-1, y_samples.shape[1] + 1, y_u.shape[-1])
+        else:
+            assert selected_features.ndim == 2
+            log_p_tilde_ys = log_p_tilde_ys.reshape(-1, y_samples.shape[1] + 1, selected_features.shape[-1])
 
-                observed_mask = torch.gather(observed_mask, dim=1, index=selected_features)
-                log_q_y = torch.gather(log_q_y, dim=1, index=selected_features)
-                log_q_y_samples = torch.gather(log_q_y_samples, dim=-1,
-                                               index=selected_features.repeat(1, log_q_y_samples.shape[1]).unsqueeze(dim=-1))
-                #y_samples = torch.gather(y_samples, dim=-1,
-                                         #index=selected_features.repeat(1, y_samples.shape[1]).unsqueeze(dim=-1))
+            observed_mask = torch.gather(observed_mask, dim=1, index=selected_features)
+            log_q_y = torch.gather(log_q_y, dim=1, index=selected_features)
+            log_q_y_samples = torch.gather(log_q_y_samples, dim=-1,
+                                           index=selected_features.repeat(1, log_q_y_samples.shape[1]).unsqueeze(dim=-1))
+            #y_samples = torch.gather(y_samples, dim=-1,
+                                     #index=selected_features.repeat(1, y_samples.shape[1]).unsqueeze(dim=-1))
 
-            log_p_tilde_ys *= (1 - observed_mask).unsqueeze(dim=1)
-            assert log_p_tilde_ys.shape[0] == y_u.shape[0]
+        log_p_tilde_ys *= (1 - observed_mask).unsqueeze(dim=1)
+        assert log_p_tilde_ys.shape[0] == y_u.shape[0]
 
-            log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_ys[:, 0, :], log_p_tilde_ys[:, 1:, :]  # TODO: not last col?
+        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_ys[:, 0, :], log_p_tilde_ys[:, 1:, :]  # TODO: not last col?
 
-            return log_p_tilde_y, log_p_tilde_y_samples, log_q_y.type(torch.float32), log_q_y_samples.type(torch.float32), observed_mask
+        return log_p_tilde_y, log_p_tilde_y_samples, log_q_y.type(torch.float32), log_q_y_samples.type(torch.float32), observed_mask
 
     def _mask_input(self, y, mask=None):
         if mask is None:
