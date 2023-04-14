@@ -94,7 +94,6 @@ class TestAceCis(unittest.TestCase):
             if isinstance(param, ResidualBlock):
                 print("Note: param is not torch.nn.Parameter")
 
-
     def test_log_likelihood(self):
         # Just test so that everything seems to run ok (for now, this is the same as for AceIsCrit)
         num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()

@@ -27,6 +27,7 @@ def train_model(
         scheduler = torch.optim.lr_scheduler.LinearLR(
             optimizer, total_iters=int((num_epochs * len(train_loader)) / 2)
         )
+
     batch_metrics = []
     batch_metrics.append(evaluation_metric(model))
     batch_losses = []
@@ -141,13 +142,13 @@ def train_ace_model(
             if decaying_lr:
                 scheduler.step()
 
-
             # TODO: Reset trainloader?
             # Note: now logging this for every epoch
             with torch.no_grad():
                 model.eval()
                 proposal.eval()
 
+                # TODO: remove this?
                 if np.mod(step + 1, evaluation_freq) == 0:
                     loss, loss_p, loss_q = get_ace_losses(train_loader, criterion, device)
                     losses.append(loss)
@@ -185,10 +186,12 @@ def train_ace_model(
 
             step += 1
 
+            #if step == num_training_steps:
+            #    break
+
     if save_dir is not None:
         np.save(save_dir + "_train_loss", torch.tensor(losses))
         np.save(save_dir + "_val_loss", torch.tensor(val_losses))
-
 
         print("Data saved")
 

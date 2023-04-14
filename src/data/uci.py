@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 class UCIDataset(Dataset):
     """UCI datasets."""
 
-    def __init__(self, name="gas", set="train", root_dir='./data/datasets/uci/', transform=None, noise_scale=0.0):
+    def  __init__(self, name="gas", set="train", root_dir='./data/datasets/uci/', transform=None, noise_scale=0.0):
         """
         Args:
             name: name of dataset (dsps, gas, hepmass, miniboone or power)

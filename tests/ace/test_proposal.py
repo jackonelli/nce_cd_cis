@@ -25,6 +25,10 @@ class TestAceProposal(unittest.TestCase):
 
         num_negative = torch.randint(low=1, high=5, size=torch.Size((1,))).item()
         samples = model.inner_sample(distr, torch.Size((num_negative,)))
+
+        print(distr.mixture_distribution)
+
+
         assert samples.shape == (num_samples, num_negative, num_features)
 
         log_prob = model.inner_log_prob(distr, samples[:, 0, :])

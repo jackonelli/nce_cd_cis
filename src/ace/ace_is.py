@@ -26,8 +26,8 @@ class AceIsCrit(PartFnEstimator):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
         self.mcmc_steps = 1  # For now, this option is not available
-        self.alpha = alpha  # For regularisation
-        self.energy_reg = energy_reg  # TODO: In other code, they assign this to the data
+        self.alpha = alpha  # Trade-off between q and p in loss
+        self.energy_reg = energy_reg  # For regularisation # TODO: In other code, they assign this to the data
         self.device = device
         if mask_generator is None:
             self.mask_generator = UniformMaskGenerator(device=self.device)
@@ -57,7 +57,6 @@ class AceIsCrit(PartFnEstimator):
         assert log_p_tilde_y.shape == (y_u.shape[0], y_u.shape[-1])
         assert log_q_y.shape == (y_u.shape[0], y_u.shape[-1])
 
-        log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples.detach().clone()) * (1 - observed_mask).unsqueeze(dim=1)
         log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples.detach().clone()) * (1 - observed_mask).unsqueeze(dim=1)
         log_z = (torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.tensor(self._num_neg))) * (
                     1 - observed_mask)
@@ -176,7 +175,6 @@ class AceIsCrit(PartFnEstimator):
                                                                 torch.cat(expanded_observed_mask, dim=0), \
                                                                 torch.cat(selected_features, dim=0)
 
-
         # Calculate log likelihood
         expanded_y_o, expanded_y_u = expanded_y * expanded_observed_mask, expanded_y * (1 - expanded_observed_mask)
         q, context = self._noise_distr.forward((expanded_y_o, expanded_observed_mask))
@@ -244,10 +242,10 @@ class AceIsCrit(PartFnEstimator):
             #y_samples = torch.gather(y_samples, dim=-1,
                                      #index=selected_features.repeat(1, y_samples.shape[1]).unsqueeze(dim=-1))
 
-        log_p_tilde_ys *= (1 - observed_mask).unsqueeze(dim=1)
+        log_p_tilde_ys = log_p_tilde_ys * (1 - observed_mask).unsqueeze(dim=1) # log_p_tilde_ys *= (1 - observed_mask).unsqueeze(dim=1)
         assert log_p_tilde_ys.shape[0] == y_u.shape[0]
 
-        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_ys[:, 0, :], log_p_tilde_ys[:, 1:, :]  # TODO: not last col?
+        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_ys[:, 0, :], log_p_tilde_ys[:, 1:, :]
 
         return log_p_tilde_y, log_p_tilde_y_samples, log_q_y.type(torch.float32), log_q_y_samples.type(torch.float32), observed_mask
 

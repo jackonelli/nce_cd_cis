@@ -17,7 +17,7 @@ def main(args):
 
     # Load data
     data_root_dir = 'src/data/datasets/uci/'
-    data_name = "gas"
+    data_name = args.dataset
 
     base_dir = "nbs/res/ace/"
 
@@ -91,7 +91,7 @@ def run_test(test_loader, criterion, save_dir, args):
     # TODO: Use same observed mask for all models? And same random permutations? (In that case I will need to generate term here and send them into the ll function)
     for (y, idx_) in test_loader:
         y = y.to(device)
-        ll += crit.log_likelihood(y, args.num_is_samples, args.num_permutations) * y.shape[0]
+        ll = ll + crit.log_likelihood(y, args.num_is_samples, args.num_permutations) * y.shape[0]
 
     return (ll / test_loader.dataset.num_samples).mean(), (ll / test_loader.dataset.num_samples).std()
 

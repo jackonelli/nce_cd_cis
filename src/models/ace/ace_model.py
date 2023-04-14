@@ -31,7 +31,7 @@ class AceModel(BaseModel):
         self.energy_clip = energy_clip
 
     def energy(self, y: tuple):
-        # Note: expect y to be a tuple (masked input (unobserved set to 0), index of unobserved input, context (from proposal net))
+        # Note: expect y to be a tuple (masked input (unobserved features), index of unobserved input, context (from proposal net))
 
         x_u_i, u_i, context = y
         u_i_one_hot = torch.nn.functional.one_hot(u_i, self.num_features)
@@ -59,7 +59,6 @@ class ResidualBlock(torch.nn.Module):
         self.output_layer = torch.nn.Linear(hidden_units, hidden_units)
 
     def forward(self, x):
-
         y = self.activation_fun()(self.input_layer(x))
         y = self.dropout(y)
         y = self.activation_fun()(x + self.output_layer(y))

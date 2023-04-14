@@ -29,7 +29,7 @@ class UniformMaskGenerator(MaskGenerator):
     def call(self, num_samples, num_features):
 
         # For each obs., observe 0 to num_features-1 features
-        k = torch.randint(low=0, high=num_features-1, size=(num_samples,), generator=self.gen)
+        k = torch.randint(low=0, high=num_features, size=(num_samples,), generator=self.gen)
 
         result = []
         for i in range(num_samples):
