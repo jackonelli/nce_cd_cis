@@ -25,9 +25,9 @@ class AemCisCrit(AemIsCrit):
         # calculate log normalizer
         log_w_tilde_y = (log_p_tilde_y - log_q_y.detach())
         log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples.detach())
-        log_w_tilde_y_s = torch.cat((log_w_tilde_y.unsqueeze(dim=-1), log_w_tilde_y_samples), dim=-1)
-        assert log_w_tilde_y_s.shape == (y.shape[0], y.shape[-1], 1 + self._num_neg)
-        log_normalizer = torch.logsumexp(log_w_tilde_y_s, dim=-1) - torch.log(torch.Tensor([self._num_neg + 1]))
+        log_w_tilde_y_s = torch.cat((log_w_tilde_y.unsqueeze(dim=1), log_w_tilde_y_samples), dim=1)
+        assert log_w_tilde_y_s.shape == (y.shape[0], 1 + self._num_neg, y.shape[-1])
+        log_normalizer = torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([self._num_neg + 1]))
 
         # calculate normalized density
         p_loss = - torch.mean(torch.sum(

@@ -24,10 +24,10 @@ class AemIsCrit(PartFnEstimator):
         q, context = self._noise_distr.forward(y, conditional_inputs)
 
         if self._noise_distr.Component is not None:
-            y_samples = self.inner_sample_noise(q, num_samples=self._num_neg).transpose(1, 2)
+            y_samples = self.inner_sample_noise(q, num_samples=self._num_neg) #.transpose(1, 2)
         else:
             y_samples = self.inner_sample_noise(q, num_samples=self._num_neg * y.shape[0] * y.shape[1]
-                                                ).reshape(y.shape[0], y.shape[1], self._num_neg)
+                                                ).reshape(y.shape[0], self._num_neg, y.shape[1])  #(y.shape[0], y.shape[1], self._num_neg)
 
         return self.inner_crit((y, context), (y_samples, q))
 
@@ -41,7 +41,7 @@ class AemIsCrit(PartFnEstimator):
 
         # calculate log normalizer
         log_normalizer = torch.logsumexp(log_p_tilde_y_samples - log_q_y_samples.detach(),  # stop gradient
-                                         dim=-1) - torch.log(torch.Tensor([self._num_neg]))
+                                         dim=1) - torch.log(torch.Tensor([self._num_neg]))
 
         # calculate normalized density
         p_loss = - torch.mean(torch.sum(
@@ -89,13 +89,13 @@ class AemIsCrit(PartFnEstimator):
 
     def _log_probs(self, y, y_samples, context, q, num_proposal_samples):
         # evaluate data and proposal samples under proposal
-        log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples)  # [B, D, S]
+        log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples)  # [B, J, D] ([B, D, S])
         log_q_y = self._noise_distr.inner_log_prob(q, y[..., None]).reshape(-1, self.dim)
 
         # energy net
         inputs_cat_samples = torch.cat(
-            (y[..., None], y_samples.detach()),  # stop gradient
-            dim=-1
+            (y.unsqueeze(dim=1), y_samples.detach()),  # stop gradient y[..., None]
+            dim=1
         )
         inputs_cat_samples = inputs_cat_samples.reshape(-1, 1)
         context_params = context[..., None, :]
@@ -133,12 +133,11 @@ class AemIsCrit(PartFnEstimator):
 
         del energy_net_inputs  # free GPU memory
 
-        energy_net_outputs = energy_net_outputs.reshape(-1, self.dim,
-                                                        1 + num_proposal_samples)
+        energy_net_outputs = energy_net_outputs.reshape(-1, 1 + num_proposal_samples, self.dim)
 
         # unnormalized log densities given by energy net
-        log_p_tilde_y = energy_net_outputs[..., 0]
-        log_p_tilde_y_samples = energy_net_outputs[..., 1:]
+        log_p_tilde_y = energy_net_outputs[:, 0, :]
+        log_p_tilde_y_samples = energy_net_outputs[:, 1:, :]
 
         return log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples
 
@@ -147,17 +146,17 @@ class AemIsCrit(PartFnEstimator):
         q, context = self._noise_distr.forward(y, conditional_inputs)
 
         if self._noise_distr.Component is not None:
-            y_samples = self.inner_sample_noise(q, num_samples=self.num_neg_samples_validation).transpose(1, 2)
+            y_samples = self.inner_sample_noise(q, num_samples=self.num_neg_samples_validation)
         else:
             y_samples = self.inner_sample_noise(q, num_samples=self.num_neg_samples_validation * y.shape[0] * y.shape[1]
-                                                ).reshape(y.shape[0], y.shape[1], self.num_neg_samples_validation)
+                                                ).reshape(y.shape[0], self.num_neg_samples_validation, y.shape[1])
 
         log_p_tilde_y, log_p_tilde_y_samples, log_q_y, log_q_y_samples = \
             self._log_probs(y, y_samples, context, q, self.num_neg_samples_validation)
 
         # calculate log normalizer
         log_normalizer = torch.logsumexp(log_p_tilde_y_samples - log_q_y_samples.detach(),  # stop gradient
-                                         dim=-1) - torch.log(torch.Tensor([self.num_neg_samples_validation]))
+                                         dim=1) - torch.log(torch.Tensor([self.num_neg_samples_validation]))
 
         # calculate normalized density
         log_prob_p = torch.sum(log_p_tilde_y - log_normalizer, dim=-1)
@@ -186,10 +185,10 @@ class AemIsCrit(PartFnEstimator):
             q, context = self._noise_distr.forward_along_dim(samples, dim)
 
             if self._noise_distr.Component is not None:
-                y_samples = self.inner_sample_noise(q, num_samples=num_proposal_samples).transpose(1, 2)
+                y_samples = self.inner_sample_noise(q, num_samples=num_proposal_samples)
             else:
                 y_samples = self.inner_sample_noise(q, num_samples=num_proposal_samples * batch_size
-                                                    ).reshape(batch_size, 1, num_proposal_samples)
+                                                    ).reshape(batch_size, num_proposal_samples, 1)
 
             # reshape for log prob calculation
             proposal_log_density = self._noise_distr.inner_log_prob(q, y_samples)

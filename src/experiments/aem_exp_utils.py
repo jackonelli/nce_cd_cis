@@ -167,14 +167,13 @@ class MixtureSameFamily(distributions.Distribution):
 
     def log_prob(self, value):
         # pad value for evaluation under component density
-        value = value.permute(2, 0, 1)  # [S, B, D]
+        value = value.transpose(0, 1) #permute(2, 0, 1)  # [S, B, D]
         value = value[..., None].repeat(1, 1, 1, self.batch_shape[-1])  # [S, B, D, M]
-        log_prob_components = self.components_distribution.log_prob(value).permute(1, 2,
-                                                                                   3, 0)
+        log_prob_components = self.components_distribution.log_prob(value).transpose(0, 1)#.permute(1, 2, 3, 0)
 
         # calculate numerically stable log coefficients, and pad
         log_prob_mixture = self.mixture_distribution.logits
-        log_prob_mixture = log_prob_mixture[..., None]
+        log_prob_mixture = log_prob_mixture.unsqueeze(dim=1) #[..., None]
         return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-2)
 
 
