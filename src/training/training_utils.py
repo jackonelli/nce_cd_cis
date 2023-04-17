@@ -79,14 +79,3 @@ class PolynomialLr:
         return ((self.initial_lr - self.end_lr) * (1 - step / self.decay_steps)**self.power) + self.end_lr
 
 
-def get_ace_losses(data_loader, criterion, device):
-    loss, loss_q, loss_p = 0, 0, 0
-
-    for (y, idx) in data_loader:
-        y = y.to(device)
-        l, l_p, l_q = criterion.crit(y, None)
-        loss += l * y.shape[0]
-        loss_p += l_p * y.shape[0]
-        loss_q += l_q * y.shape[0]
-
-    return loss / len(data_loader.dataset), loss_p / len(data_loader.dataset), loss_q / len(data_loader.dataset)

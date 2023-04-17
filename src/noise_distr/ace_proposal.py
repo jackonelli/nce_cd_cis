@@ -35,7 +35,7 @@ class AceProposal(BaseModel):
 
         proposal_distr, _ = self.forward(x)
 
-        return self.inner_sample(proposal_distr, size) # TODO: Need to check so that size is correct
+        return self.inner_sample(proposal_distr, size)  # TODO: Need to check so that size is correct
 
     def inner_sample(self, distr, size):
         return distr.sample(size).transpose(0, 1)
@@ -66,7 +66,7 @@ class AceProposal(BaseModel):
         # Calculate log prob conditionen on x
         proposal_distr, _ = self.forward(samples)
 
-        return self.inner_log_prob(proposal_distr, samples).reshape()
+        return self.inner_log_prob(proposal_distr, samples)
 
     def inner_log_prob(self, distr, samples):
         return distr.log_prob(samples)

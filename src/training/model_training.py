@@ -1,8 +1,14 @@
+import os
 from typing import Optional, Tuple
 import torch
 import numpy as np
 
-from src.training.training_utils import no_stopping, PolynomialLr, get_ace_losses
+from src.training.training_utils import no_stopping, PolynomialLr
+from src.experiments.ace_exp_utils import get_ace_losses
+from src.experiments.aem_exp_utils import get_aem_losses
+
+from tensorboardX import SummaryWriter
+from tqdm import tqdm
 
 
 def train_model(
@@ -198,3 +204,118 @@ def train_ace_model(
     return torch.tensor(losses), torch.tensor(val_losses)
 
 
+def train_aem_model(
+    criterion,
+    train_loader,
+    validation_loader,
+    save_dir,
+    decaying_lr=False,
+    num_training_steps: int = 1600000,
+    num_warm_up_steps: int = 5000,
+    hard_warmup: bool = True,
+    lr: float = 0.1,
+    evaluation_freq=5000,
+    validation_freq=5000,
+    device=torch.device("cpu")
+    ):
+
+    if not os.path.exists(save_dir + "/log"):
+        os.makedirs(save_dir + "/log")
+
+    writer = SummaryWriter(log_dir=save_dir + "/log")
+
+    model = criterion.get_model().to(device)
+    proposal = criterion.get_proposal().to(device)
+    made = proposal.get_autoregressive_net().to(device)
+
+    # optimizer and scheduler
+    optimizer = torch.optim.Adam(list(made.parameters()) + list(model.parameters()), lr=lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_training_steps)
+
+    # Training loop
+    tbar = tqdm(range(num_training_steps))
+    for step in tbar:
+        optimizer.zero_grad()
+
+        # training step
+        y = next(train_loader).to(device)
+
+        if step < num_warm_up_steps:
+            if hard_warmup:
+                criterion.calculate_crit_grad_q(y, y.shape[0])
+            else:
+                alpha = torch.Tensor([min(step / num_warm_up_steps, 1)])
+                criterion.set_alpha(alpha)
+                criterion.calculate_crit_grad(y, y.shape[0])
+
+                if (step + 1) == num_warm_up_steps:
+                    criterion.set_alpha(1.0)
+        else:
+                criterion.calculate_crit_grad(y, y.shape[0])
+
+        optimizer.step()
+
+        if decaying_lr:
+            scheduler.step()  # TODO: har flyttat ner denna
+
+        if (step + 1) % validation_freq == 0:
+
+            model.eval()
+            made.eval()
+            criterion.set_training(False)
+
+            with torch.no_grad():
+                val_loss, val_loss_p, val_loss_q = get_aem_losses(validation_loader, criterion, device)
+
+
+            # s = 'Loss: {:.4f}, ' \
+            #     'train: {:.4f}, ' \
+            #     'val: {:.4f}, ' \
+            #     'train prop: {:.4f}, ' \
+            #     'val prop: {:.4f}'.format(
+            #     loss.item(),
+            #     mean_log_density.item(),
+            #     running_val_log_density.item(),
+            #     mean_log_proposal_density.item(),
+            #     running_val_log_proposal_density.item()
+            # )
+            s = 'val loss: {:.4f}, ' \
+                'val loss p: {:.4f}, ' \
+                'val loss q: {:.4f}'.format(
+                val_loss.item(),
+                val_loss_p.item(),
+                val_loss_q.item()
+            )
+
+            tbar.set_description(s)
+
+            # write summaries
+            # summaries = {
+            #     'loss': loss.detach(),
+            #     'log-prob-aem': mean_log_density.detach(),
+            #     'log-prob-proposal': mean_log_proposal_density.detach(),
+            #     'log-prob-aem-val': torch.Tensor([running_val_log_density]),
+            #     'log-prob-proposal-val': torch.Tensor([running_val_log_proposal_density]),
+            #     'log-normalizer': mean_log_normalizer.detach(),
+            #     'learning-rate': torch.Tensor(scheduler.get_last_lr()),  # get_lr()
+            # }
+
+            summaries = {
+                'log-prob-aem-val': torch.Tensor([val_loss]),
+                'log-prob-model-val': torch.Tensor([val_loss_p]),
+                'log-prob-proposal-val': torch.Tensor([val_loss_q]),
+                'learning-rate': torch.Tensor(scheduler.get_last_lr())
+            }
+
+            for summary, value in summaries.items():
+                writer.add_scalar(tag=summary, scalar_value=value, global_step=step)
+
+            torch.save(model.state_dict(), save_dir + "_model")
+            torch.save(proposal.state_dict(), save_dir + "_proposal")
+
+            model.train()
+            made.train()
+            criterion.set_training(True)
+
+    torch.save(model.state_dict(), save_dir + "_model")
+    torch.save(proposal.state_dict(), save_dir + "_proposal")

@@ -1,3 +1,4 @@
+import os
 import torch
 
 from src.experiments.ace_exp_utils import parse_args
@@ -20,6 +21,9 @@ def main(args):
     data_name = args.dataset
 
     base_dir = "nbs/res/ace/"
+
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir)
 
     crits = [AceIsCrit, AceCisCrit, AceCisPers]
     crit_lab = ["ace_is", "ace_cis", "ace_cis_pers"]
