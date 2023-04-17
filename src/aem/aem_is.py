@@ -25,6 +25,7 @@ class AemIsCrit(PartFnEstimator):
 
         if self._noise_distr.Component is not None:
             y_samples = self.inner_sample_noise(q, num_samples=self._num_neg) #.transpose(1, 2)
+            assert y_samples.shape == (y.shape[0], self._num_neg, y.shape[1])
         else:
             y_samples = self.inner_sample_noise(q, num_samples=self._num_neg * y.shape[0] * y.shape[1]
                                                 ).reshape(y.shape[0], self._num_neg, y.shape[1])  #(y.shape[0], y.shape[1], self._num_neg)
@@ -90,20 +91,22 @@ class AemIsCrit(PartFnEstimator):
     def _log_probs(self, y, y_samples, context, q, num_proposal_samples):
         # evaluate data and proposal samples under proposal
         log_q_y_samples = self._noise_distr.inner_log_prob(q, y_samples)  # [B, J, D] ([B, D, S])
-        log_q_y = self._noise_distr.inner_log_prob(q, y[..., None]).reshape(-1, self.dim)
+        log_q_y = self._noise_distr.inner_log_prob(q, y.unsqueeze(dim=1)).reshape(-1, self.dim)
 
         # energy net
         inputs_cat_samples = torch.cat(
             (y.unsqueeze(dim=1), y_samples.detach()),  # stop gradient y[..., None]
             dim=1
         )
+
         inputs_cat_samples = inputs_cat_samples.reshape(-1, 1)
-        context_params = context[..., None, :]
+        context_params = context.unsqueeze(dim=1)
         context_params_tiled = context_params.repeat(
-            1, 1, num_proposal_samples + 1, 1
+            1, num_proposal_samples + 1, 1, 1
         )
         del context_params  # free GPU memory
         context_params_tiled = context_params_tiled.reshape(-1, self._noise_distr.num_context_units)
+
 
         energy_net_inputs = torch.cat(
             (inputs_cat_samples, context_params_tiled),

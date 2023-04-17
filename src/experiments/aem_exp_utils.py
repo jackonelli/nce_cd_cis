@@ -169,12 +169,12 @@ class MixtureSameFamily(distributions.Distribution):
         # pad value for evaluation under component density
         value = value.transpose(0, 1) #permute(2, 0, 1)  # [S, B, D]
         value = value[..., None].repeat(1, 1, 1, self.batch_shape[-1])  # [S, B, D, M]
-        log_prob_components = self.components_distribution.log_prob(value).transpose(0, 1)#.permute(1, 2, 3, 0)
+        log_prob_components = self.components_distribution.log_prob(value).transpose(0, 1) #.permute(1, 2, 3, 0)
 
         # calculate numerically stable log coefficients, and pad
         log_prob_mixture = self.mixture_distribution.logits
-        log_prob_mixture = log_prob_mixture.unsqueeze(dim=1) #[..., None]
-        return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-2)
+        log_prob_mixture = log_prob_mixture.unsqueeze(dim=1)  #[..., None]
+        return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-1)
 
 
 def get_aem_losses(data_loader, criterion, device):
@@ -274,7 +274,7 @@ def parse_args():
     parser.add_argument('--n_total_steps', default=400000,
                         help='Number of total training steps.')
     parser.add_argument('--alpha_warm_up_steps', default=5000,
-                        help='Number of warm-up steps for AEM density.')
+                        help='Number of warm-up steps for aem density.')
     parser.add_argument('--hard_alpha_warm_up', default=True,
                         help='Whether to use a hard warm up for alpha')
 

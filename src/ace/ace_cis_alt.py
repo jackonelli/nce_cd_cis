@@ -30,6 +30,7 @@ class AceCisAltCrit(AceIsCrit):
         q, context = self._noise_distr.forward((y_o, observed_mask))
         y_samples = self.inner_sample_noise(q, num_samples=self._num_neg)
 
+        # TODO: should we not inherit from CIS-crit in order for this to work (remove if/else?)?
         if _idx is None:
             loss, p_loss, q_loss = self.inner_crit((y_u, observed_mask, context), (y_samples, q))
         else:

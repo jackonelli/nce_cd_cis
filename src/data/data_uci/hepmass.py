@@ -1,3 +1,4 @@
+# Adapted from https://github.com/conormdurkan/autoregressive-energy-machines
 import numpy as np
 import os
 

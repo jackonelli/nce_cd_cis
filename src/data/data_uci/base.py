@@ -1,3 +1,4 @@
+# Adapted from https://github.com/conormdurkan/autoregressive-energy-machines
 import numpy as np
 
 #from .bsds300 import BSDS300Dataset

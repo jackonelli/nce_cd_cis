@@ -1,5 +1,4 @@
-import os
-import numpy as np
+# Adapted from https://github.com/conormdurkan/autoregressive-energy-machines
 
 #import h5py
 import numpy as np

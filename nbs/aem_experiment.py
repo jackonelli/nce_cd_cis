@@ -133,7 +133,7 @@ def run_train(train_loader, validation_loader, criterion, save_dir, args):
         apply_context_activation=args.apply_context_activation
     )
 
-    # create AEM
+    # create aem
     crit = criterion(model, proposal, args.n_proposal_samples_per_input, args.n_proposal_samples_per_input_validation)
 
     filename = save_dir + '_config.json'
@@ -193,7 +193,7 @@ def run_test(test_loader, criterion, save_dir, args):
 
     proposal.load_state_dict(torch.load(save_dir + "_proposal", map_location=device)) # TODO: check so that this loads params also of made
 
-    # create AEM
+    # create aem
     crit = criterion(model, proposal, args.n_proposal_samples_per_input, args.n_importance_samples)
 
     model.eval()
