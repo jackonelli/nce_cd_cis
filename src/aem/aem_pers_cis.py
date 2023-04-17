@@ -10,16 +10,17 @@ from src.part_fn_utils import concat_samples
 from torch.distributions import Categorical
 
 from src.noise_distr.aem_proposal import AemProposal
-from src.aem.aem_cis_alt import AemCisJointCrit
+from src.aem.aem_cis_alt import AceCisJointAltCrit
 
 
-class AemCisJointPers(AemCisJointCrit):
+class AemCisJointPers(AceCisJointAltCrit):
     def __init__(self, unnorm_distr, noise_distr: AemProposal, num_neg_samples: int, batch_size: int,
                  num_neg_samples_validation: int = 1e2, alpha: float = 1.0):
 
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
 
         self.batch_size = batch_size
+        self._persistent_y = None
 
     def crit(self, y: Tensor, conditional_inputs=None, idx: Optional[int]=None):
 
@@ -66,7 +67,7 @@ class AemCisJointPers(AemCisJointCrit):
 
         with torch.no_grad():
             sampled_idx = Categorical(logits=log_w_unnorm).sample()
-            y_p = torch.gather(ys, dim=1, index=sampled_idx.unsqueeze(dim=1)).squeeze(dim=1)
+            y_p = torch.gather(ys, dim=1, index=sampled_idx[:, None, None].repeat(1, 1, y.shape[-1])).squeeze(dim=1)
 
             if self._persistent_y is None or idx is None:
                 assert y.shape[0] == self.batch_size
