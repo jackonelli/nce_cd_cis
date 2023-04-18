@@ -13,7 +13,7 @@ from src.noise_distr.aem_proposal import AemProposal
 from src.aem.aem_cis_alt import AceCisJointAltCrit
 
 
-class AemCisJointPers(AceCisJointAltCrit):
+class AemCisJointPersCrit(AceCisJointAltCrit):
     def __init__(self, unnorm_distr, noise_distr: AemProposal, num_neg_samples: int, batch_size: int,
                  num_neg_samples_validation: int = 1e2, alpha: float = 1.0):
 

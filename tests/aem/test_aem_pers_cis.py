@@ -2,7 +2,7 @@ import unittest
 import torch
 from torch.distributions import Categorical
 
-from src.aem.aem_pers_cis import AemCisJointPers
+from src.aem.aem_pers_cis import AemCisJointPersCrit
 from src.models.aem.made import ResidualMADE
 from src.models.aem.energy_net import ResidualEnergyNet
 from src.noise_distr.aem_proposal import AemProposal
@@ -27,7 +27,7 @@ class TestAemPersCis(unittest.TestCase):
         proposal = AemProposal(autoregressive_net=made, proposal_component_family='gaussian',
                                num_context_units=num_context_units, num_components=num_mixture_components)
 
-        crit = AemCisJointPers(model, proposal, num_negative, batch_size=num_samples)
+        crit = AemCisJointPersCrit(model, proposal, num_negative, batch_size=num_samples)
 
         y = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
                                               scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample((num_samples,))
