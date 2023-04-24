@@ -33,4 +33,28 @@ class AemCisJointCrit(AemIsJointCrit):
 
         return loss, p_loss, q_loss
 
+    def log_prob(self, y):
+        log_q_y, log_q_y_samples, context_y, context_y_samples, y_samples = self._proposal_log_probs(y,
+                                                                                                     num_samples=self._num_neg)
+
+        log_p_tilde_y, log_p_tilde_y_samples = self._model_log_probs(y, y_samples, context_y, context_y_samples,
+                                                                     self.num_neg_samples_validation)
+
+        # Calculate joint distr. over all dimensions
+        log_p_tilde_y, log_p_tilde_y_samples = torch.sum(log_p_tilde_y, dim=-1), torch.sum(log_p_tilde_y_samples,
+                                                                                           dim=-1)
+        log_q_y, log_q_y_samples = torch.sum(log_q_y, dim=-1), torch.sum(log_q_y_samples, dim=-1)
+
+        # calculate log normalizer
+        log_w_tilde_y_s = torch.cat(((log_p_tilde_y - log_q_y.detach()).reshape(-1, 1),
+                                     (log_p_tilde_y_samples - log_q_y_samples.detach()).reshape(-1, self._num_neg)),
+                                    dim=1)
+        assert log_w_tilde_y_s.shape == (y.shape[0], 1 + self._num_neg)
+        log_normalizer = torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([self._num_neg + 1]))
+
+        # calculate normalized density
+        log_prob_p = log_p_tilde_y - log_normalizer
+        log_prob_q = log_q_y
+
+        return log_prob_p, log_prob_q
 

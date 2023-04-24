@@ -1,11 +1,11 @@
 # Adapted from https://github.com/conormdurkan/autoregressive-energy-machines
 import torch
 
-from src.aem.aem_is_joint_z import AemIsJointCrit
+from src.aem.aem_cis_joint_z import AemCisJointCrit
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
 
-class AemCisJointAdaCrit(AemIsJointCrit):
+class AemCisJointAdaCrit(AemCisJointCrit):
     def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int, num_neg_samples_validation: int=1e2,
                  alpha: float = 1.0):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)

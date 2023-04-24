@@ -34,7 +34,7 @@ class AemCisJointPersCrit(AceCisJointAltCrit):
             loss, p_loss, q_loss, log_w_tilde = self.inner_pers_crit((y, context_y, log_q_y), (y_samples, context_y_samples,
                                                                                                log_q_y_samples))
             self._update_persistent_y(log_w_tilde, y_p, y_samples[y_p.shape[0]:, :].reshape(-1, self._num_neg,
-                                                                                           y_samples.shape[-1]), idx) # TODO: will y_samples have the same order as in the criteria?
+                                                                                            y_samples.shape[-1]), idx) # TODO: will y_samples have the same order as in the criteria?
         else:
             log_q_y, log_q_y_samples, context_y, context_y_samples, y_samples = self._proposal_log_probs(y,
                                                                                                          num_samples=self._num_neg)
