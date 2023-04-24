@@ -176,6 +176,34 @@ class MixtureSameFamily(distributions.Distribution):
         log_prob_mixture = log_prob_mixture.unsqueeze(dim=1)  #[..., None]
         return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-1)
 
+class MixtureSameFamily1D(distributions.Distribution):
+    def __init__(self, mixture_distribution, components_distribution):
+        self.mixture_distribution = mixture_distribution
+        self.components_distribution = components_distribution
+
+        super().__init__(
+            batch_shape=self.components_distribution.batch_shape,
+            event_shape=self.components_distribution.event_shape
+        )
+
+    def sample(self, sample_shape=torch.Size()):
+        mixture_mask = self.mixture_distribution.sample(sample_shape)  # [B, 1, M]
+        if len(mixture_mask.shape) == 3:
+            mixture_mask = mixture_mask[:, None, ...]
+        components_samples = self.components_distribution.rsample(
+            sample_shape)  # [S, B, D, M]
+        samples = torch.sum(mixture_mask * components_samples, dim=-1).squeeze(dim=0)  # [B, 1]
+        return samples
+
+    def log_prob(self, value):
+        # pad value for evaluation under component density
+        # [B, 1]
+        value = value[None, :, :, None].repeat(1, 1, 1, self.batch_shape[-1])  # [S, B, D, M]
+        log_prob_components = self.components_distribution.log_prob(value).squeeze(dim=0)  # [B, D, M]
+
+        # calculate numerically stable log coefficients, and pad
+        log_prob_mixture = self.mixture_distribution.logits
+        return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-1)
 
 def get_aem_losses(data_loader, criterion, device):
     loss, loss_q, loss_p = 0, 0, 0
@@ -220,9 +248,9 @@ def parse_args():
                         help='Number of workers used in data loaders.')
 
     # MADE
-    parser.add_argument('--n_residual_blocks_made', default=4,
+    parser.add_argument('--n_residual_blocks_made', default=4, type=int,
                         help='Number of residual blocks in MADE.')
-    parser.add_argument('--hidden_dim_made', default=512,
+    parser.add_argument('--hidden_dim_made', default=512, type=int,
                         help='Dimensionality of hidden layers in MADE.')
     parser.add_argument('--activation_made', default='relu',
                         help='Activation function for MADE.')
@@ -273,18 +301,20 @@ def parse_args():
                         help='Learning rate for Adam.')
     parser.add_argument('--n_total_steps', default=400000,
                         help='Number of total training steps.')
-    parser.add_argument('--alpha_warm_up_steps', default=5000,
+    parser.add_argument('--alpha_warm_up_steps', default=5000, type=int,
                         help='Number of warm-up steps for aem density.')
     parser.add_argument('--hard_alpha_warm_up', default=True,
                         help='Whether to use a hard warm up for alpha')
 
     # logging and checkpoints
-    parser.add_argument('--monitor_interval', default=100,
+    parser.add_argument('--monitor_interval', default=100, type=int,
                         help='Interval in steps at which to report training stats.')
     parser.add_argument('--save_interval', default=10000,
                         help='Interval in steps at which to save model.')
     parser.add_argument('--reps', default=1,
                         help='Number of experiment repeats.')
+    parser.add_argument('--criterion', default='is',
+                        help='Criterion to use (is/cis/pers/adaptive/pers_adaptive).')
 
     # reproducibility
     parser.add_argument('--seed', default=1638128,

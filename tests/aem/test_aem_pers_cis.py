@@ -3,9 +3,9 @@ import torch
 from torch.distributions import Categorical
 
 from src.aem.aem_pers_cis import AemCisJointPersCrit
-from src.models.aem.made import ResidualMADE
 from src.models.aem.energy_net import ResidualEnergyNet
-from src.noise_distr.aem_proposal import AemProposal
+from src.models.aem.made_joint_z import ResidualMADEJoint
+from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
 
 class TestAemPersCis(unittest.TestCase):
@@ -19,13 +19,12 @@ class TestAemPersCis(unittest.TestCase):
 
         output_dim_multiplier = num_context_units + 3 * num_mixture_components
 
+        num_res_blocks, num_hidden, num_components = 2, 5, 5
+        output_dim_mult = num_context_units + 3 * num_components
+        made = ResidualMADEJoint(2 * num_features, num_res_blocks, num_hidden, output_dim_mult)
+
         model = ResidualEnergyNet(input_dim=(num_context_units + 1))
-
-        made = ResidualMADE(input_dim=num_features, n_residual_blocks=2, hidden_dim=10,
-                            output_dim_multiplier=output_dim_multiplier)
-
-        proposal = AemProposal(autoregressive_net=made, proposal_component_family='gaussian',
-                               num_context_units=num_context_units, num_components=num_mixture_components)
+        proposal = AemJointProposal(made, num_context_units, num_components)
 
         crit = AemCisJointPersCrit(model, proposal, num_negative, batch_size=num_samples)
 
@@ -49,7 +48,6 @@ class TestAemPersCis(unittest.TestCase):
         assert sampled_idx.shape == (num_samples,)
 
         y_p = torch.gather(ys, dim=1, index=sampled_idx[:, None, None].repeat(1, 1, num_features)).squeeze(dim=1)
-        print(y_p.shape)
         assert y_p.shape == (num_samples, num_features)
 
         y_p_ref = torch.zeros((num_samples, num_features))

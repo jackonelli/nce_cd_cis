@@ -4,16 +4,13 @@ import numpy as np
 import torch
 from torch.utils import data
 
-from src.aem.aem_is_joint_z import AemIsJointCrit
-from src.aem.aem_cis_joint_z import AemCisJointCrit
-from src.aem.aem_cis_joint_z_adapt import AemCisJointAdaCrit
-from src.aem.aem_pers_cis import AemCisJointPersCrit
-from src.aem.aem_pers_cis_adapt import AemCisJointAdaPersCrit
+from src.aem.aem_is import AemIsCrit
+from src.aem.aem_cis import AemCisCrit
 from src.data import data_uci
 from src.data.data_uci.uciutils import get_project_root
 from src.models.aem.energy_net import ResidualEnergyNet
-from src.models.aem.made_joint_z import ResidualMADEJoint
-from src.noise_distr.aem_proposal_joint_z import AemJointProposal
+from src.models.aem.made import ResidualMADE
+from src.noise_distr.aem_proposal import AemProposal
 from src.experiments.aem_exp_utils import parse_activation, parse_args, InfiniteLoader
 
 from src.training.model_training import train_aem_model
@@ -31,19 +28,8 @@ def main(args):
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)  # (io.get_checkpoint_root())
 
-    crit_dir = {
-        'is': ([AemIsJointCrit], ["aem_is_j"]),
-        'cis': ([AemCisJointCrit], ["aem_cis_j"]),
-        'pers': ([AemCisJointPersCrit], ["aem_cis_pers_j"]),
-        'adaptive': ([AemCisJointAdaCrit], ["aem_cis_adapt_j"]),
-        'pers_adaptive': ([AemCisJointAdaPersCrit], ["aem_cis_pers_adapt_j"])
-    }
-
-    if args.criterion in crit_dir:
-        crits, crit_lab = crit_dir[args.criterion]
-    else:
-        crits, crit_lab = [], []
-        print("Unknown criterion!")
+    crits = [AemIsCrit]
+    crit_lab = ["aem_is"]
 
     ll, ll_std = np.zeros((args.reps, len(crits))), np.zeros((args.reps, len(crits)))
     for i in range(args.reps):
@@ -52,7 +38,7 @@ def main(args):
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
             save_dir = os.path.join(base_dir, lab + "_rep_" + str(i))
 
-            run_train(train_loader, validation_loader, crit, save_dir, args)
+            #run_train(train_loader, validation_loader, crit, save_dir, args)
             ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
             print("Test log. likelihood, mean: {}".format(ll[i, j]))
             print("Test log. likelihood, std: {}".format(ll_std[i, j]))
@@ -126,8 +112,8 @@ def run_train(train_loader, validation_loader, criterion, save_dir, args):
     )
 
     # Create MADE
-    made = ResidualMADEJoint(
-        input_dim=2*dim,
+    made = ResidualMADE(
+        input_dim=dim,
         n_residual_blocks=args.n_residual_blocks_made,
         hidden_dim=args.hidden_dim_made,
         output_dim_multiplier=output_dim_multiplier,
@@ -138,8 +124,9 @@ def run_train(train_loader, validation_loader, criterion, save_dir, args):
     )
 
     # Create proposal
-    proposal = AemJointProposal(
+    proposal = AemProposal(
         autoregressive_net=made,
+        proposal_component_family=args.proposal_component,
         num_context_units=args.context_dim,
         num_components=args.n_mixture_components,
         mixture_component_min_scale=args.mixture_component_min_scale,
@@ -183,8 +170,8 @@ def run_test(test_loader, criterion, save_dir, args):
     model.load_state_dict(torch.load(save_dir + "_model", map_location=device))
 
     # Create MADE
-    made = ResidualMADEJoint(
-        input_dim=2*dim,
+    made = ResidualMADE(
+        input_dim=dim,
         n_residual_blocks=args.n_residual_blocks_made,
         hidden_dim=args.hidden_dim_made,
         output_dim_multiplier=output_dim_multiplier,
@@ -195,8 +182,9 @@ def run_test(test_loader, criterion, save_dir, args):
     )
 
     # Create proposal
-    proposal = AemJointProposal(
+    proposal = AemProposal(
         autoregressive_net=made,
+        proposal_component_family=args.proposal_component,
         num_context_units=args.context_dim,
         num_components=args.n_mixture_components,
         mixture_component_min_scale=args.mixture_component_min_scale,

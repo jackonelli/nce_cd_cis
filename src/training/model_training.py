@@ -233,6 +233,9 @@ def train_aem_model(
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_training_steps)
 
     # Training loop
+    torch.save(model.state_dict(), save_dir + "_model")
+    torch.save(proposal.state_dict(), save_dir + "_proposal")
+    best_loss_p = 1e6
     tbar = tqdm(range(num_training_steps))
     for step in tbar:
         optimizer.zero_grad()
@@ -251,7 +254,7 @@ def train_aem_model(
                 if (step + 1) == num_warm_up_steps:
                     criterion.set_alpha(1.0)
         else:
-                criterion.calculate_crit_grad(y, y.shape[0])
+            criterion.calculate_crit_grad(y, y.shape[0])
 
         optimizer.step()
 
@@ -266,6 +269,12 @@ def train_aem_model(
 
             with torch.no_grad():
                 val_loss, val_loss_p, val_loss_q = get_aem_losses(validation_loader, criterion, device)
+
+            if step >= num_warm_up_steps and val_loss_p < best_loss_p:
+                print("New best model with validation loss {}".format(val_loss_p))
+                torch.save(model.state_dict(), save_dir + "_model")
+                torch.save(proposal.state_dict(), save_dir + "_proposal")
+                best_loss_p = val_loss_p
 
 
             # s = 'Loss: {:.4f}, ' \
@@ -310,12 +319,14 @@ def train_aem_model(
             for summary, value in summaries.items():
                 writer.add_scalar(tag=summary, scalar_value=value, global_step=step)
 
-            torch.save(model.state_dict(), save_dir + "_model")
-            torch.save(proposal.state_dict(), save_dir + "_proposal")
+            #torch.save(model.state_dict(), save_dir + "_model")
+            #torch.save(proposal.state_dict(), save_dir + "_proposal")
 
             model.train()
             made.train()
             criterion.set_training(True)
 
-    torch.save(model.state_dict(), save_dir + "_model")
-    torch.save(proposal.state_dict(), save_dir + "_proposal")
+    #torch.save(model.state_dict(), save_dir + "_model")
+    #torch.save(proposal.state_dict(), save_dir + "_proposal")
+
+

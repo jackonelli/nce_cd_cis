@@ -1,8 +1,8 @@
 import unittest
 import torch
 
-from src.aem.aem_cis_alt import AceCisJointAltCrit
-from src.aem.aem_cis_joint_z import AemCisJointCrit
+from src.aem.aem_cis_joint_z_adapt_alt import AemCisJointAdaAltCrit
+from src.aem.aem_cis_joint_z_adapt import AemCisJointAdaCrit
 from src.models.aem.energy_net import ResidualEnergyNet
 from src.models.aem.made_joint_z import ResidualMADEJoint
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
@@ -18,21 +18,21 @@ class TestAemCisAlt(unittest.TestCase):
 
         num_res_blocks, num_hidden, num_components = 2, 5, 5
         output_dim_mult = num_context_units + 3 * num_components
-        made =  ResidualMADEJoint(2 * num_features, num_res_blocks, num_hidden, output_dim_mult)
+        made = ResidualMADEJoint(2 * num_features, num_res_blocks, num_hidden, output_dim_mult)
 
         model = ResidualEnergyNet(input_dim=(num_context_units + 1))
         proposal = AemJointProposal(made, num_context_units, num_components)
 
-        crit = AceCisJointAltCrit(model, proposal, num_negative)
-        crit_ref = AemCisJointCrit(model, proposal, num_negative)
+        crit = AemCisJointAdaAltCrit(model, proposal, num_negative)
+        crit_ref = AemCisJointAdaCrit(model, proposal, num_negative)
 
         num_samples = 100
         y = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
                                               scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample(
             (num_samples,))
 
-        log_q_y, log_q_y_samples_ext, context_y, context_y_samples_ext, y_samples_ext \
-            = crit._proposal_log_probs(y, num_samples=num_negative, y_sample_base=y)
+        log_q_y, log_q_y_samples_ext, context_y, context_y_samples_ext, y_samples_ext = crit._proposal_log_probs(y,
+                                                                                                     num_samples=num_negative, y_sample_base=y)
 
         # Calculate grads.
         loss, _, _, _ = crit.inner_pers_crit((y, context_y, log_q_y),

@@ -85,4 +85,4 @@ class AceProposal(BaseModel):
 
     def prob(self, samples):
         """Probability of a sample y"""
-        return torch.exp(self.inner_log_prob(samples))
+        return torch.exp(self.log_prob(samples))

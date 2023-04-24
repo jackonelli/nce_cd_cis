@@ -174,8 +174,6 @@ class AemProposal(BaseModel):
         context_params = autoregressive_outputs[..., :self.num_context_units]
         return context_params
 
-
-
     def create_proposal_distr(self, params):
 
         # separate out proposal params into coefficients, locs, and scales

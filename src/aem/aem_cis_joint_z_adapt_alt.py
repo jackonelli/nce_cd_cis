@@ -1,28 +1,30 @@
-"""Noise Contrastive Estimation (NCE) for ACE (calculating loss with persistent y)"""
+# Adapted from https://github.com/conormdurkan/autoregressive-energy-machines
 from typing import Optional
 import torch
 from torch import Tensor
 
+from src.aem.aem_cis_joint_z_adapt import AemCisJointAdaCrit
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
-from src.aem.aem_cis_joint_z import AemCisJointCrit
 
 
-class AceCisJointAltCrit(AemCisJointCrit):
+class AemCisJointAdaAltCrit(AemCisJointAdaCrit):
     def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int,
                  num_neg_samples_validation: int = 1e2,
                  alpha: float = 1.0):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
 
-    def crit(self, y, _idx: Optional[Tensor]=None):
+    def crit(self, y, _idx: Optional[Tensor] = None):
 
         if self.training:
             log_q_y, log_q_y_samples, context_y, context_y_samples, y_samples \
                 = self._proposal_log_probs(y, num_samples=self._num_neg, y_sample_base=y)
-            loss, p_loss, q_loss, _ = self.inner_pers_crit((y, context_y, log_q_y), (y_samples, context_y_samples, log_q_y_samples))
+            loss, p_loss, q_loss, _ = self.inner_pers_crit((y, context_y, log_q_y),
+                                                           (y_samples, context_y_samples, log_q_y_samples))
         else:
             log_q_y, log_q_y_samples, context_y, context_y_samples, y_samples \
                 = self._proposal_log_probs(y, num_samples=self._num_neg)
-            loss, p_loss, q_loss = self.inner_crit((y, context_y, log_q_y), (y_samples, context_y_samples, log_q_y_samples))
+            loss, p_loss, q_loss = self.inner_crit((y, context_y, log_q_y),
+                                                   (y_samples, context_y_samples, log_q_y_samples))
 
         return loss, p_loss, q_loss
 
@@ -44,11 +46,13 @@ class AceCisJointAltCrit(AemCisJointCrit):
         log_w_tilde_y_samples = (log_p_tilde_y_samples - log_q_y_samples).detach()
 
         # This is a proxy to calculating the gradient directly
-        log_p_y_semi_grad = log_p_tilde_y - torch.sum(torch.nn.Softmax(dim=-1)(log_w_tilde_y_samples) * log_p_tilde_y_samples, dim=1)
+        weights = torch.nn.Softmax(dim=-1)(log_w_tilde_y_samples)
+        log_p_y_semi_grad = log_p_tilde_y - torch.sum(
+            weights * log_p_tilde_y_samples, dim=1)
         assert log_p_y_semi_grad.shape == (y.shape[0],)
 
         p_loss = - torch.mean(log_p_y_semi_grad)
-        q_loss = - torch.mean(log_q_y)
+        q_loss = - torch.mean(torch.sum(weights * log_q_y_samples, dim=-1))
 
         # Note: gradient w.r.t. context might be different
         loss = q_loss + self.alpha * p_loss

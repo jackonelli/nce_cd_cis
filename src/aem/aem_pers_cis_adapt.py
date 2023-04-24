@@ -10,10 +10,10 @@ from src.part_fn_utils import concat_samples
 from torch.distributions import Categorical
 
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
-from src.aem.aem_cis_alt import AceCisJointAltCrit
+from src.aem.aem_cis_joint_z_adapt_alt import AemCisJointAdaAltCrit
 
 
-class AemCisJointPersCrit(AceCisJointAltCrit):
+class AemCisJointAdaPersCrit(AemCisJointAdaAltCrit):
     def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int,
                  num_neg_samples_validation: int = 1e2, batch_size: int = 512,  alpha: float = 1.0):
 
@@ -34,7 +34,7 @@ class AemCisJointPersCrit(AceCisJointAltCrit):
             loss, p_loss, q_loss, log_w_tilde = self.inner_pers_crit((y, context_y, log_q_y), (y_samples, context_y_samples,
                                                                                                log_q_y_samples))
             self._update_persistent_y(log_w_tilde, y_p, y_samples[y_p.shape[0]:, :].reshape(-1, self._num_neg,
-                                                                                           y_samples.shape[-1]), idx) # TODO: will y_samples have the same order as in the criteria?
+                                                                                            y_samples.shape[-1]), idx)
         else:
             log_q_y, log_q_y_samples, context_y, context_y_samples, y_samples = self._proposal_log_probs(y,
                                                                                                          num_samples=self._num_neg)
@@ -66,8 +66,8 @@ class AemCisJointPersCrit(AceCisJointAltCrit):
 
     def _update_persistent_y(self, log_w_unnorm, y, y_samples, idx):
         """Sample new persistent y"""
-
         ys = concat_samples(y, y_samples)
+
         with torch.no_grad():
             sampled_idx = Categorical(logits=log_w_unnorm).sample()
             y_p = torch.gather(ys, dim=1, index=sampled_idx[:, None, None].repeat(1, 1, y.shape[-1])).squeeze(dim=1)
