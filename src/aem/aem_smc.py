@@ -35,6 +35,12 @@ class AemSmcCrit(AemIsJointCrit):
         return loss, p_loss, q_loss
 
     def smc(self, batch_size, y=None):
+        # This is just a wrapper function
+        log_normalizer, y_s, log_w_tilde_y_s = self.inner_smc(batch_size, y)
+
+        return log_normalizer
+
+    def inner_smc(self, batch_size, y):
 
         if y is not None:
             assert batch_size == y.shape[0]
@@ -72,7 +78,7 @@ class AemSmcCrit(AemIsJointCrit):
             log_w_tilde_y_s = (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains) # TODO: övriga termer tar ut varandra?
             log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor(num_chains))
 
-        return log_normalizer
+        return log_normalizer, y_s, log_w_tilde_y_s
 
     def _proposal_log_probs(self, y, dim: int, num_observed: int = 0):
 
