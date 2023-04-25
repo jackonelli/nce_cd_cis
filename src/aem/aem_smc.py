@@ -12,13 +12,9 @@ class AemSmcCrit(AemIsJointCrit):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
 
     def crit(self, y, _idx):
-        return self.inner_crit((y,), (None,))
+        return self.inner_crit(y)
 
-    def inner_crit(self, y: tuple, y_samples: tuple):
-
-        y = y[0]
-        assert y.ndim == 2
-        assert y.shape[0] > 1
+    def inner_crit(self, y, y_samples=None):
 
         # Calculate (unnormalized) densities for y
         log_q_y, context = torch.zeros((y.shape[0], self.dim)), torch.zeros((y.shape[0], self.dim, self.num_context_units))
@@ -28,11 +24,9 @@ class AemSmcCrit(AemIsJointCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units))
 
         # Estimate log normalizer
-        log_w_tilde_y_samples, _ = self.smc(y.shape[0])
-        log_normalizer = torch.sum(
-            torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.Tensor([self._num_neg])), dim=-1)
+        log_normalizer = self.smc(y.shape[0])
 
-        # calculate normalized density
+        # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
         q_loss = - torch.mean(torch.sum(log_q_y, dim=-1))
 
@@ -52,40 +46,33 @@ class AemSmcCrit(AemIsJointCrit):
             num_chains = self._num_neg
             y_s = torch.zeros((batch_size, num_chains, self.dim))
 
-        log_w_tilde_y_s = torch.zeros((batch_size, num_chains, self.dim))
-        log_q_y_s = torch.zeros((batch_size, num_chains, self.dim))
-
         # First dim
         # Propagate
-        log_q_y_s[:, :, 0], context, y_s = self._proposal_log_probs(y_s.reshape(-1, 1), 0, num_observed=num_observed)
+        log_q_y_s, context, y_s = self._proposal_log_probs(y_s.reshape(-1, 1), 0, num_observed=num_observed)
 
         # Reweight
         log_p_tilde_y_s = self._model_log_probs(y_s[:, :, 0].reshape(-1, 1), context.reshape(-1, self.num_context_units))
-        log_w_tilde_y_s[:, :, 0] = (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains, self.dim)
+        log_w_tilde_y_s = (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains, self.dim)
 
         # Dim 2 to D
+        log_normalizer = 0
         for i in range(1, self.dim):
 
             # Resample
-            with torch.no_grad(): # TODO: eller?
-                #ancestor_inds = Categorical(logits=log_w_tilde_y_s[:, :, i-1]).sample(sample_shape=torch.Size(self._num_neg + 1,))
-                ancestor_inds = Categorical(logits=log_w_tilde_y_s[:, :, i].transpose(1, 2)
-                                            ).sample(sample_shape=num_chains,).transpose(2, 1)
+            with torch.no_grad():
+                ancestor_inds = Categorical(logits=log_w_tilde_y_s).sample(sample_shape=torch.Size(self._num_neg + 1,))
 
-            #y_s[:, :, i-1] = torch.gather(y_s[:, :, i-1], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i)) # TODO: check this with simple example SKA JAG BACKPROPPA HELA KEDJAN?
-            #log_w_tilde_y_s[:, :, i-1] = torch.gather(log_w_tilde_y_s[:, :, i-1], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i)) # TODO: check this with simple example SKA JAG BACKPROPPA HELA KEDJAN?
-            y_s[:, :, :i] = torch.gather(y_s[:, :, :i], dim=1, index=ancestor_inds)
-            log_w_tilde_y_s[:, :, :i] = torch.gather(log_w_tilde_y_s[:, :, :i], dim=1, index=ancestor_inds)
-            log_q_y_s[:, :, :i] = torch.gather(log_q_y_s[:, :, :i], dim=1, index=ancestor_inds)
+            y_s[:, :, :i-1] = torch.gather(y_s[:, :, :i-1], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i))
 
             # Propagate
-            log_q_y_s[:, :, i], context, y_s = self._proposal_log_probs(y_s.reshape(-1, 1), i, num_observed=num_observed)
+            log_q_y_s, context, y_s = self._proposal_log_probs(y_s.reshape(-1, 1), i, num_observed=num_observed)
 
             # Reweight
             log_p_tilde_y_s = self._model_log_probs(y_s[:, :, i].reshape(-1, 1), context.reshape(-1, self.num_context_units))
-            log_w_tilde_y_s[:, :, i] = (log_p_tilde_y_s - log_q_y_s[:, :, i].detach()).reshape(-1, num_chains, self.dim) # TODO: övriga termer tar ut varandra?
+            log_w_tilde_y_s = (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains) # TODO: övriga termer tar ut varandra?
+            log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor(num_chains))
 
-        return log_w_tilde_y_s, log_q_y_s
+        return log_normalizer
 
     def _proposal_log_probs(self, y, dim: int, num_observed: int = 0):
 
@@ -98,36 +85,6 @@ class AemSmcCrit(AemIsJointCrit):
         log_q_y_s = self._noise_distr.inner_log_prob(q_i, y[:, dim].reshape(-1, self.dim))
 
         return log_q_y_s, context, y
-
-    def _model_log_probs(self, y, context):
-
-        energy_net_inputs = torch.cat((y, context), dim=-1)
-
-        del y, context  # free GPU memory
-
-        # Inputs to energy net can have very large batch size since we evaluate all importance samples at once.
-        # We must split a very large batch to avoid OOM errors
-        if energy_net_inputs.shape[0] > 300000 and not self.training:
-            batch_size = 300000
-            n_batches, leftover = (
-                energy_net_inputs.shape[0] // batch_size,
-                energy_net_inputs.shape[0] % batch_size
-            )
-            slices = [slice(batch_size * i, batch_size * (i + 1)) for i in
-                      range(n_batches)]
-            slices.append(
-                slice(batch_size * n_batches, batch_size * n_batches + leftover))
-            energy_net_outputs = torch.cat(
-                [self._unnorm_distr(energy_net_inputs[slice_]).detach()  # stop gradient
-                 for slice_ in slices],
-                dim=0
-            )
-        else:
-            energy_net_outputs = self._unnorm_distr(energy_net_inputs)
-
-        del energy_net_inputs  # free GPU memory
-
-        return energy_net_outputs
 
     def log_prob(self, y):
 
@@ -144,11 +101,9 @@ class AemSmcCrit(AemIsJointCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units))
 
         # Estimate log normalizer
-        log_w_tilde_y_samples, _ = self.smc(y.shape[0])
+        log_normalizer = self.smc(y.shape[0])
 
-        log_normalizer = torch.sum(
-            torch.logsumexp(log_w_tilde_y_samples, dim=1) - torch.log(torch.Tensor([self._num_neg + 1])), dim=-1)
-
+        # Calculate/estimate normalized densities
         log_prob_p = torch.sum(log_p_tilde_y, dim=-1) - log_normalizer
         log_prob_q = torch.sum(log_q_y, dim=-1)
 

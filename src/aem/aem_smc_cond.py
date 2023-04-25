@@ -12,9 +12,9 @@ class AemSmcCondCrit(AemSmcCrit):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
 
     def crit(self, y, _idx):
-        return self.inner_crit((y,), (None,))
+        return self.inner_crit(y)
 
-    def inner_crit(self, y: tuple, y_samples: tuple):
+    def inner_crit(self, y, y_samples=None):
 
         y = y[0]
         assert y.ndim == 2
@@ -28,11 +28,9 @@ class AemSmcCondCrit(AemSmcCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units))
 
         # Estimate log normalizer
-        log_w_tilde_y_s, _ = self.smc(y.shape[0], y=y)
-        log_normalizer = torch.sum(
-            torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([self._num_neg + 1])), dim=-1)
+        log_normalizer = self.smc(y.shape[0], y=y)
 
-        # calculate normalized density
+        # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
         q_loss = - torch.mean(torch.sum(log_q_y, dim=-1))
 
@@ -55,10 +53,9 @@ class AemSmcCondCrit(AemSmcCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units))
 
         # Estimate log normalizer
-        log_w_tilde_y_s, _ = self.smc(y.shape[0], y=y)
-        log_normalizer = torch.sum(
-            torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([self._num_neg + 1])), dim=-1)
+        log_normalizer = self.smc(y.shape[0], y=y)
 
+        # Calculate/estimate normalized densities
         log_prob_p = torch.sum(log_p_tilde_y, dim=-1) - log_normalizer
         log_prob_q = torch.sum(log_q_y, dim=-1)
 

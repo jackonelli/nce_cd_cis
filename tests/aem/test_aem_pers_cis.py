@@ -14,10 +14,7 @@ class TestAemPersCis(unittest.TestCase):
         num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
         num_context_units = torch.randint(low=1, high=10, size=torch.Size((1,))).item()
         num_negative = torch.randint(low=1, high=5, size=torch.Size((1,))).item()
-        num_mixture_components = 10
         num_samples = 100
-
-        output_dim_multiplier = num_context_units + 3 * num_mixture_components
 
         num_res_blocks, num_hidden, num_components = 2, 5, 5
         output_dim_mult = num_context_units + 3 * num_components
