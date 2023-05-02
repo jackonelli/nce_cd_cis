@@ -18,25 +18,18 @@ class AemIsJointCrit(PartFnEstimator):
         self.dim = self._noise_distr.num_features
         self.num_context_units = self._noise_distr.num_context_units
         self.mask = get_autoregressive_mask(self.dim)
-        self.num_neg_samples_validation = num_neg_samples_validation
+        self.num_neg_samples_validation = int(num_neg_samples_validation)
         self.training = True
 
     def crit(self, y, _idx):
-        return self.inner_crit(y)
+        loss, p_loss, q_loss, _ = self.inner_crit(y)
+
+        return loss, p_loss, q_loss
 
     def inner_crit(self, y: Tensor, y_samples: Tensor = None):
 
         # Calculate (unnormalized) densities
-        log_q_y, log_q_y_samples, context, y_samples = self._proposal_log_probs(y, num_samples=self._num_neg)
-
-        log_p_tilde_y_s = torch.sum(self._model_log_probs(torch.cat((y, y_samples.detach()), dim=0).reshape(-1, 1),
-                                                          context).reshape(-1, self.dim), dim=-1)
-
-        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_y_s[:y.shape[0]], log_p_tilde_y_s[y.shape[0]:]
-
-        # Calculate log normalizer
-        log_normalizer = torch.logsumexp((log_p_tilde_y_samples - log_q_y_samples.detach()).reshape(-1, self._num_neg), # stop gradient
-                                         dim=1) - torch.log(torch.Tensor([self._num_neg]))
+        log_p_tilde_y, log_q_y, log_normalizer, y_samples = self._log_probs(y, self._num_neg)
 
         # Calculate normalized density
         p_loss = - torch.mean(log_p_tilde_y - log_normalizer)
@@ -44,7 +37,7 @@ class AemIsJointCrit(PartFnEstimator):
 
         loss = q_loss + self.alpha * p_loss
 
-        return loss, p_loss, q_loss
+        return loss, p_loss, q_loss, y_samples
 
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
 
@@ -76,8 +69,23 @@ class AemIsJointCrit(PartFnEstimator):
         _, _, q_loss = self.crit(y, _idx)
         q_loss.backward()
 
-    def _proposal_log_probs(self, y, num_samples: int):
+    def _log_probs(self, y, num_samples):
 
+        # Calculate (unnormalized) densities
+        log_q_y, log_q_y_samples, context, y_samples = self._proposal_log_probs(y, num_samples=num_samples)
+        log_p_tilde_y_s = torch.sum(self._model_log_probs(torch.cat((y, y_samples.detach()), dim=0).reshape(-1, 1),
+                                                          context.reshape(-1, self.num_context_units)).reshape(-1, self.dim), dim=-1)
+
+        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_y_s[:y.shape[0]], log_p_tilde_y_s[y.shape[0]:]
+
+        # Calculate log normalizer
+        log_normalizer = torch.logsumexp((log_p_tilde_y_samples - log_q_y_samples.detach()).reshape(-1, num_samples),
+                                         # stop gradient
+                                         dim=1) - torch.log(torch.Tensor([num_samples]))
+
+        return log_p_tilde_y, log_q_y, log_normalizer, y_samples
+
+    def _proposal_log_probs(self, y, num_samples: int):
         y_samples = torch.zeros((y.shape[0] * num_samples, self.dim))
         context = torch.zeros((y.shape[0] * (num_samples + 1), self.dim, self.num_context_units))
         log_q_y_s = torch.zeros((y.shape[0] * (num_samples + 1), self.dim))
@@ -157,26 +165,19 @@ class AemIsJointCrit(PartFnEstimator):
         # unnormalized log densities given by energy net
         return energy_net_outputs
 
-    def log_prob(self, y):
+    def log_prob(self, y, return_unnormalized=False):
 
         # Calculate (unnormalized) densities
-        log_q_y, log_q_y_samples, context, y_samples = self._proposal_log_probs(y, num_samples=self.num_neg_samples_validation)
-
-        log_p_tilde_y_s = torch.sum(self._model_log_probs(torch.cat((y, y_samples.detach()), dim=0).reshape(-1, 1),
-                                                          context).reshape(-1, self.dim), dim=-1)
-
-        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_y_s[:y.shape[0]], log_p_tilde_y_s[y.shape[0]:]
-
-        # Calculate log normalizer
-        log_normalizer = torch.logsumexp((log_p_tilde_y_samples - log_q_y_samples.detach()).reshape(-1,
-                                                                                                    self.num_neg_samples_validation),  # stop gradient
-                                         dim=1) - torch.log(torch.Tensor([self.num_neg_samples_validation]))
+        log_p_tilde_y, log_q_y, log_normalizer, _ = self._log_probs(y, self.num_neg_samples_validation)
 
         # Calculate/estimate normalized densities
         log_prob_p = log_p_tilde_y - log_normalizer
         log_prob_q = log_q_y
 
-        return log_prob_p, log_prob_q
+        if return_unnormalized:
+            return log_prob_p, log_prob_q, log_p_tilde_y
+        else:
+            return log_prob_p, log_prob_q
 
     def sample(self, batch_size=1000):
 
@@ -200,7 +201,7 @@ class AemIsJointCrit(PartFnEstimator):
                                             num_proposal_samples_validation=int(
                                                 1e2)):
         assert not self.training, 'Model must be in eval mode.'
-        self.num_neg_samples_validation = num_proposal_samples_validation
+        self.num_neg_samples_validation = int(num_proposal_samples_validation)
 
     def set_alpha(self, alpha: float):
         self.alpha = alpha

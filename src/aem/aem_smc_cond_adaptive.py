@@ -55,25 +55,27 @@ class AemSmcCondCrit(AemSmcCrit):
         # First dim
         # Propagate
         log_q_y_s[:, :, 0], context, y_s = self._proposal_log_probs(y_s.reshape(-1, 1), 0, num_observed=num_observed)
+        context, y_s = context.reshape(-1, num_chains, self.num_context_units), y_s.reshape(-1, num_chains, self.dim)
 
         # Reweight
         log_p_tilde_y_s = self._model_log_probs(y_s[:, :, 0].reshape(-1, 1),
                                                 context.reshape(-1, self.num_context_units))
-        log_w_tilde_y_s = (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains, self.dim)
+        log_w_tilde_y_s = (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains)
 
         # Dim 2 to D
         log_normalizer = torch.tensor(0.0)
         for i in range(1, self.dim):
             # Resample
             with torch.no_grad():
-                ancestor_inds = Categorical(logits=log_w_tilde_y_s).sample(sample_shape=torch.Size(self._num_neg + 1, ))
+                ancestor_inds = Categorical(logits=log_w_tilde_y_s).sample(sample_shape=torch.Size(num_chains,)).transpose(0, 1)
 
-            y_s[:, :, :i - 1] = torch.gather(y_s[:, :, :i - 1], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i))
-            log_q_y_s[:, :, :i - 1] = torch.gather(log_q_y_s[:, :, :i - 1], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i))
+            y_s[:, :, :i] = torch.gather(y_s[:, :, :i], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i))
+            log_q_y_s[:, :, :i] = torch.gather(log_q_y_s[:, :, :i], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i))
 
             # Propagate
             log_q_y_s[:, :, i], context, y_s = self._proposal_log_probs(y_s.reshape(-1, 1), i, num_observed=num_observed)
-
+            context, y_s = context.reshape(-1, num_chains, self.num_context_units), y_s.reshape(-1, num_chains,
+                                                                                                self.dim)
             # Reweight
             log_p_tilde_y_s = self._model_log_probs(y_s[:, :, i].reshape(-1, 1),
                                                     context.reshape(-1, self.num_context_units))

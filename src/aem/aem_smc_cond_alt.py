@@ -14,7 +14,7 @@ class AemSmcCondAltCrit(AemSmcCondCrit):
     def crit(self, y, _idx):
 
         if self.training:
-            loss, p_loss, q_loss, _, _ = self.inner_crit(y, y)
+            loss, p_loss, q_loss, _, _ = self.inner_pers_crit(y, y)
         else:
             loss, p_loss, q_loss = self.inner_crit(y)
 
@@ -32,7 +32,7 @@ class AemSmcCondAltCrit(AemSmcCondCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units))
 
         # Estimate log normalizer
-        log_normalizer = self.smc(y_samples.shape[0], y=y_samples)
+        log_normalizer, y_s, log_w_tilde_y_s = self.inner_smc(y_samples.shape[0], y=y_samples)
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
@@ -40,12 +40,7 @@ class AemSmcCondAltCrit(AemSmcCondCrit):
 
         loss = q_loss + self.alpha * p_loss
 
-        return loss, p_loss, q_loss
+        return loss, p_loss, q_loss, y_s, log_w_tilde_y_s
 
-    def smc(self, batch_size, y=None):
-        # This is just a wrapper function
-        log_normalizer, y_s, log_w_tilde_y_s = self.inner_smc(batch_size, y)
-
-        return log_normalizer, y_s, log_w_tilde_y_s
 
 

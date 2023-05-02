@@ -205,6 +205,7 @@ class MixtureSameFamily1D(distributions.Distribution):
         log_prob_mixture = self.mixture_distribution.logits
         return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-1)
 
+
 def get_aem_losses(data_loader, criterion, device):
     loss, loss_q, loss_p = 0, 0, 0
 

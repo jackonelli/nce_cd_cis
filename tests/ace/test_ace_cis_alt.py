@@ -62,7 +62,7 @@ class TestAceCisAlt(unittest.TestCase):
         grad_model_ref = [param.grad.detach().clone() for param in model.parameters()]
         grad_proposal_ref = [param.grad.detach().clone() for param in proposal.parameters()]
 
-        # Check parameters same
+        # Check grads same
         for p, p_ref in zip(grad_model, grad_model_ref):
             assert torch.allclose(p, p_ref, rtol=1e-3)
 

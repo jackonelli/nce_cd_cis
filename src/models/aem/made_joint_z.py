@@ -4,46 +4,11 @@ from torch.nn import functional as F, init
 
 from src.models.base_model import BaseModel
 from src.models.aem.made import get_mask
+from src.models.aem.energy_net import ResidualBlock
 
 
 def get_autoregressive_mask(dim):
     return torch.cat((torch.zeros(1, dim), get_mask(1, dim - 1, dim, 'input'), torch.ones(1, dim)))
-
-
-class ResidualBlock(nn.Module):
-    def __init__(self, features, activation=F.relu,
-                 zero_initialization=True, dropout_probability=0., use_batch_norm=False):
-        super().__init__()
-        self.features = features
-        self.activation = activation
-
-        self.use_batch_norm = use_batch_norm
-        if use_batch_norm:
-            self.batch_norm_layers = nn.ModuleList([
-                nn.BatchNorm1d(features, eps=1e-3)
-                for _ in range(2)
-            ])
-        self.layers = nn.ModuleList([
-            nn.Linear(features, features)
-            for _ in range(2)
-        ])
-        self.dropout = nn.Dropout(p=dropout_probability)
-        if zero_initialization:
-            init.zeros_(self.layers[-1].weight)
-            init.zeros_(self.layers[-1].bias)
-
-    def forward(self, inputs):
-        temps = inputs
-        if self.use_batch_norm:
-            temps = self.batch_norm_layers[0](temps)
-        temps = self.activation(temps)
-        temps = self.layers[0](temps)
-        if self.use_batch_norm:
-            temps = self.batch_norm_layers[1](temps)
-        temps = self.activation(temps)
-        temps = self.dropout(temps)
-        temps = self.layers[1](temps)
-        return temps + inputs
 
 
 class MADEJoint(BaseModel):

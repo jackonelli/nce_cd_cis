@@ -12,19 +12,7 @@ class AemCisJointAdaCrit(AemCisJointCrit):
 
     def inner_crit(self, y, y_samples=None):
         # Calculate (unnormalized) densities
-        log_q_y, log_q_y_samples, context, y_samples = self._proposal_log_probs(y, num_samples=self._num_neg)
-
-        log_p_tilde_y_s = torch.sum(self._model_log_probs(torch.cat((y, y_samples.detach()), dim=0).reshape(-1, 1),
-                                                        context).reshape(-1, self.dim), dim=-1)
-
-        log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_y_s[:y.shape[0]], log_p_tilde_y_s[y.shape[0]:]
-
-        # Calculate log normalizer
-        log_w_tilde_y_s = torch.cat(((log_p_tilde_y - log_q_y.detach()).reshape(-1, 1),
-                                     (log_p_tilde_y_samples - log_q_y_samples.detach()).reshape(-1, self._num_neg)),
-                                    dim=-1)
-        assert log_w_tilde_y_s.shape == (y.shape[0], 1 + self._num_neg)
-        log_normalizer = torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([self._num_neg + 1]))
+        log_p_tilde_y, log_q_y, log_q_y_samples, log_w_tilde_y_s, log_normalizer, y_samples = self._log_probs(y, self._num_neg)
 
         # Calculate loss for model
         p_loss = - torch.mean(log_p_tilde_y - log_normalizer)
@@ -37,7 +25,7 @@ class AemCisJointAdaCrit(AemCisJointCrit):
 
         loss = q_loss + self.alpha * p_loss
 
-        return loss, p_loss, q_loss
+        return loss, p_loss, q_loss, y_samples
 
 
 

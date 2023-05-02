@@ -27,9 +27,7 @@ class AemCisJointPersCrit(AceCisJointAltCrit):
         if self.training:
             y_p = self.persistent_y(y, idx).to(y.device)
             loss, p_loss, q_loss, y_samples, log_w_tilde = self.inner_pers_crit(y, y_p)
-            self._update_persistent_y(log_w_tilde, y_p, y_samples[y_p.shape[0]:, :].reshape(-1, self._num_neg,
-                                                                                            y_samples.shape[-1]),
-                                      idx)  # TODO: will y_samples have the same order as in the criteria? This is how they are used now, so yes.
+            self._update_persistent_y(log_w_tilde.detach(), y_samples[:, 0, :], y_samples[:, 1:, :], idx)
         else:
             loss, p_loss, q_loss = self.inner_crit(y)
 

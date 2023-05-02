@@ -21,10 +21,10 @@ class AemSmcCondCrit(AemSmcCrit):
         for i in range(self.dim):
             log_q_y[:, i], context[:, i, :], _ = self._proposal_log_probs(y, i, num_observed=y.shape[0])
 
-        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units))
+        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1, self.dim)
 
         # Estimate log normalizer
-        log_normalizer = self.smc(y.shape[0], y=y)
+        log_normalizer, _ = self.smc(y.shape[0], y=y)
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
@@ -36,20 +36,16 @@ class AemSmcCondCrit(AemSmcCrit):
 
     def log_prob(self, y):
 
-        y = y[0]
-        assert y.ndim == 2
-        assert y.shape[0] > 1
-
         # Calculate (unnormalized) densities for y
         log_q_y, context = torch.zeros((y.shape[0], self.dim)), torch.zeros(
             (y.shape[0], self.dim, self.num_context_units))
         for i in range(self.dim):
             log_q_y[:, i], context[:, i, :], _ = self._proposal_log_probs(y, i, num_observed=y.shape[0])
 
-        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units))
+        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1, self.dim)
 
         # Estimate log normalizer
-        log_normalizer = self.smc(y.shape[0], y=y)
+        log_normalizer, _ = self.smc(y.shape[0], y=y)
 
         # Calculate/estimate normalized densities
         log_prob_p = torch.sum(log_p_tilde_y, dim=-1) - log_normalizer

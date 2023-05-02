@@ -6,14 +6,13 @@ Inspired by Contrastive Divergence (CD) a persistent y is saved from the previou
 from typing import Optional
 import torch
 from torch import Tensor
-from src.part_fn_utils import concat_samples
 from torch.distributions import Categorical
 
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 from src.aem.aem_smc_cond_alt import AemSmcCondAltCrit
 
 
-class AemCisJointPersCrit(AemSmcCondAltCrit):
+class AemSmcCondPersCrit(AemSmcCondAltCrit):
     def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int,
                  num_neg_samples_validation: int = 1e2, batch_size: int = 512,  alpha: float = 1.0):
 

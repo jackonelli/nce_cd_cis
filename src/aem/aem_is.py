@@ -107,7 +107,6 @@ class AemIsCrit(PartFnEstimator):
         del context_params  # free GPU memory
         context_params_tiled = context_params_tiled.reshape(-1, self._noise_distr.num_context_units)
 
-
         energy_net_inputs = torch.cat(
             (inputs_cat_samples, context_params_tiled),
             dim=-1

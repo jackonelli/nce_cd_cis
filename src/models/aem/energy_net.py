@@ -69,7 +69,7 @@ class EnergyNet(BaseModel):
 class ResidualEnergyNet(BaseModel):
     def __init__(self, input_dim, n_residual_blocks=2, hidden_dim=32,
                  energy_upper_bound=None,
-                 activation=F.relu, use_batch_norm=False, dropout_probability=None):
+                 activation=F.relu, use_batch_norm=False, dropout_probability=None, zero_initialization=True):
         super().__init__()
         self.activation = activation
         self.energy_upper_bound = energy_upper_bound
@@ -79,7 +79,8 @@ class ResidualEnergyNet(BaseModel):
                 features=hidden_dim,
                 activation=activation,
                 use_batch_norm=use_batch_norm,
-                dropout_probability=0 if dropout_probability is None else dropout_probability
+                dropout_probability=0 if dropout_probability is None else dropout_probability,
+                zero_initialization=zero_initialization
             )
             for _ in range(n_residual_blocks)
         ])
