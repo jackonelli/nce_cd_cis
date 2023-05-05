@@ -26,7 +26,7 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
                                                                                                                      self.dim)
 
         # Estimate log normalizer
-        log_normalizer, log_q, y_s = self.smc(y.shape[0], y=y)
+        log_normalizer, log_q, y_s = self.smc(y.shape[0], self._num_neg, y=y)
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)

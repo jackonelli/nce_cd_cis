@@ -27,7 +27,7 @@ class TestAemSmcCondCrit(unittest.TestCase):
 
         crit = AemSmcCondCrit(model, proposal, num_negative)
 
-        loss, _, _ = crit.inner_crit(y)
+        loss, _, _, _ = crit.inner_crit(y)
 
         assert loss.shape == torch.Size([])
         assert not torch.isnan(loss) or torch.isinf(loss)

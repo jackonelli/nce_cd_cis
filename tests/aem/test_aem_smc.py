@@ -7,6 +7,7 @@ from src.models.aem.energy_net import ResidualEnergyNet
 from src.models.aem.made_joint_z import ResidualMADEJoint
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
+from src.models.aem.energy_net import ResidualBlock
 
 class TestAemSmcCrit(unittest.TestCase):
     def test_crit(self):
@@ -184,6 +185,82 @@ class TestAemSmcCrit(unittest.TestCase):
 
         assert torch.allclose(log_p_tilde_y, log_p_tilde_y_ref)
 
+    def test_grad(self):
+        # Check so that gradients of both proposal and model are updated in gradient update
+        # Just test so that everything seems to run ok
+        num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
+        num_context_units = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
+        num_negative = torch.randint(low=2, high=5, size=torch.Size((1,))).item()
+        num_samples = 100
+
+        num_res_blocks, num_hidden, num_components = 2, 5, 5
+        output_dim_mult = num_context_units + 3 * num_components
+        made = ResidualMADEJoint(2 * num_features, num_res_blocks, num_hidden, output_dim_mult)
+
+        model = ResidualEnergyNet(input_dim=(num_context_units + 1))
+        proposal = AemJointProposal(made, num_context_units, num_components)
+
+        crit = AemSmcCrit(model, proposal, num_negative)
+
+        y = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
+                                              scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample(
+            (num_samples,))
+
+        # Update only for model
+        crit.calculate_crit_grad_p(y, 0)
+
+        # Check that parameters of model have been updated
+        for param in model.parameters():
+            if isinstance(param, torch.nn.Parameter):
+                assert param.grad is not None
+            else:
+                print("Note: param is not torch.nn.Parameter")
+
+        for param in proposal.parameters():
+            if isinstance(param, torch.nn.Parameter):
+                #assert param.grad is None
+                pass
+
+            if isinstance(param, ResidualBlock):
+                print("Note: param is not torch.nn.Parameter")
+
+        # Update only for proposal
+        model.clear_gradients()
+        made.clear_gradients()
+        crit.calculate_crit_grad_q(y, 0)
+
+        # Check that parameters of model have NOT been updated
+        for param in model.parameters():
+            if isinstance(param, torch.nn.Parameter):
+                assert torch.allclose(param.grad, torch.tensor(0.0))
+            else:
+                print("Note: param is not torch.nn.Parameter")
+
+        # Check that parameters of proposal have been updated
+        for param in proposal.parameters():
+            if isinstance(param, torch.nn.Parameter):
+                assert param.grad is not None
+            if isinstance(param, ResidualBlock):
+                print("Note: param is not torch.nn.Parameter")
+
+        # Update for both model and proposal
+        model.clear_gradients()
+        crit.calculate_crit_grad(y, 0)
+
+        # Check that parameters of model have been updated
+        for param in model.parameters():
+            if isinstance(param, torch.nn.Parameter):
+                assert param.grad is not None
+            else:
+                print("Note: param is not torch.nn.Parameter")
+
+            # Check that parameters of proposal have been updated
+        for param in proposal.parameters():
+            if isinstance(param, torch.nn.Parameter):
+                assert param.grad is not None
+            if isinstance(param, ResidualBlock):
+                print("Note: param is not torch.nn.Parameter")
+
     def test_reshape(self):
         # Sanity check on use of reshape
 
@@ -253,6 +330,19 @@ class TestAemSmcCrit(unittest.TestCase):
         assert torch.allclose(log_p_tilde_y_s, log_p_tilde_y_s_ref, atol=1e-5)
         assert torch.abs(log_w_tilde_y_s_ref-log_w_tilde_y_s).max() < 1e-5
         assert torch.allclose(log_w_tilde_y_s, log_w_tilde_y_s_ref, atol=1e-5)
+
+        y_samples = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
+                                              scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample(
+            (num_samples, num_negative))
+
+        y_samples_ref = y_samples[:, 0, :].clone()
+        log_p_tilde_y_samples = crit._model_log_probs(y_samples.reshape(-1, 1), torch.ones(num_samples * num_negative
+                                                                                           * num_features, num_context_units)).reshape(-1, num_negative, num_features)
+
+        log_p_tilde_y_samples_ref = crit._model_log_probs(y_samples_ref.reshape(-1, 1), torch.ones(num_samples * num_features,
+                                                                                           num_context_units)).reshape(-1, num_features)
+
+        assert torch.allclose(log_p_tilde_y_samples[:, 0, :], log_p_tilde_y_samples_ref)
 
 
 if __name__ == "__main__":

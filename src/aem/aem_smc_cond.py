@@ -21,7 +21,7 @@ class AemSmcCondCrit(AemSmcCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1, self.dim)
 
         # Estimate log normalizer
-        log_normalizer, _ = self.smc(y.shape[0], self._num_neg, y=y)
+        log_normalizer, y_s = self.smc(y.shape[0], self._num_neg, y=y)
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
@@ -29,7 +29,7 @@ class AemSmcCondCrit(AemSmcCrit):
 
         loss = q_loss + self.alpha * p_loss
 
-        return loss, p_loss, q_loss
+        return loss, p_loss, q_loss, y_s
 
     def inner_smc(self, batch_size, num_samples, y):
 
@@ -74,9 +74,6 @@ class AemSmcCondCrit(AemSmcCrit):
                     y_s[resampling_inds, 1:, :i] = torch.gather(y_s[resampling_inds, :, :i], dim=1,
                                                                 index=ancestor_inds[:, :, None].repeat(1, 1, i))
                     assert torch.allclose(y_s[:, 0, :], y)
-
-                    # TODO: this?
-                    # log_weight_factor[resampling_inds, 0] = log_w_y_s[resampling_inds, 0] + torch.log(torch.Tensor([num_chains]))
 
             #if resampling_inds.sum() < batch_size:
             log_weight_factor[~resampling_inds, :] = log_w_y_s[~resampling_inds, :] + torch.log(torch.Tensor([num_samples + 1]))
