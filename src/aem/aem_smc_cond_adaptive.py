@@ -36,6 +36,87 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
 
         return loss, p_loss, q_loss, y_s
 
+    def inner_smc(self, batch_size, num_samples, y):
+
+        assert batch_size == y.shape[0]
+        y_samples = torch.zeros(batch_size, num_samples, self.dim)
+        y_s = torch.cat((y.unsqueeze(dim=1), y_samples), dim=1)
+        log_q_y_s = torch.zeros((batch_size, num_samples + 1, self.dim))
+
+        # First dim
+        # Propagate
+        logq, context, y_s = self._proposal_log_probs(torch.cat((y_s[:, 0, :],
+                                                                      y_s[:, 1:, :].reshape(-1, self.dim))), 0, num_observed=batch_size)
+        log_q_y_s[:, :, 0] = torch.cat((logq[:y.shape[0]].reshape(-1, 1, self.dim),
+                                        logq[y.shape[0]:].reshape(-1, num_samples, self.dim)), dim=1)
+        del logq
+
+        y_s = torch.cat((y_s[:y.shape[0]].reshape(-1, 1, self.dim),  y_s[y.shape[0]:].reshape(-1, num_samples, self.dim)), dim=1)
+        assert torch.allclose(y_s[:, 0, :], y)
+
+        # Reweight
+        log_p_tilde_y_s = self._model_log_probs(torch.cat((y_s[:, 0, 0].reshape(-1, 1)), y_s[:, 1:, 0].reshape(-1, 1)),
+                                                context)
+        del context
+
+        log_w_tilde_y_s = torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, 0].detach()),
+                                     (log_p_tilde_y_s[y.shape[0]:].reshape(-1, num_samples) - log_q_y_s[:, 1:, 0].detach())),
+                                    dim=1)
+        del log_p_tilde_y_s
+
+        # Dim 2 to D
+        log_normalizer = torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([num_samples + 1]))
+        for i in range(1, self.dim):
+
+            # Resample
+            log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=1, keepdim=True)
+            ess = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=1)).detach()
+
+            resampling_inds = ess < ((num_samples + 1) / 2)
+            log_weight_factor = torch.zeros(log_w_tilde_y_s.shape)
+
+            if resampling_inds.sum() > 0:
+                with torch.no_grad():
+                    ancestor_inds = Categorical(logits=log_w_tilde_y_s[resampling_inds, :]).sample(sample_shape=torch.Size((self._num_neg,))).transpose(0, 1)
+
+                    # Do not resample y
+                    y_s[resampling_inds, 1:, :i] = torch.gather(y_s[resampling_inds, :, :i], dim=1,
+                                                                index=ancestor_inds[:, :, None].repeat(1, 1, i))
+                    log_q_y_s[resampling_inds, 1:, :i] = torch.gather(log_q_y_s[resampling_inds, :, :i], dim=1,
+                                                                      index=ancestor_inds[:, :, None].repeat(1, 1, i))
+                    assert torch.allclose(y_s[:, 0, :], y)
+
+                    # TODO: this?
+                    # log_weight_factor[resampling_inds, 0] = log_w_y_s[resampling_inds, 0] + torch.log(torch.Tensor([num_chains]))
+
+            #if resampling_inds.sum() < batch_size:
+            log_weight_factor[~resampling_inds, :] = log_w_y_s[~resampling_inds, :] + torch.log(torch.Tensor([num_samples + 1]))
+            del log_w_y_s, ess, resampling_inds
+
+            # Propagate
+            logq, context, y_s = self._proposal_log_probs(y_s.reshape(-1, self.dim), i, num_observed=y.shape[0])
+            log_q_y_s[:, :, i] = torch.cat((logq[:y.shape[0]].reshape(-1, 1, self.dim),
+                                            logq[y.shape[0]:].reshape(-1, num_samples, self.dim)), dim=1)
+            del logq
+
+            y_s = torch.cat(
+                (y_s[:y.shape[0]].reshape(-1, 1, self.dim), y_s[y.shape[0]:].reshape(-1, num_samples, self.dim)), dim=1)
+            assert torch.allclose(y_s[:, 0, :], y)
+
+            # Reweight
+            log_p_tilde_y_s = self._model_log_probs(torch.cat((y_s[:, 0, i].reshape(-1, 1)), y_s[:, 1:, i].reshape(-1, 1)),
+                                                    context)
+            del context
+            log_w_tilde_y_s = torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, 0].detach()),
+                                         (log_p_tilde_y_s[y.shape[0]:].reshape(-1, num_samples) - log_q_y_s[:, 1:,
+                                                                                                  0].detach())),
+                                        dim=1)
+            del log_p_tilde_y_s
+
+            log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([num_samples + 1]))
+
+        return log_normalizer, y_s, log_w_tilde_y_s
+
     def log_prob(self, y):
 
         # Calculate (unnormalized) densities for y
@@ -48,7 +129,7 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
                                                                                                                      self.dim)
 
         # Estimate log normalizer
-        log_normalizer, _ = self.smc(y.shape[0], y=y)
+        log_normalizer, _ = self.smc(y.shape[0], self.num_neg_samples_validation, y=y)
 
         # Calculate/estimate normalized densities
         log_prob_p = torch.sum(log_p_tilde_y, dim=-1) - log_normalizer
