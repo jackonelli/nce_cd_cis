@@ -214,13 +214,12 @@ def train_aem_model(
     num_warm_up_steps: int = 5000,
     hard_warmup: bool = True,
     lr: float = 0.1,
-    evaluation_freq=5000,
     validation_freq=5000,
     device=torch.device("cpu")
     ):
 
-    if not os.path.exists(save_dir + "log"):
-        os.makedirs(save_dir + "log")
+    if not os.path.exists(save_dir + "/log"):
+        os.makedirs(save_dir + "/log")
 
     writer = SummaryWriter(log_dir=save_dir + "/log")
 

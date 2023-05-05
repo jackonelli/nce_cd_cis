@@ -6,7 +6,7 @@ from src.aem.aem_smc_adaptive import AemSmcAdaCrit
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
 
-class AemSmcCondCrit(AemSmcAdaCrit):
+class AemSmcCondAdaCrit(AemSmcAdaCrit):
     def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int,
                  num_neg_samples_validation: int=1e2, alpha: float = 1.0):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
@@ -26,7 +26,7 @@ class AemSmcCondCrit(AemSmcAdaCrit):
                                                                                                                      self.dim)
 
         # Estimate log normalizer
-        log_normalizer, log_q = self.smc(y.shape[0], y=y)
+        log_normalizer, log_q, y_s = self.smc(y.shape[0], y=y)
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
@@ -34,7 +34,7 @@ class AemSmcCondCrit(AemSmcAdaCrit):
 
         loss = q_loss + self.alpha * p_loss
 
-        return loss, p_loss, q_loss
+        return loss, p_loss, q_loss, y_s
 
     def log_prob(self, y):
 

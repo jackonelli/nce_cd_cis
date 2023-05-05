@@ -22,6 +22,7 @@ class AemSmcAdaCrit(AemSmcCrit):
 
         # Estimate log normalizer + expected log q
         log_normalizer, log_q, y_s = self.smc(y.shape[0])
+        assert log_normalizer.shape
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
@@ -32,6 +33,12 @@ class AemSmcAdaCrit(AemSmcCrit):
         return loss, p_loss, q_loss, y_s
 
     def smc(self, batch_size, y=None):
+        # This is just a wrapper function
+        log_normalizer, log_q, y_s, log_w_tilde_y_s = self.inner_smc(batch_size, y)
+
+        return log_normalizer, log_q, y_s
+
+    def inner_smc(self, batch_size, y):
 
         if y is not None:
             assert batch_size == y.shape[0]
@@ -102,7 +109,8 @@ class AemSmcAdaCrit(AemSmcCrit):
 
             log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([num_chains]))
 
-        log_q = torch.sum(torch.nn.Softmax(dim=-1)(log_w_tilde_y_s) * torch.sum(log_q_y_s, dim=-1), dim=-1) #  torch.exp(log_normalizer) *
+        log_q = torch.sum(torch.nn.Softmax(dim=-1)(log_w_tilde_y_s.detach()) * torch.sum(log_q_y_s, dim=-1), dim=-1) #  torch.exp(log_normalizer) *
 
-        return log_normalizer, log_q, y_s
+        return log_normalizer, log_q, y_s, log_w_tilde_y_s
+
 

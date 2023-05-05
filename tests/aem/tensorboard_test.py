@@ -1,7 +1,29 @@
+import matplotlib.pyplot as plt
+import torch
 from tensorboardX import SummaryWriter
-import numpy as np
-writer = SummaryWriter()
-for i in range(10):
-    x = np.random.random(1000)
-    writer.add_histogram('distribution centers', x + i, i)
-writer.close()
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+
+def write():
+    writer = SummaryWriter(logdir="res/")
+    x = range(100)
+    for i in x:
+        writer.add_scalar('y=2x', i * 2, i)
+    writer.close()
+
+def load():
+    event_acc = EventAccumulator('res')
+    event_acc.Reload()
+    # Show all tags in the log file
+    print(event_acc.Tags()['scalars'])
+
+    # E.g. get wall clock, number of steps and value for a scalar 'y=2x'
+
+    x, y = torch.zeros((100,)), torch.zeros((100,))
+    for i, s in enumerate(event_acc.Scalars('y_2x')):
+        x[i], y[i] = s.step, s.value
+
+    plt.plot(x, y)
+    plt.show()
+
+if __name__ == '__main__':
+    load()

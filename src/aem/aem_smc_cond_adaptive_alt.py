@@ -1,12 +1,11 @@
 # Adapted from https://github.com/conormdurkan/autoregressive-energy-machines
 import torch
-from torch.distributions import Categorical
 
-from src.aem.aem_smc_cond import AemSmcCondCrit
+from src.aem.aem_smc_cond_adaptive import AemSmcCondAdaCrit
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
 
-class AemSmcCondAltCrit(AemSmcCondCrit):
+class AemSmcCondAdaAltCrit(AemSmcCondAdaCrit):
     def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int,
                  num_neg_samples_validation: int=1e2, alpha: float = 1.0):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
@@ -32,11 +31,11 @@ class AemSmcCondAltCrit(AemSmcCondCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1, self.dim)
 
         # Estimate log normalizer
-        log_normalizer, y_s, log_w_tilde_y_s = self.inner_smc(y_samples.shape[0], y=y_samples)
+        log_normalizer, log_q, y_s, log_w_tilde_y_s = self.inner_smc(y_samples.shape[0], y=y_samples)
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)
-        q_loss = - torch.mean(torch.sum(log_q_y, dim=-1))
+        q_loss = - torch.mean(log_q)
 
         loss = q_loss + self.alpha * p_loss
 

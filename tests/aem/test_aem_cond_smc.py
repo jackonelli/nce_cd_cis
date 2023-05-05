@@ -9,7 +9,7 @@ from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
 class TestAemSmcCondCrit(unittest.TestCase):
     def test_crit(self):
-        # Just check so that everything runs ok
+        # Just check so that everything res ok
         num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
         num_context_units = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
         num_negative = torch.randint(low=2, high=5, size=torch.Size((1,))).item()

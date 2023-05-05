@@ -27,7 +27,8 @@ class AemSmcCrit(AemIsJointCrit):
         for i in range(self.dim):
             log_q_y[:, i], context[:, i, :], _ = self._proposal_log_probs(y, i, num_observed=y.shape[0])
 
-        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1, self.dim)
+        # TODO: REMOVE DETACH!
+        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.detach().reshape(-1, self.num_context_units)).reshape(-1, self.dim)
 
         # Estimate log normalizer
         log_normalizer, y_s = self.smc(y.shape[0])
@@ -71,7 +72,8 @@ class AemSmcCrit(AemIsJointCrit):
         context, y_s = context.reshape(-1, num_chains, self.num_context_units), y_s.reshape(-1, num_chains, self.dim)
 
         # Reweight
-        log_p_tilde_y_s = self._model_log_probs(y_s[:, :, 0].reshape(-1, 1), context.reshape(-1, self.num_context_units))
+        # TODO: REMOVE DETACH!
+        log_p_tilde_y_s = self._model_log_probs(y_s[:, :, 0].reshape(-1, 1), context.detach().reshape(-1, self.num_context_units))
         del context
 
         log_w_tilde_y_s = (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains)
@@ -87,7 +89,6 @@ class AemSmcCrit(AemIsJointCrit):
 
             resampling_inds = ess < (num_chains / 2)
             log_weight_factor = torch.zeros(log_w_tilde_y_s.shape)
-
 
             if resampling_inds.sum() > 0:
                 with torch.no_grad():
@@ -109,7 +110,8 @@ class AemSmcCrit(AemIsJointCrit):
                 assert torch.allclose(y_s[:, 0, :], y)
 
             # Reweight
-            log_p_tilde_y_s = self._model_log_probs(y_s[:, :, i].reshape(-1, 1), context.reshape(-1, self.num_context_units))
+            # TODO: REMOVE DETACH!
+            log_p_tilde_y_s = self._model_log_probs(y_s[:, :, i].reshape(-1, 1), context.detach().reshape(-1, self.num_context_units))
             del context
             log_w_tilde_y_s = log_weight_factor + (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_chains) # TODO: övriga termer tar ut varandra?
             del log_p_tilde_y_s, log_q_y_s, log_weight_factor
