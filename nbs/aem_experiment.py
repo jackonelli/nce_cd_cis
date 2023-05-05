@@ -9,6 +9,10 @@ from src.aem.aem_cis_joint_z import AemCisJointCrit
 from src.aem.aem_cis_joint_z_adapt import AemCisJointAdaCrit
 from src.aem.aem_pers_cis import AemCisJointPersCrit
 from src.aem.aem_pers_cis_adapt import AemCisJointAdaPersCrit
+from src.aem.aem_smc import AemSmcCrit
+from src.aem.aem_smc_cond import AemSmcCondCrit
+from src.aem.aem_pers_cond_smc import AemSmcCondPersCrit
+from src.aem.aem_smc_adaptive import AemSmcAdaCrit
 from src.data import data_uci
 from src.data.data_uci.uciutils import get_project_root
 from src.models.aem.energy_net import ResidualEnergyNet
@@ -31,12 +35,20 @@ def main(args):
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)  # (io.get_checkpoint_root())
 
+    # Save args
+    #with open(os.path.join(base_dir, 'commandline_args.txt'), 'w') as f:
+    #   json.dump(args.__dict__, f, indent=2)
+
     crit_dir = {
         'is': ([AemIsJointCrit], ["aem_is_j"]),
         'cis': ([AemCisJointCrit], ["aem_cis_j"]),
         'pers': ([AemCisJointPersCrit], ["aem_cis_pers_j"]),
         'adaptive': ([AemCisJointAdaCrit], ["aem_cis_adapt_j"]),
-        'pers_adaptive': ([AemCisJointAdaPersCrit], ["aem_cis_pers_adapt_j"])
+        'pers_adaptive': ([AemCisJointAdaPersCrit], ["aem_cis_pers_adapt_j"]),
+        'smc': ([AemSmcCrit], ["aem_smc_j"]),
+        'csmc': ([AemSmcCondCrit], ["aem_csmc_j"]),
+        'csmc_pers': ([AemSmcCondPersCrit], ["aem_csmc_pers_j"]),
+        'smc_adaptive': ([AemSmcAdaCrit], ["aem_smc_adapt_j"])
     }
 
     if args.criterion in crit_dir:
@@ -51,6 +63,8 @@ def main(args):
 
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
             save_dir = os.path.join(base_dir, lab + "_rep_" + str(i))
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)  # (io.get_checkpoint_root())
 
             run_train(train_loader, validation_loader, crit, save_dir, args)
             ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
@@ -90,7 +104,7 @@ def load_data(name, args):
         generator=gen
     )
 
-    dataset = data_uci.load_uci_dataset(args.dataset_name, split='test', frac=args.val_frac)
+    dataset = data_uci.load_uci_dataset(args.dataset_name, split='test') #, frac=args.val_frac)
     test_loader = data.DataLoader(
         dataset=dataset,
         batch_size=args.test_batch_size,
@@ -149,7 +163,7 @@ def run_train(train_loader, validation_loader, criterion, save_dir, args):
     # create aem
     crit = criterion(model, proposal, args.n_proposal_samples_per_input, args.n_proposal_samples_per_input_validation)
 
-    filename = save_dir + '_config.json'
+    filename = save_dir + '/config.json'
     with open(filename, 'w') as file:
         json.dump(vars(args), file)
 

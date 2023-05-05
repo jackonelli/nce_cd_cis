@@ -13,7 +13,7 @@ class AceCisJointAltCrit(AemCisJointCrit):
                  alpha: float = 1.0):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
 
-    def crit(self, y, _idx: Optional[Tensor]=None):
+    def crit(self, y, _idx: Optional[Tensor] = None):
 
         if self.training:
             loss, p_loss, q_loss, _, _ = self.inner_pers_crit(y, y)

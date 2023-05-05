@@ -20,6 +20,7 @@ class AemIsJointCrit(PartFnEstimator):
         self.mask = get_autoregressive_mask(self.dim)
         self.num_neg_samples_validation = int(num_neg_samples_validation)
         self.training = True
+        #self.counter = 0
 
     def crit(self, y, _idx):
         loss, p_loss, q_loss, _ = self.inner_crit(y)
@@ -27,6 +28,9 @@ class AemIsJointCrit(PartFnEstimator):
         return loss, p_loss, q_loss
 
     def inner_crit(self, y: Tensor, y_samples: Tensor = None):
+
+        #if self.training:
+        #    self.counter += 1
 
         # Calculate (unnormalized) densities
         log_p_tilde_y, log_q_y, log_normalizer, y_samples = self._log_probs(y, self._num_neg)

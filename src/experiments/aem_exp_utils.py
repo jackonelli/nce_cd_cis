@@ -176,6 +176,7 @@ class MixtureSameFamily(distributions.Distribution):
         log_prob_mixture = log_prob_mixture.unsqueeze(dim=1)  #[..., None]
         return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-1)
 
+
 class MixtureSameFamily1D(distributions.Distribution):
     def __init__(self, mixture_distribution, components_distribution):
         self.mixture_distribution = mixture_distribution
@@ -207,7 +208,7 @@ class MixtureSameFamily1D(distributions.Distribution):
 
 
 def get_aem_losses(data_loader, criterion, device):
-    loss, loss_q, loss_p = 0, 0, 0
+    loss, loss_q, loss_p, n = 0, 0, 0, 0
 
     for y in data_loader:
         y = y.to(device)
@@ -215,8 +216,9 @@ def get_aem_losses(data_loader, criterion, device):
         loss += l * y.shape[0]
         loss_p += l_p * y.shape[0]
         loss_q += l_q * y.shape[0]
+        n += y.shape[0]
 
-    return loss / len(data_loader.dataset), loss_p / len(data_loader.dataset), loss_q / len(data_loader.dataset)
+    return loss / n, loss_p / n, loss_q / n
 
 
 def parse_activation(activation):
@@ -243,15 +245,15 @@ def parse_args():
                         help='Fraction of validation set to use.')
     parser.add_argument('--val_batch_size', type=int, default=512,
                         help='Size of batch used for validation.')
-    parser.add_argument('--test_batch_size', type=int, default=256,
+    parser.add_argument('--test_batch_size', type=int, default=16,
                         help='Size of batch used for validation.')
     parser.add_argument('--num_workers', type=int, default=0,
                         help='Number of workers used in data loaders.')
 
     # MADE
-    parser.add_argument('--n_residual_blocks_made', default=4, type=int,
+    parser.add_argument('--n_residual_blocks_made', default=2, type=int,
                         help='Number of residual blocks in MADE.')
-    parser.add_argument('--hidden_dim_made', default=512, type=int,
+    parser.add_argument('--hidden_dim_made', default=256, type=int,
                         help='Dimensionality of hidden layers in MADE.')
     parser.add_argument('--activation_made', default='relu',
                         help='Activation function for MADE.')
@@ -281,7 +283,7 @@ def parse_args():
                         help='Whether to apply activation to context vector.')
 
     # proposal
-    parser.add_argument('--n_mixture_components', default=20,
+    parser.add_argument('--n_mixture_components', default=10, type=int,
                         help='Number of proposal mixture components (per dimension).')
     parser.add_argument('--proposal_component', default='gaussian',
                         help='Type of location-scale family distribution '
@@ -292,7 +294,7 @@ def parse_args():
     parser.add_argument('--n_proposal_samples_per_input_validation', default=20,
                         help='Number of proposal samples used to estimate '
                              'normalizing constant during validation.')
-    parser.add_argument("--n_importance_samples", type=int, default=20000,
+    parser.add_argument("--n_importance_samples", type=int, default=10000,
                         help="Number of importance samples used to estimate norm constant")
     parser.add_argument('--mixture_component_min_scale', default=1e-3,
                         help='Minimum scale for proposal mixture components.')
@@ -300,7 +302,7 @@ def parse_args():
     # optimization
     parser.add_argument('--learning_rate', default=5e-4,
                         help='Learning rate for Adam.')
-    parser.add_argument('--n_total_steps', default=400000,
+    parser.add_argument('--n_total_steps', default=500000,
                         help='Number of total training steps.')
     parser.add_argument('--alpha_warm_up_steps', default=5000, type=int,
                         help='Number of warm-up steps for aem density.')
@@ -308,7 +310,7 @@ def parse_args():
                         help='Whether to use a hard warm up for alpha')
 
     # logging and checkpoints
-    parser.add_argument('--monitor_interval', default=100, type=int,
+    parser.add_argument('--monitor_interval', default=1000, type=int,
                         help='Interval in steps at which to report training stats.')
     parser.add_argument('--save_interval', default=10000,
                         help='Interval in steps at which to save model.')

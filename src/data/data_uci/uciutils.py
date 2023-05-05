@@ -134,9 +134,9 @@ def load_power():
 
     def load_data_normalised():
         data_train, data_validate, data_test = load_data_split_with_noise()
-        data = np.vstack((data_train, data_validate))
-        mu = data.mean(axis=0)
-        s = data.std(axis=0)
+        #data = np.vstack((data_train, data_validate))
+        mu = data_train.mean(axis=0) #data.mean(axis=0)
+        s = data_train.std(axis=0) #data.std(axis=0)
         data_train = (data_train - mu) / s
         data_validate = (data_validate - mu) / s
         data_test = (data_test - mu) / s
@@ -266,17 +266,24 @@ def load_hepmass():
     def load_data_no_discrete_normalised(path):
 
         data_train, data_test = load_data_no_discrete(path)
+
+        N = data_train.shape[0]
+        N_validate = int(N * 0.1)
+        data_validate = data_train[-N_validate:]
+        data_train = data_train[0:-N_validate]
+
         mu = data_train.mean()
         s = data_train.std()
         data_train = (data_train - mu) / s
+        data_validate = (data_validate - mu) / s
         data_test = (data_test - mu) / s
 
-        return data_train, data_test
+        return data_train, data_validate, data_test
 
     def load_data_no_discrete_normalised_as_array(path):
 
-        data_train, data_test = load_data_no_discrete_normalised(path)
-        data_train, data_test = data_train.values, data_test.values
+        data_train, data_validate, data_test = load_data_no_discrete_normalised(path)
+        data_train, data_validate, data_test = data_train.values, data_validate.values, data_test.values
 
         i = 0
         # Remove any features that have too many re-occurring real values.
@@ -289,13 +296,10 @@ def load_hepmass():
             i += 1
         data_train = data_train[:, np.array(
             [i for i in range(data_train.shape[1]) if i not in features_to_remove])]
+        data_validate = data_validate[:, np.array(
+            [i for i in range(data_validate.shape[1]) if i not in features_to_remove])]
         data_test = data_test[:, np.array(
             [i for i in range(data_test.shape[1]) if i not in features_to_remove])]
-
-        N = data_train.shape[0]
-        N_validate = int(N * 0.1)
-        data_validate = data_train[-N_validate:]
-        data_train = data_train[0:-N_validate]
 
         return data_train, data_validate, data_test
 
@@ -359,9 +363,9 @@ def load_miniboone():
 
     def load_data_normalised(root_path):
         data_train, data_validate, data_test = load_data(root_path)
-        data = np.vstack((data_train, data_validate))
-        mu = data.mean(axis=0)
-        s = data.std(axis=0)
+        # data = np.vstack((data_train, data_validate))
+        mu = data_train.mean(axis=0)  # data.mean(axis=0)
+        s = data_train.std(axis=0)  # data.std(axis=0)
         data_train = (data_train - mu) / s
         data_validate = (data_validate - mu) / s
         data_test = (data_test - mu) / s

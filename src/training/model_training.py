@@ -219,8 +219,8 @@ def train_aem_model(
     device=torch.device("cpu")
     ):
 
-    if not os.path.exists(save_dir + "/log"):
-        os.makedirs(save_dir + "/log")
+    if not os.path.exists(save_dir + "log"):
+        os.makedirs(save_dir + "log")
 
     writer = SummaryWriter(log_dir=save_dir + "/log")
 
@@ -233,11 +233,12 @@ def train_aem_model(
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_training_steps)
 
     # Training loop
-    torch.save(model.state_dict(), save_dir + "_model")
-    torch.save(proposal.state_dict(), save_dir + "_proposal")
+    torch.save(model.state_dict(), save_dir + "/model")
+    torch.save(proposal.state_dict(), save_dir + "/proposal")
     best_loss_p = 1e6
     tbar = tqdm(range(num_training_steps))
     for step in tbar:
+        #print("Step: {}".format(step))
         optimizer.zero_grad()
 
         # training step
@@ -272,8 +273,8 @@ def train_aem_model(
 
             if step >= num_warm_up_steps and val_loss_p < best_loss_p:
                 print("New best model with validation loss {}".format(val_loss_p))
-                torch.save(model.state_dict(), save_dir + "_model")
-                torch.save(proposal.state_dict(), save_dir + "_proposal")
+                torch.save(model.state_dict(), save_dir + "/model")
+                torch.save(proposal.state_dict(), save_dir + "/proposal")
                 best_loss_p = val_loss_p
 
 
@@ -319,14 +320,16 @@ def train_aem_model(
             for summary, value in summaries.items():
                 writer.add_scalar(tag=summary, scalar_value=value, global_step=step)
 
-            #torch.save(model.state_dict(), save_dir + "_model")
-            #torch.save(proposal.state_dict(), save_dir + "_proposal")
+            #torch.save(model.state_dict(), save_dir + "/model")
+            #torch.save(proposal.state_dict(), save_dir + "/proposal")
 
             model.train()
             made.train()
             criterion.set_training(True)
 
-    #torch.save(model.state_dict(), save_dir + "_model")
-    #torch.save(proposal.state_dict(), save_dir + "_proposal")
+    writer.flush()
+    writer.close()
+    #torch.save(model.state_dict(), save_dir + "/model")
+    #torch.save(proposal.state_dict(), save_dir + "/proposal")
 
 

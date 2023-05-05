@@ -6,7 +6,6 @@ Inspired by Contrastive Divergence (CD) a persistent y is saved from the previou
 from typing import Optional
 import torch
 from torch import Tensor
-from src.part_fn_utils import concat_samples
 from torch.distributions import Categorical
 
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
@@ -26,10 +25,10 @@ class AemCisJointPersCrit(AceCisJointAltCrit):
 
         if self.training:
             y_p = self.persistent_y(y, idx).to(y.device)
-            loss, p_loss, q_loss, y_samples, log_w_tilde = self.inner_pers_crit(y, y_p)
-            self._update_persistent_y(log_w_tilde.detach(), y_samples[:, 0, :], y_samples[:, 1:, :], idx)
+            loss, p_loss, q_loss, y_s, log_w_tilde_y_s = self.inner_pers_crit(y, y_p)
+            self._update_persistent_y(log_w_tilde_y_s.detach(), y_s, idx)
         else:
-            loss, p_loss, q_loss = self.inner_crit(y)
+            loss, p_loss, q_loss, _ = self.inner_crit(y)
 
         return loss, p_loss, q_loss
 
@@ -55,13 +54,12 @@ class AemCisJointPersCrit(AceCisJointAltCrit):
 
         return per_y
 
-    def _update_persistent_y(self, log_w_unnorm, y, y_samples, idx):
+    def _update_persistent_y(self, log_w_unnorm, y, idx):
         """Sample new persistent y"""
 
-        ys = concat_samples(y, y_samples)
         with torch.no_grad():
             sampled_idx = Categorical(logits=log_w_unnorm).sample()
-            y_p = torch.gather(ys, dim=1, index=sampled_idx[:, None, None].repeat(1, 1, y.shape[-1])).squeeze(dim=1)
+            y_p = torch.gather(y, dim=1, index=sampled_idx[:, None, None].repeat(1, 1, y.shape[-1])).squeeze(dim=1)
 
             if self._persistent_y is None or idx is None:
                 assert y.shape[0] == self.batch_size
