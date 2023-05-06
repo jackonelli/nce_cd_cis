@@ -28,5 +28,6 @@ def read_log():
     plt.legend()
     plt.show()
 
+
 if __name__ == '__main__':
     read_log()

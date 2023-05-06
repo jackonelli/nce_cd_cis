@@ -259,7 +259,7 @@ def parse_args():
                         help='Activation function for MADE.')
     parser.add_argument('--use_batch_norm_made', default=False,
                         help='Whether to use batch norm in MADE.')
-    parser.add_argument('--dropout_probability_made', default=0.1,
+    parser.add_argument('--dropout_probability_made', default=0.1, type=float,
                         help='Dropout probability for MADE.')
 
     # energy net
@@ -275,7 +275,7 @@ def parse_args():
                         help='Activation function for energy net.')
     parser.add_argument('--use_batch_norm_energy_net', default=False,
                         help='Whether to use batch norm in energy net.')
-    parser.add_argument('--dropout_probability_energy_net', default=0.1,
+    parser.add_argument('--dropout_probability_energy_net', default=0.1, type=float,
                         help='Dropout probability for energy net.')
     parser.add_argument('--scale_activation', default='softplus',
                         help='Activation to use for scales in proposal mixture components.')

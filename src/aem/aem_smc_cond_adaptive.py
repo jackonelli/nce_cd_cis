@@ -87,9 +87,6 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
                                                                       index=ancestor_inds[:, :, None].repeat(1, 1, i))
                     assert torch.allclose(y_s[:, 0, :], y)
 
-                    # TODO: this?
-                    # log_weight_factor[resampling_inds, 0] = log_w_y_s[resampling_inds, 0] + torch.log(torch.Tensor([num_chains]))
-
             #if resampling_inds.sum() < batch_size:
             log_weight_factor[~resampling_inds, :] = log_w_y_s[~resampling_inds, :] + torch.log(torch.Tensor([num_samples + 1]))
             del log_w_y_s, ess, resampling_inds
@@ -117,8 +114,10 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
             del log_p_tilde_y_s
 
             log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([num_samples + 1]))
+            log_q = torch.sum(torch.nn.Softmax(dim=-1)(log_w_tilde_y_s.detach()) * torch.sum(log_q_y_s, dim=-1),
+                              dim=-1)  # torch.exp(log_normalizer) *
 
-        return log_normalizer, y_s, log_w_tilde_y_s
+        return log_normalizer, log_q, y_s, log_w_tilde_y_s
 
     def log_prob(self, y):
 

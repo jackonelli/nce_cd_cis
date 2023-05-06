@@ -60,16 +60,17 @@ def main(args):
     ll, ll_std = np.zeros((args.reps, len(crits))), np.zeros((args.reps, len(crits)))
     for i in range(args.reps):
         train_loader, validation_loader, test_loader = load_data(data_name, args)
+        print(validation_loader)
 
-        for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
-            save_dir = os.path.join(base_dir, lab + "_rep_" + str(i))
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)  # (io.get_checkpoint_root())
-
-            run_train(train_loader, validation_loader, crit, save_dir, args)
-            ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
-            print("Test log. likelihood, mean: {}".format(ll[i, j]))
-            print("Test log. likelihood, std: {}".format(ll_std[i, j]))
+        # for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
+        #     save_dir = os.path.join(base_dir, lab + "_rep_" + str(i))
+        #     if not os.path.exists(save_dir):
+        #         os.makedirs(save_dir)  # (io.get_checkpoint_root())
+        #
+        #     run_train(train_loader, validation_loader, crit, save_dir, args)
+        #     ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
+        #     print("Test log. likelihood, mean: {}".format(ll[i, j]))
+        #     print("Test log. likelihood, std: {}".format(ll_std[i, j]))
 
 
 def load_data(name, args):
