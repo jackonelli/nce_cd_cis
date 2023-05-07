@@ -302,7 +302,7 @@ def parse_args():
     # optimization
     parser.add_argument('--learning_rate', default=5e-4,
                         help='Learning rate for Adam.')
-    parser.add_argument('--n_total_steps', default=500000,
+    parser.add_argument('--n_total_steps', default=500000, type=int,
                         help='Number of total training steps.')
     parser.add_argument('--alpha_warm_up_steps', default=5000, type=int,
                         help='Number of warm-up steps for aem density.')

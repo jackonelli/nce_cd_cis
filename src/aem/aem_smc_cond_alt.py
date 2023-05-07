@@ -32,7 +32,7 @@ class AemSmcCondAltCrit(AemSmcCondCrit):
         log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1, self.dim)
 
         # Estimate log normalizer
-        log_normalizer, y_s, log_w_tilde_y_s = self.inner_smc(y_samples.shape[0], y=y_samples)
+        log_normalizer, y_s, log_w_tilde_y_s = self.inner_smc(y_samples.shape[0], self._num_neg, y=y_samples)
 
         # Calculate loss
         p_loss = - torch.mean(torch.sum(log_p_tilde_y, dim=-1) - log_normalizer)

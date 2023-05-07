@@ -75,6 +75,9 @@ class AemSmcCondCrit(AemSmcCrit):
                                                                 index=ancestor_inds[:, :, None].repeat(1, 1, i))
                     assert torch.allclose(y_s[:, 0, :], y)
 
+                    # TODO: this?
+                    # log_weight_factor[resampling_inds, 0] = log_w_y_s[resampling_inds, 0] + torch.log(torch.Tensor([num_chains]))
+
             #if resampling_inds.sum() < batch_size:
             log_weight_factor[~resampling_inds, :] = log_w_y_s[~resampling_inds, :] + torch.log(torch.Tensor([num_samples + 1]))
             del log_w_y_s, ess, resampling_inds

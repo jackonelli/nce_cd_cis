@@ -13,6 +13,7 @@ from src.aem.aem_smc import AemSmcCrit
 from src.aem.aem_smc_cond import AemSmcCondCrit
 from src.aem.aem_pers_cond_smc import AemSmcCondPersCrit
 from src.aem.aem_smc_adaptive import AemSmcAdaCrit
+from src.aem.aem_smc_cond_adaptive import AemSmcCondAdaCrit
 from src.data import data_uci
 from src.data.data_uci.uciutils import get_project_root
 from src.models.aem.energy_net import ResidualEnergyNet
@@ -48,7 +49,8 @@ def main(args):
         'smc': ([AemSmcCrit], ["aem_smc_j"]),
         'csmc': ([AemSmcCondCrit], ["aem_csmc_j"]),
         'csmc_pers': ([AemSmcCondPersCrit], ["aem_csmc_pers_j"]),
-        'smc_adaptive': ([AemSmcAdaCrit], ["aem_smc_adapt_j"])
+        'smc_adaptive': ([AemSmcAdaCrit], ["aem_smc_adapt_j"]),
+        'csmc_adaptive': ([AemSmcCondAdaCrit], ["aem_csmc_adapt_j"]),
     }
 
     if args.criterion in crit_dir:
@@ -60,17 +62,17 @@ def main(args):
     ll, ll_std = np.zeros((args.reps, len(crits))), np.zeros((args.reps, len(crits)))
     for i in range(args.reps):
         train_loader, validation_loader, test_loader = load_data(data_name, args)
-        print(validation_loader)
+        print(len(test_loader))
 
-        # for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
-        #     save_dir = os.path.join(base_dir, lab + "_rep_" + str(i))
-        #     if not os.path.exists(save_dir):
-        #         os.makedirs(save_dir)  # (io.get_checkpoint_root())
-        #
-        #     run_train(train_loader, validation_loader, crit, save_dir, args)
-        #     ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
-        #     print("Test log. likelihood, mean: {}".format(ll[i, j]))
-        #     print("Test log. likelihood, std: {}".format(ll_std[i, j]))
+        for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
+            save_dir = os.path.join(base_dir, lab + "_rep_" + str(i))
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)  # (io.get_checkpoint_root())
+
+            run_train(train_loader, validation_loader, crit, save_dir, args)
+            ll[i, j], ll_std[i, j] = run_test(test_loader, crit, save_dir, args)
+            print("Test log. likelihood, mean: {}".format(ll[i, j]))
+            print("Test log. likelihood, std: {}".format(ll_std[i, j]))
 
 
 def load_data(name, args):
@@ -195,7 +197,7 @@ def run_test(test_loader, criterion, save_dir, args):
         dropout_probability=args.dropout_probability_energy_net
     )
 
-    model.load_state_dict(torch.load(save_dir + "_model", map_location=device))
+    model.load_state_dict(torch.load(os.path.join(save_dir, "model"), map_location=device))
 
     # Create MADE
     made = ResidualMADEJoint(
@@ -218,7 +220,7 @@ def run_test(test_loader, criterion, save_dir, args):
         apply_context_activation=args.apply_context_activation
     )
 
-    proposal.load_state_dict(torch.load(save_dir + "_proposal", map_location=device)) # TODO: check so that this loads params also of made
+    proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) # TODO: check so that this loads params also of made
 
     # create aem
     crit = criterion(model, proposal, args.n_proposal_samples_per_input, args.n_importance_samples)

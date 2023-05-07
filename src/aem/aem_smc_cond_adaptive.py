@@ -11,9 +11,6 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
                  num_neg_samples_validation: int=1e2, alpha: float = 1.0):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, num_neg_samples_validation, alpha)
 
-    def crit(self, y, _idx):
-        return self.inner_crit(y)
-
     def inner_crit(self, y, y_samples=None):
 
         # Calculate (unnormalized) densities for y
@@ -47,8 +44,8 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
         # Propagate
         logq, context, y_s = self._proposal_log_probs(torch.cat((y_s[:, 0, :],
                                                                       y_s[:, 1:, :].reshape(-1, self.dim))), 0, num_observed=batch_size)
-        log_q_y_s[:, :, 0] = torch.cat((logq[:y.shape[0]].reshape(-1, 1, self.dim),
-                                        logq[y.shape[0]:].reshape(-1, num_samples, self.dim)), dim=1)
+        log_q_y_s[:, :, 0] = torch.cat((logq[:y.shape[0]].reshape(-1, 1),
+                                        logq[y.shape[0]:].reshape(-1, num_samples)), dim=1)
         del logq
 
         y_s = torch.cat(
@@ -60,9 +57,11 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
                                                 context)
         del context
 
-        log_w_tilde_y_s = torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, 0].detach()),
+        log_w_tilde_y_s = torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, 0].detach().unsqueeze(dim=1)),
                                      (log_p_tilde_y_s[y.shape[0]:].reshape(-1, num_samples) - log_q_y_s[:, 1:, 0].detach())),
                                     dim=1)
+        print((log_p_tilde_y_s[y.shape[0]:].reshape(-1, num_samples) - log_q_y_s[:, 1:, 0].detach()).shape)
+
         del log_p_tilde_y_s
 
         # Dim 2 to D
@@ -71,6 +70,7 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
 
             # Resample
             log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=1, keepdim=True)
+            
             ess = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=1)).detach()
 
             resampling_inds = ess < ((num_samples + 1) / 2)
@@ -79,10 +79,10 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
             if resampling_inds.sum() > 0:
                 with torch.no_grad():
                     ancestor_inds = Categorical(logits=log_w_tilde_y_s[resampling_inds, :]).sample(sample_shape=torch.Size((num_samples,))).transpose(0, 1)
-
                     # Do not resample y
                     y_s[resampling_inds, 1:, :i] = torch.gather(y_s[resampling_inds, :, :i], dim=1,
                                                                 index=ancestor_inds[:, :, None].repeat(1, 1, i))
+                                                                
                     log_q_y_s[resampling_inds, 1:, :i] = torch.gather(log_q_y_s[resampling_inds, :, :i], dim=1,
                                                                       index=ancestor_inds[:, :, None].repeat(1, 1, i))
                     assert torch.allclose(y_s[:, 0, :], y)
@@ -99,17 +99,17 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
                 (y_s[:y.shape[0], :].unsqueeze(dim=1), y_s[y.shape[0]:, :].reshape(-1, num_samples, self.dim)), dim=1)
             assert torch.allclose(y_s[:, 0, :], y)
 
-            log_q_y_s[:, :, i] = torch.cat((logq[:y.shape[0]].reshape(-1, 1, self.dim),
-                                            logq[y.shape[0]:].reshape(-1, num_samples, self.dim)), dim=1)
+            log_q_y_s[:, :, i] = torch.cat((logq[:y.shape[0]].reshape(-1, 1),
+                                            logq[y.shape[0]:].reshape(-1, num_samples)), dim=1)
             del logq
 
             # Reweight
             log_p_tilde_y_s = self._model_log_probs(torch.cat((y_s[:, 0, i].reshape(-1, 1), y_s[:, 1:, i].reshape(-1, 1))),
                                                     context)
             del context
-            log_w_tilde_y_s = torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, 0].detach()),
+            log_w_tilde_y_s = torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, i].detach().unsqueeze(dim=1)),
                                          (log_p_tilde_y_s[y.shape[0]:].reshape(-1, num_samples) - log_q_y_s[:, 1:,
-                                                                                                  0].detach())),
+                                                                                                  i].detach())),
                                         dim=1)
             del log_p_tilde_y_s
 
