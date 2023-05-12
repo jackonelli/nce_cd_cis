@@ -92,9 +92,7 @@ class AemSmcCrit(AemIsJointCrit):
             log_p_tilde_y_s = self._model_log_probs(y_s[:, :, i].reshape(-1, 1), context.reshape(-1, self.num_context_units))
             del context
             log_w_tilde_y_s = log_weight_factor + (log_p_tilde_y_s - log_q_y_s.detach()).reshape(-1, num_samples)
-            print(i)
-            print(log_p_tilde_y_s.min())
-            print(log_p_tilde_y_s.max())
+
             del log_p_tilde_y_s, log_q_y_s, log_weight_factor
 
             log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([num_samples]))

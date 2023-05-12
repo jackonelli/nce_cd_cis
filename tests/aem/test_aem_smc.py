@@ -216,9 +216,9 @@ class TestAemSmcCrit(unittest.TestCase):
             else:
                 print("Note: param is not torch.nn.Parameter")
 
-        for param in proposal.parameters():
+        for param in made.parameters():
             if isinstance(param, torch.nn.Parameter):
-                #assert param.grad is None
+                assert param.grad is None
                 pass
 
             if isinstance(param, ResidualBlock):

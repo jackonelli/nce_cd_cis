@@ -185,12 +185,13 @@ def load_gas():
         data = load_data(file)
         B = get_correlation_numbers(data)
 
+        # TODO: this feels like something that should be done only on training data?
         while np.any(B > 1):
             col_to_remove = np.where(B > 1)[0][0]
             col_name = data.columns[col_to_remove]
             data.drop(col_name, axis=1, inplace=True)
             B = get_correlation_numbers(data)
-        data = (data - data.mean()) / data.std()
+        #data = (data - data.mean()) / data.std()
 
         return data.values
 
@@ -202,6 +203,14 @@ def load_gas():
         N_validate = int(0.1 * data_train.shape[0])
         data_validate = data_train[-N_validate:]
         data_train = data_train[0:-N_validate]
+        
+        # TODO: Not sure if this is what we want to do (and this might change convergence times?)
+        #data = (data - data.mean()) / data.std()
+        mu = data_train.mean(axis=0) 
+        s = data_train.std(axis=0) 
+        data_train = (data_train - mu) / s
+        data_validate = (data_validate - mu) / s
+        data_test = (data_test - mu) / s
 
         return data_train, data_validate, data_test
 
@@ -272,8 +281,8 @@ def load_hepmass():
         data_validate = data_train[-N_validate:]
         data_train = data_train[0:-N_validate]
 
-        mu = data_train.mean()
-        s = data_train.std()
+        mu = data_train.mean(axis=0)
+        s = data_train.std(axis=0)
         data_train = (data_train - mu) / s
         data_validate = (data_validate - mu) / s
         data_test = (data_test - mu) / s

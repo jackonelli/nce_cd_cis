@@ -198,8 +198,56 @@ class AemIsJointCrit(PartFnEstimator):
 
         return y_samples.reshape(batch_size, num_proposal_samples, -1)
 
+    def unnorm_log_prob(self, y):
+
+        log_p_tilde_y, log_q_y = self._unnorm_log_prob(y)
+
+        assert log_q_y.shape == (y.shape[0],)
+        assert log_p_tilde_y.shape == (y.shape[0],)
+
+        return log_p_tilde_y, log_q_y
+
     def part_fn(self, y, y_samples) -> Tensor:
         return 0
+
+    def log_part_fn(self) -> Tensor:
+
+        y_samples = torch.zeros((self.num_neg_samples_validation, self.dim))
+
+        log_p_tilde_y_samples, log_q_y_samples = self._unnorm_log_prob(y_samples, sample=True)
+
+        assert log_q_y_samples.shape == (self.num_neg_samples_validation,)
+        assert log_p_tilde_y_samples.shape == (self.num_neg_samples_validation,)
+
+        log_normalizer = torch.logsumexp((log_p_tilde_y_samples - log_q_y_samples.detach()),
+                                         # stop gradient
+                                         dim=0) - torch.log(torch.Tensor([self.num_neg_samples_validation]))
+        return log_normalizer
+
+    def _unnorm_log_prob(self, y, sample=False):
+        # TODO: this is a bit unnecessary, but here we do not need to draw samples
+        # Calculate (unnormalized) densities for y
+
+        log_q_y, context = torch.zeros((y.shape[0], self.dim)), torch.zeros(
+            (y.shape[0], self.dim, self.num_context_units))
+        for i in range(self.dim):
+            net_input = torch.cat(
+                (y * self.mask[i, :], self.mask[i, :].reshape(1, -1).repeat(y.shape[0], 1)),
+                dim=-1)
+            q_i, context[:, i, :] = self._noise_distr.forward(net_input)
+
+            if sample:
+                with torch.no_grad():
+                    y[:, i] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze()
+
+            log_q_y[:, i] = self._noise_distr.inner_log_prob(q_i, y[:, i].unsqueeze(dim=-1)).squeeze()
+
+        log_q_y = torch.sum(log_q_y, dim=-1)
+        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1,
+                                                                                                                     self.dim).sum(
+            dim=-1)
+
+        return log_p_tilde_y, log_q_y
 
     def set_num_proposal_samples_validation(self,
                                             num_proposal_samples_validation=int(

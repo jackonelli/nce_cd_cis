@@ -28,7 +28,7 @@ class AemSmcCondPersCrit(AemSmcCondAltCrit):
             loss, p_loss, q_loss, y_s, log_w_tilde_y_s = self.inner_pers_crit(y, y_p)
             self._update_persistent_y(log_w_tilde_y_s, y_s, idx)
         else:
-            loss, p_loss, q_loss = self.inner_crit(y)
+            loss, p_loss, q_loss, _ = self.inner_crit(y)
 
         return loss, p_loss, q_loss
 

@@ -245,7 +245,7 @@ def parse_args():
                         help='Fraction of validation set to use.')
     parser.add_argument('--val_batch_size', type=int, default=512,
                         help='Size of batch used for validation.')
-    parser.add_argument('--test_batch_size', type=int, default=16,
+    parser.add_argument('--test_batch_size', type=int, default=256,
                         help='Size of batch used for validation.')
     parser.add_argument('--num_workers', type=int, default=0,
                         help='Number of workers used in data loaders.')
