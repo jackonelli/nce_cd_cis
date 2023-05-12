@@ -175,7 +175,7 @@ class AemIsJointCrit(PartFnEstimator):
         log_p_tilde_y, log_q_y, log_normalizer, _ = self._log_probs(y, self.num_neg_samples_validation)
 
         # Calculate/estimate normalized densities
-        log_prob_p = log_p_tilde_y - log_normalizer
+        log_prob_p = log_p_tilde_y #- log_normalizer
         log_prob_q = log_q_y
 
         if return_unnormalized:

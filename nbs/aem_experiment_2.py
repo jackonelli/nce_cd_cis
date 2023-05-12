@@ -223,14 +223,15 @@ def run_test(test_loader, criterion, save_dir, args):
     proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) # TODO: check so that this loads params also of made
 
     # create aem
-    crit = AemIsJointCrit(model, proposal, args.n_proposal_samples_per_input, args.n_importance_samples)
+    crit = AemSmcCrit(model, proposal, args.n_proposal_samples_per_input, args.n_importance_samples)
+    #AemIsJointCrit
 
     model.eval()
     made.eval()
     crit.set_training(False)
 
-    file = open("{}/eval_{}_set_is.txt".format(save_dir, 'test'), "w")
-    print("{} evaluation, using IS".format(args.dataset_name), file=file)
+    file = open("{}/eval_{}_set_smc.txt".format(save_dir, 'test'), "w")
+    print("{} evaluation, using SMC".format(args.dataset_name), file=file)
     print("=======================\n", file=file)
 
     # Importance sampling eval loop
