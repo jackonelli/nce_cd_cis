@@ -109,5 +109,12 @@ class AemSmcCondCrit(AemSmcCrit):
 
         return log_prob_p, log_prob_q
 
+    def log_part_fn(self, y):
+
+        assert y.ndim == 2 and y.shape[0] == 1, "Condition the estimator only on one sample"
+
+        log_normalizer, _ = self.smc(1, self.num_neg_samples_validation, y)
+
+        return log_normalizer.squeeze(dim=0)
 
 

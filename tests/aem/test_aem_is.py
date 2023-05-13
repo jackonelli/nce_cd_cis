@@ -1,5 +1,7 @@
 import unittest
 import torch
+import numpy as np
+import matplotlib.pyplot as plt
 
 from src.aem.aem_is_joint_z import AemIsJointCrit
 from src.models.aem.energy_net import ResidualEnergyNet
@@ -7,6 +9,7 @@ from src.models.aem.made_joint_z import ResidualMADEJoint
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
 from src.models.aem.energy_net import ResidualBlock
+
 
 class TestAemIsCrit(unittest.TestCase):
     def test_crit(self):
@@ -54,7 +57,7 @@ class TestAemIsCrit(unittest.TestCase):
         y = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
                                               scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample((num_samples,))
 
-        log_prob_p, log_prob_q = crit.log_prob(y)
+        log_prob_p, log_prob_q, log_prob_p_tilde = crit.log_prob(y, return_unnormalized=True)
 
         assert log_prob_p.shape == (num_samples,)
         assert log_prob_q.shape == (num_samples,)
@@ -64,6 +67,48 @@ class TestAemIsCrit(unittest.TestCase):
         assert not torch.isnan(mean_log_prob_q) or torch.isinf(mean_log_prob_q)
         assert log_prob_p.std() > 0.0
         assert log_prob_q.std() > 0.0
+
+        # Just check so that this really is log prob of y
+        shuffled_inds = torch.randperm(y.shape[0])
+        y_1 = y[shuffled_inds, :]
+
+        _, _, log_prob_p_tilde_ref = crit.log_prob(y_1, return_unnormalized=True)
+
+        log_prob_p_tilde, _ = torch.sort(log_prob_p_tilde, dim=0)
+        log_prob_p_tilde_ref, _ = torch.sort(log_prob_p_tilde_ref, dim=0)
+        assert torch.allclose(log_prob_p_tilde, log_prob_p_tilde_ref)
+
+    def test_part_fn(self):
+        # Check so that part. fun. is calculated as expected
+
+        num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
+        num_context_units = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
+        num_negative = torch.randint(low=2, high=5, size=torch.Size((1,))).item()
+
+        num_res_blocks, num_hidden, num_components = 2, 5, 5
+        output_dim_mult = num_context_units + 3 * num_components
+        made = ResidualMADEJoint(2 * num_features, num_res_blocks, num_hidden, output_dim_mult)
+
+        model = ResidualEnergyNet(input_dim=(num_context_units + 1))
+        proposal = AemJointProposal(made, num_context_units, num_components)
+
+        crit = AemIsJointCrit(model, proposal, num_negative)
+
+        model.eval()
+        made.eval()
+        crit.set_training(False)
+
+        rep = 10
+        num_neg = [5, 10, 100, 500, 1000, 5000, 10000, 50000, 100000]
+        log_norm = torch.zeros((len(num_neg), rep))
+        for i, j in enumerate(num_neg):
+            crit.set_num_proposal_samples_validation(j)
+            for k in range(rep):
+                with torch.no_grad():
+                    log_norm[i, k] = crit.log_part_fn()
+
+        plt.errorbar(np.array(num_neg), log_norm.mean(dim=-1), yerr=log_norm.std(dim=-1))
+        plt.show()
 
     def test_proposal(self):
         """Check so that masking is correct in sampling"""
@@ -76,7 +121,6 @@ class TestAemIsCrit(unittest.TestCase):
         y = torch.distributions.uniform.Uniform(low=1.0, high=10.0).sample((num_samples, num_features))
 
         class MockProposal:
-
             def __init__(self, num_features, num_context_units):
                 self.num_features = num_features
                 self.num_context_units = num_context_units

@@ -105,7 +105,7 @@ class AemSmcCondAdaCrit(AemSmcAdaCrit):
             log_p_tilde_y_s = self._model_log_probs(torch.cat((y_s[:, 0, i].reshape(-1, 1), y_s[:, 1:, i].reshape(-1, 1))),
                                                     context)
             del context
-            log_w_tilde_y_s = torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, i].detach().unsqueeze(dim=1)),
+            log_w_tilde_y_s = log_weight_factor + torch.cat(((log_p_tilde_y_s[:y.shape[0]].reshape(-1, 1) - log_q_y_s[:, 0, i].detach().unsqueeze(dim=1)),
                                          (log_p_tilde_y_s[y.shape[0]:].reshape(-1, num_samples) - log_q_y_s[:, 1:,
                                                                                                   i].detach())),
                                         dim=1)

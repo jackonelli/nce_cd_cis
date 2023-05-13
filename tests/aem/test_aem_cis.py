@@ -1,5 +1,7 @@
 import unittest
 import torch
+import numpy as np
+import matplotlib.pyplot as plt
 
 from src.aem.aem_is_joint_z import AemIsJointCrit
 from src.aem.aem_cis_joint_z import AemCisJointCrit
@@ -60,6 +62,73 @@ class TestAemCisCrit(unittest.TestCase):
         assert torch.allclose(loss_p, loss_p_ref)
 
         assert y_samples.shape == (num_samples * num_negative, num_features)
+
+    def test_sampling(self):
+        num_features, num_context_units = 2, 1
+        num_negative = torch.randint(low=2, high=5, size=torch.Size((1,))).item()
+        num_samples = 100
+
+        mean = np.random.uniform(-5.0, 5.0)
+        std = np.random.uniform(0.1, 2.0)
+
+        class MockProposal:
+            def __init__(self, num_features, num_context_units):
+                self.num_features = num_features
+                self.num_context_units = num_context_units
+
+            def forward(self, y):
+                q = torch.distributions.normal.Normal(y[:, 0], 10 * torch.ones((y.shape[0])))
+                return q, y[:, 0].reshape(-1, 1)
+
+            def inner_sample(self, distr, size):
+                return distr.sample(size).transpose(0, 1)
+
+            def inner_log_prob(self, distr, samples):
+                return distr.log_prob(samples.squeeze(dim=-1))
+
+        class MockModel(torch.nn.Module):
+            def __init__(self, num_context_units, mean, std):
+                super().__init__()
+                self.num_context_units = num_context_units
+                self.mean = mean
+                self.std = std
+
+            def forward(self, y):
+                y, context = y[:, :num_context_units], y[:, num_context_units:]
+                return - 0.5 * (1 / self.std**2) * (y-context-self.mean)**2
+
+        proposal = MockProposal(num_features, num_context_units)
+        model = MockModel(num_context_units, mean, std)
+        crit = AemCisJointCrit(model, proposal, num_negative)
+
+        y = torch.distributions.normal.Normal(loc=torch.randn(torch.Size((num_features,))),
+                                              scale=torch.exp(torch.randn(torch.Size((num_features,))))).sample((num_samples,))
+
+        # Sample from model
+        num_steps = 1000
+        check_points = [1, 10, 100, 1000]
+        fig, ax = plt.subplots(2, len(check_points))
+        count = 0
+
+        x = np.arange(-10, 10, 0.2)
+        true_dens = torch.exp(torch.distributions.normal.Normal(mean, std).log_prob(torch.tensor(x))).numpy()
+
+        with torch.no_grad():
+            for t in range(num_steps):
+                _, _, _, log_w_tilde_y_s, _, y_samples = crit._log_probs(y, num_negative)
+                y_s = torch.cat((y.reshape(-1, 1, num_features), y_samples.reshape(-1, num_negative, num_features)), dim=1)
+                sampled_idx = torch.distributions.Categorical(logits=log_w_tilde_y_s).sample()
+                y = torch.gather(y_s, dim=1, index=sampled_idx[:, None, None].repeat(1, 1, y.shape[-1])).squeeze(dim=1)
+
+                if (t+1) in check_points:
+                    ax[0, count].hist(y[:, 0], density=True)
+                    ax[0, count].plot(x, true_dens)
+                    ax[1, count].hist(y[:, 1] - y[:, 0], density=True)
+                    ax[1, count].plot(x, true_dens)
+                    ax[0, count].set_title("It. {}. Mean = {:.03}, std = {:.03}".format(t + 1, mean, std))
+                    count += 1
+
+        plt.show()
 
     def test_log_prob(self):
         # Just test so that everything seems to run ok

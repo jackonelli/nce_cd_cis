@@ -11,7 +11,7 @@ def write():
     writer.close()
 
 def load():
-    event_acc = EventAccumulator('res')
+    event_acc = EventAccumulator('../../src/misc/res')
     event_acc.Reload()
     # Show all tags in the log file
     print(event_acc.Tags()['scalars'])

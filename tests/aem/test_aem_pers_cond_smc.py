@@ -34,5 +34,15 @@ class TestAemSmcCondPersCrit(unittest.TestCase):
         # Check so that persistent samples were updated
         assert crit._persistent_y is not None
 
+        num_updates = 10
+        for i in range(num_updates):
+            _, _, _ = crit.crit(y, num_samples)
+
+        assert torch.allclose(crit.persistent_y(y, num_samples), crit._persistent_y)
+        assert not torch.allclose(y, crit._persistent_y)
+
+        _, _, _, y_samples, _ = crit.inner_pers_crit(y, y)
+        assert torch.allclose(y_samples[:, 0, :], y)
+
 if __name__ == "__main__":
     unittest.main()
