@@ -210,10 +210,9 @@ class AemIsJointCrit(PartFnEstimator):
     def part_fn(self, y, y_samples) -> Tensor:
         return 0
 
-    def log_part_fn(self) -> Tensor:
+    def log_part_fn(self, return_ess=False):
 
         y_samples = torch.zeros((self.num_neg_samples_validation, self.dim))
-
         log_p_tilde_y_samples, log_q_y_samples = self._unnorm_log_prob(y_samples, sample=True)
 
         assert log_q_y_samples.shape == (self.num_neg_samples_validation,)
@@ -222,7 +221,15 @@ class AemIsJointCrit(PartFnEstimator):
         log_normalizer = torch.logsumexp((log_p_tilde_y_samples - log_q_y_samples.detach()),
                                          # stop gradient
                                          dim=0) - torch.log(torch.Tensor([self.num_neg_samples_validation]))
-        return log_normalizer
+        if return_ess:
+            log_w_tilde_y_s = log_p_tilde_y_samples - log_q_y_samples.detach()
+            log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=0, keepdim=True)
+            ess = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=0)).detach()
+
+            return log_normalizer, ess
+
+        else:
+            return log_normalizer
 
     def _unnorm_log_prob(self, y, sample=False):
         # TODO: this is a bit unnecessary, but here we do not need to draw samples

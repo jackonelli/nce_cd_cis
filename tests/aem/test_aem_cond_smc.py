@@ -72,7 +72,6 @@ class TestAemSmcCondCrit(unittest.TestCase):
                 with torch.no_grad():
                     log_norm[i, k] = crit.log_part_fn(y)
 
-
         # TODO: is the trend affected by the quality of the sample on which we condition?
         plt.errorbar(np.array(num_neg), log_norm.mean(dim=-1), yerr=log_norm.std(dim=-1))
         plt.title("SMC log-normalizer estimate")
@@ -130,7 +129,7 @@ class TestAemSmcCondCrit(unittest.TestCase):
 
         with torch.no_grad():
             for t in range(num_steps):
-                _, y_s, log_w_tilde_y_s = crit.inner_smc(num_samples, num_negative, y)
+                _, y_s, log_w_tilde_y_s, _ = crit.inner_smc(num_samples, num_negative, y)
                 sampled_idx = torch.distributions.Categorical(logits=log_w_tilde_y_s).sample()
                 y = torch.gather(y_s, dim=1, index=sampled_idx[:, None, None].repeat(1, 1, y.shape[-1])).squeeze(dim=1)
 

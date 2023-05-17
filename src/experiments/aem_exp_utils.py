@@ -320,7 +320,7 @@ def parse_args():
                         help='Criterion to use (is/cis/pers/adaptive/pers_adaptive).')
 
     # reproducibility
-    parser.add_argument('--seed', default=1638128,
+    parser.add_argument('--seed', default=1638128, type=int,
                         help='Random seed for PyTorch and NumPy.')
 
     args = parser.parse_args()

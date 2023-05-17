@@ -5,7 +5,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 
 def read_log():
-    event_acc = EventAccumulator('res')
+    event_acc = EventAccumulator("res/")
     event_acc.Reload()
     # Show all tags in the log file
     print(event_acc.Tags()['scalars'])

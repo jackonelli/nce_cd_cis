@@ -52,4 +52,29 @@ class AemCisJointCrit(AemIsJointCrit):
 
         return log_prob_p, log_prob_q
 
+    def log_part_fn(self, y, return_ess=False):
+
+        assert y.ndim == 2 and y.shape[0] == 1, "Condition the estimator only on one sample"
+
+        log_p_tilde_y, log_q_y = self._unnorm_log_prob(y, sample=False)
+
+        y_samples = torch.zeros((self.num_neg_samples_validation, self.dim))
+        log_p_tilde_y_samples, log_q_y_samples = self._unnorm_log_prob(y_samples, sample=True)
+
+        assert log_q_y_samples.shape == (self.num_neg_samples_validation,)
+        assert log_p_tilde_y_samples.shape == (self.num_neg_samples_validation,)
+
+        log_w_tilde_y_s = torch.cat((log_p_tilde_y - log_q_y.detach(), log_p_tilde_y_samples - log_q_y_samples.detach()))
+        log_normalizer = torch.logsumexp(log_w_tilde_y_s, dim=0) - \
+                         torch.log(torch.Tensor([self.num_neg_samples_validation + 1]))
+        if return_ess:
+            log_w_tilde_y_s = log_p_tilde_y_samples - log_q_y_samples.detach()
+            log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=0, keepdim=True)
+            ess = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=0)).detach()
+
+            return log_normalizer, ess
+
+        else:
+            return log_normalizer
+
 

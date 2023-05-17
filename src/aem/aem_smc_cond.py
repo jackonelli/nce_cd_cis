@@ -36,6 +36,7 @@ class AemSmcCondCrit(AemSmcCrit):
         assert batch_size == y.shape[0]
         y_samples = torch.zeros(batch_size, num_samples, self.dim)
         y_s = torch.cat((y.unsqueeze(dim=1), y_samples), dim=1)
+        ess_all = torch.zeros((self.dim,))
 
         # First dim
         # Propagate
@@ -62,6 +63,7 @@ class AemSmcCondCrit(AemSmcCrit):
             # Resample
             log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=1, keepdim=True)
             ess = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=1)).detach()
+            ess_all[i-1] = ess.mean(dim=0)
 
             resampling_inds = ess < ((num_samples + 1) / 2)
             log_weight_factor = torch.zeros(log_w_tilde_y_s.shape)
@@ -100,7 +102,10 @@ class AemSmcCondCrit(AemSmcCrit):
 
             log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([num_samples + 1]))
 
-        return log_normalizer, y_s, log_w_tilde_y_s
+        log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=1, keepdim=True)
+        ess_all[-1] = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=1)).detach().mean(dim=0)
+
+        return log_normalizer, y_s, log_w_tilde_y_s, ess_all
 
     def log_prob(self, y):
 
@@ -121,12 +126,15 @@ class AemSmcCondCrit(AemSmcCrit):
 
         return log_prob_p, log_prob_q
 
-    def log_part_fn(self, y):
+    def log_part_fn(self, y, return_ess=False):
 
         assert y.ndim == 2 and y.shape[0] == 1, "Condition the estimator only on one sample"
 
-        log_normalizer, _ = self.smc(1, self.num_neg_samples_validation, y)
+        log_normalizer, _, _, ess = self.inner_smc(1, self.num_neg_samples_validation, y)
 
-        return log_normalizer.squeeze(dim=0)
+        if return_ess:
+            return log_normalizer.squeeze(dim=0), ess
+        else:
+            return log_normalizer.squeeze(dim=0)
 
 

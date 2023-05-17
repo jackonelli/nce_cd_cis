@@ -38,13 +38,14 @@ class AemSmcCrit(AemIsJointCrit):
 
     def smc(self, batch_size, num_samples, y=None):
         # This is just a wrapper function
-        log_normalizer, y_s, log_w_tilde_y_s = self.inner_smc(batch_size, num_samples, y)
+        log_normalizer, y_s, log_w_tilde_y_s, _ = self.inner_smc(batch_size, num_samples, y)
 
         return log_normalizer, y_s
 
     def inner_smc(self, batch_size, num_samples, y):
 
         y_s = torch.zeros((batch_size, num_samples, self.dim))
+        ess_all = torch.zeros((self.dim,))
 
         # First dim
         # Propagate
@@ -65,6 +66,7 @@ class AemSmcCrit(AemIsJointCrit):
             # Resample
             log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=1, keepdim=True)
             ess = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=1)).detach()
+            ess_all[i-1] = ess.mean(dim=0)
 
             resampling_inds = ess < (num_samples / 2)
             log_weight_factor = torch.zeros(log_w_tilde_y_s.shape)
@@ -93,7 +95,11 @@ class AemSmcCrit(AemIsJointCrit):
 
             log_normalizer += torch.logsumexp(log_w_tilde_y_s, dim=1) - torch.log(torch.Tensor([num_samples]))
 
-        return log_normalizer, y_s, log_w_tilde_y_s
+        # Resample
+        log_w_y_s = log_w_tilde_y_s - torch.logsumexp(log_w_tilde_y_s, dim=1, keepdim=True)
+        ess_all[-1] = torch.exp(- torch.logsumexp(2 * log_w_y_s, dim=1)).detach().mean(dim=0)
+
+        return log_normalizer, y_s, log_w_tilde_y_s, ess_all
 
     def _proposal_log_probs(self, y, dim: int, num_observed: int = 0):
         net_input = torch.cat(
@@ -132,11 +138,13 @@ class AemSmcCrit(AemIsJointCrit):
         else:
             return log_prob_p, log_prob_q
 
-    def log_part_fn(self):
+    def log_part_fn(self, return_ess=False):
+        log_normalizer, _, _, ess = self.inner_smc(1, self.num_neg_samples_validation, None)
 
-        log_normalizer, _ = self.smc(1, self.num_neg_samples_validation)
-
-        return log_normalizer.squeeze(dim=0)
+        if return_ess:
+            return log_normalizer.squeeze(dim=0), ess
+        else:
+            return log_normalizer.squeeze(dim=0)
 
     def unnorm_log_prob(self, y):
 
