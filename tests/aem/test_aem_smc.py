@@ -54,6 +54,7 @@ class TestAemSmcCrit(unittest.TestCase):
             log_w_tilde_y_s = torch.distributions.normal.Normal(loc=0.0, scale=1.0).sample((num_samples, num_neg))
             ancestor_inds = Categorical(logits=log_w_tilde_y_s).sample(sample_shape=torch.Size((num_neg,))).transpose(0,
                                                                                                                       1)
+
             assert ancestor_inds.shape == (num_samples, num_neg)
             y_s[:, :, :i] = torch.gather(y_s[:, :, :i], dim=1, index=ancestor_inds[:, :, None].repeat(1, 1, i))
 
@@ -68,7 +69,6 @@ class TestAemSmcCrit(unittest.TestCase):
             y_s_copy = y_s.clone()
 
         # Resampling only when ess falls below num_chains/2
-
         y_s_copy = y_s.clone()
 
         for i in range(1, num_features):
@@ -107,6 +107,12 @@ class TestAemSmcCrit(unittest.TestCase):
             assert torch.allclose(y_s[:, :, :i], y_s_ref)
 
             y_s_copy = y_s.clone()
+
+            # Additional sanity check
+            log_w_tilde_y_s = torch.Tensor([[-100000, 100000], [1000000, -1000000], [100, 100]])
+            ancestor_inds = Categorical(logits=log_w_tilde_y_s).sample(sample_shape=torch.Size((num_neg,))).transpose(0, 1)
+            assert torch.allclose(ancestor_inds[0, :], torch.ones((num_neg,), dtype=torch.long))
+            assert torch.allclose(ancestor_inds[1, :], torch.zeros((num_neg,), dtype=torch.long))
 
     def test_proposal(self):
         """Check so that masking is correct in sampling"""
