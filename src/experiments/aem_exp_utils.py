@@ -249,6 +249,8 @@ def parse_args():
                         help='Size of batch used for validation.')
     parser.add_argument('--num_workers', type=int, default=0,
                         help='Number of workers used in data loaders.')
+    parser.add_argument('--dims', type=int, default=None,
+                        help='Number of dimensions to use.')
 
     # MADE
     parser.add_argument('--n_residual_blocks_made', default=2, type=int,

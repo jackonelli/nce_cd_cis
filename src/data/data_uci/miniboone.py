@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from src.data.data_uci.uciutils import preprocess_and_save_miniboone, get_data_root
 
 class MiniBooNEDataset(Dataset):
-    def __init__(self, split='train', frac=None):
+    def __init__(self, split='train', frac=None, num_dims=None):
         path = os.path.join(get_data_root(), 'data', 'miniboone/{}.npy'.format(split))
         try:
             self.data = np.load(path).astype(np.float32)
@@ -17,6 +17,11 @@ class MiniBooNEDataset(Dataset):
             preprocess_and_save_miniboone()
             print('Done!')
             self.data = np.load(path).astype(np.float32)
+
+        if num_dims is not None:
+            assert num_dims <= self.data.shape[-1], "Dimension is larger than number of features"
+            self.data = self.data[:, :num_dims]
+
         self.n, self.dim = self.data.shape
         if frac is not None:
             self.n = int(frac * self.n)

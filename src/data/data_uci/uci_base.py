@@ -21,8 +21,10 @@ uci_datasets = {
 # 'bsds300': BSDS300Dataset
 
 
-def load_uci_dataset(name, split, frac=None):
-    return uci_datasets[name](split, frac)
+def load_uci_dataset(name, split, frac=None, num_dims=None):
+    if num_dims is not None:
+        print("Loading {} dimensions".format(num_dims))
+    return uci_datasets[name](split, frac, num_dims)
 
 
 def get_uci_dataset_range(dataset_name):
