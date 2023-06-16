@@ -23,7 +23,7 @@ class RingModelDataset(Dataset):
 
         self.num_samples = sample_size
         self.y = generate_ring_data(
-            num_samples=self.num_samples, num_dims=num_dims, mu=mu, precision=precision
+            num_samples=self.num_samples, num_dims=num_dims, mu=mu, precision=torch.tensor(precision)
         )
         np.save(self.root_dir, self.y.numpy())
 
