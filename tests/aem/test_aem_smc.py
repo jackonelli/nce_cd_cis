@@ -224,6 +224,7 @@ class TestAemSmcCrit(unittest.TestCase):
                     log_norm[i, k] = crit.log_part_fn()
 
         plt.errorbar(np.array(num_neg), log_norm.mean(dim=-1), yerr=log_norm.std(dim=-1))
+        print(log_norm.std(dim=-1))
         plt.title("SMC log-normalizer estimate")
         plt.show()
 
@@ -385,7 +386,6 @@ class TestAemSmcCrit(unittest.TestCase):
                                                                                            num_context_units)).reshape(-1, num_features)
 
         assert torch.allclose(log_p_tilde_y_samples[:, 0, :], log_p_tilde_y_samples_ref)
-
 
 if __name__ == "__main__":
     unittest.main()

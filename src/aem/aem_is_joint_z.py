@@ -2,14 +2,14 @@
 from typing import Optional
 import torch
 from torch import Tensor
-
 from src.part_fn_base import PartFnEstimator
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 from src.models.aem.made_joint_z import get_autoregressive_mask
 
 
 class AemIsJointCrit(PartFnEstimator):
-    def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int, num_neg_samples_validation: int=1e2,
+    def __init__(self, unnorm_distr, noise_distr: AemJointProposal, num_neg_samples: int,
+                 num_neg_samples_validation: int = 1e2,
                  alpha: float = 1.0):
 
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
@@ -20,7 +20,7 @@ class AemIsJointCrit(PartFnEstimator):
         self.mask = get_autoregressive_mask(self.dim)
         self.num_neg_samples_validation = int(num_neg_samples_validation)
         self.training = True
-        #self.counter = 0
+        self.counter = 0
 
     def crit(self, y, _idx):
         loss, p_loss, q_loss, _ = self.inner_crit(y)
@@ -29,8 +29,8 @@ class AemIsJointCrit(PartFnEstimator):
 
     def inner_crit(self, y: Tensor, y_samples: Tensor = None):
 
-        #if self.training:
-        #    self.counter += 1
+        if self.training:
+            self.counter += 1
 
         # Calculate (unnormalized) densities
         log_p_tilde_y, log_q_y, log_normalizer, y_samples = self._log_probs(y, self._num_neg)
@@ -77,8 +77,11 @@ class AemIsJointCrit(PartFnEstimator):
 
         # Calculate (unnormalized) densities
         log_q_y, log_q_y_samples, context, y_samples = self._proposal_log_probs(y, num_samples=num_samples)
+        # context = context.detach()
         log_p_tilde_y_s = torch.sum(self._model_log_probs(torch.cat((y, y_samples.detach()), dim=0).reshape(-1, 1),
-                                                          context.reshape(-1, self.num_context_units)).reshape(-1, self.dim), dim=-1)
+                                                          context.reshape(-1, self.num_context_units)).reshape(-1,
+                                                                                                               self.dim),
+                                    dim=-1)
 
         log_p_tilde_y, log_p_tilde_y_samples = log_p_tilde_y_s[:y.shape[0]], log_p_tilde_y_s[y.shape[0]:]
 
@@ -89,26 +92,68 @@ class AemIsJointCrit(PartFnEstimator):
 
         return log_p_tilde_y, log_q_y, log_normalizer, y_samples
 
+    def _proposal_log_probs_dim(self, y, dim: int, num_observed: int = 0):
+        net_input = torch.cat(
+            (y * self.mask[dim, :], self.mask[dim, :].reshape(1, -1).repeat(y.shape[0], 1)),
+            dim=-1)
+
+        q_i, context = self._noise_distr.forward(net_input)
+
+        if num_observed < y.shape[0]:
+            with torch.no_grad():
+                # OBS: VARFÖR HADE JAG SQUEEZE = -1 INNAN???
+                y[num_observed:, dim] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze(dim=0)[
+                                        num_observed:]
+
+        log_q_y_s = self._noise_distr.inner_log_prob(q_i, y[:, dim].unsqueeze(dim=-1)).squeeze()
+
+        return log_q_y_s, context, y
+
     def _proposal_log_probs(self, y, num_samples: int):
         y_samples = torch.zeros((y.shape[0] * num_samples, self.dim))
         context = torch.zeros((y.shape[0] * (num_samples + 1), self.dim, self.num_context_units))
         log_q_y_s = torch.zeros((y.shape[0] * (num_samples + 1), self.dim))
 
-        y_s = torch.cat((y * self.mask[0, :], y_samples))
+        # y_s = torch.cat((y * self.mask[0, :], y_samples))
+        y_s = torch.cat((y, y_samples))
         for i in range(self.dim):
-            net_input = torch.cat((y_s, self.mask[i, :].reshape(1, -1).repeat(y_s.shape[0], 1)), dim=-1)
-            q_i, context[:, i, :] = self._noise_distr.forward(net_input)
-
-            with torch.no_grad():
-                y_samples[:, i] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze()[y.shape[0]:]
-
-            y_s = torch.cat((y * self.mask[i + 1, :], y_samples))
-            log_q_y_s[:, i] = self._noise_distr.inner_log_prob(q_i, y_s[:, i].unsqueeze(dim=-1)).squeeze()
+            log_q_y_s[:, i], context[:, i, :], y_s = self._proposal_log_probs_dim(y_s, i, y.shape[0])
+            # y_s = torch.cat((y * self.mask[i + 1, :], y_samples))
 
         log_q_y_s = log_q_y_s.sum(dim=-1)
         log_q_y, log_q_y_samples = log_q_y_s[:y.shape[0]], log_q_y_s[y.shape[0]:]
+        y_samples = y_s[y.shape[0]:, :]
 
         return log_q_y, log_q_y_samples, context, y_samples
+
+    # def _proposal_log_probs(self, y, num_samples: int):
+    # y_samples = torch.zeros((y.shape[0] * num_samples, self.dim))
+    # context = torch.zeros((y.shape[0] * (num_samples + 1), self.dim, self.num_context_units))
+    # log_q_y_s = torch.zeros((y.shape[0] * (num_samples + 1), self.dim))
+
+    # y_s = torch.cat((y * self.mask[0, :], y_samples))
+    # for i in range(self.dim):
+    # net_input = torch.cat((y_s, self.mask[i, :].reshape(1, -1).repeat(y_s.shape[0], 1)), dim=-1)
+    # q_i, context[:, i, :] = self._noise_distr.forward(net_input)
+
+    # # if np.mod(self.counter, 100) == 0:
+    # # print(i)
+    # # print(q_i.components_distribution.scale.min())
+    # # print(q_i.components_distribution.scale.median())
+    # # print(q_i.components_distribution.scale.max())
+    # # print(q_i.components_distribution.scale[0])
+    # # print(q_i.components_distribution.scale[-1])
+
+    # with torch.no_grad():
+    # y_samples[:, i] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze()[y.shape[0]:]
+
+    # y_s = torch.cat((y * self.mask[i + 1, :], y_samples))
+    # log_q_y_s[:, i] = self._noise_distr.inner_log_prob(q_i, y_s[:, i].unsqueeze(dim=-1)).squeeze()
+
+    # log_q_y_s = log_q_y_s.sum(dim=-1)
+    # log_q_y, log_q_y_samples = log_q_y_s[:y.shape[0]], log_q_y_s[y.shape[0]:]
+
+    # return log_q_y, log_q_y_samples, context, y_samples
 
     # def _proposal_log_probs(self, y, num_samples: int):
     #
@@ -231,30 +276,28 @@ class AemIsJointCrit(PartFnEstimator):
         else:
             return log_normalizer
 
-    def _unnorm_log_prob(self, y, sample=False):
+    def _unnorm_log_prob(self, y, sample=False, return_samples=False):
         # TODO: this is a bit unnecessary, but here we do not need to draw samples
         # Calculate (unnormalized) densities for y
 
-        log_q_y, context = torch.zeros((y.shape[0], self.dim)), torch.zeros(
-            (y.shape[0], self.dim, self.num_context_units))
+        log_q_y, log_p_tilde_y = torch.zeros((y.shape[0],)), torch.zeros((y.shape[0],))
         for i in range(self.dim):
             net_input = torch.cat(
                 (y * self.mask[i, :], self.mask[i, :].reshape(1, -1).repeat(y.shape[0], 1)),
                 dim=-1)
-            q_i, context[:, i, :] = self._noise_distr.forward(net_input)
+            q_i, context = self._noise_distr.forward(net_input)
 
             if sample:
                 with torch.no_grad():
                     y[:, i] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze()
 
-            log_q_y[:, i] = self._noise_distr.inner_log_prob(q_i, y[:, i].unsqueeze(dim=-1)).squeeze()
+            log_q_y += self._noise_distr.inner_log_prob(q_i, y[:, i].unsqueeze(dim=-1)).squeeze()
+            log_p_tilde_y += self._model_log_probs(y[:, i].reshape(-1, 1), context.reshape(-1, self.num_context_units))
 
-        log_q_y = torch.sum(log_q_y, dim=-1)
-        log_p_tilde_y = self._model_log_probs(y.reshape(-1, 1), context.reshape(-1, self.num_context_units)).reshape(-1,
-                                                                                                                     self.dim).sum(
-            dim=-1)
-
-        return log_p_tilde_y, log_q_y
+        if return_samples:
+            return log_p_tilde_y, log_q_y, y
+        else:
+            return log_p_tilde_y, log_q_y
 
     def set_num_proposal_samples_validation(self,
                                             num_proposal_samples_validation=int(

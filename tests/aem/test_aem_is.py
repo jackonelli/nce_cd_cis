@@ -7,6 +7,7 @@ from src.aem.aem_is_joint_z import AemIsJointCrit
 from src.models.aem.energy_net import ResidualEnergyNet
 from src.models.aem.made_joint_z import ResidualMADEJoint
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
+from src.noise_distr.aem_proposal_joint_z_no_context import AemJointProposalWOContext
 
 from src.models.aem.energy_net import ResidualBlock
 
@@ -275,7 +276,285 @@ class TestAemIsCrit(unittest.TestCase):
             assert not torch.allclose(log_prob_q_3, log_prob_p_4)
             assert not torch.allclose(log_prob_q_3, log_prob_q_4)
 
+    def test_sampling(self):
+        # Test sampling on simple example
+
+        num_features, num_context_units = 10, 1
+        num_negative = 1000
+
+        mean = 1.0 #np.random.uniform(-5.0, 5.0)
+        std = 1.8 #np.random.uniform(0.1, 2.0)
+
+        class MockProposal:
+            def __init__(self, num_features, num_context_units):
+                self.num_features = num_features
+                self.num_context_units = num_context_units
+                self.counter = -1
+
+            def forward(self, y):
+                q = torch.distributions.normal.Normal(torch.zeros((y.shape[0])), 10 * torch.ones((y.shape[0])))
+
+                if self.counter == -1:
+                    context = y[:, 0].reshape(-1, 1)
+                    self.counter += 1
+                else:
+                    context = y[:, self.counter].reshape(-1, 1)
+                    self.counter += 1
+
+                if self.counter == (self.num_features - 1):
+                    self.counter = -1
+
+                return q, context
+
+            def inner_sample(self, distr, size):
+                return distr.sample(size).transpose(0, 1)
+
+            def inner_log_prob(self, distr, samples):
+                return distr.log_prob(samples.squeeze(dim=-1))
+
+        class MockModel(torch.nn.Module):
+            def __init__(self, num_context_units, mean, std):
+                super().__init__()
+                self.num_context_units = num_context_units
+                self.mean = mean
+                self.std = std
+
+            def forward(self, y):
+                y, context = y[:, :num_context_units], y[:, num_context_units:]
+                return - 0.5 * (1 / self.std ** 2) * (y - context - self.mean) ** 2
+
+        proposal = MockProposal(num_features, num_context_units)
+        model = MockModel(num_context_units, mean, std)
+        crit = AemIsJointCrit(model, proposal, num_negative)
+
+        # Sample from model
+        x = np.arange(-10, 10, 0.2)
+        true_dens = torch.exp(torch.distributions.normal.Normal(mean, std).log_prob(torch.tensor(x))).numpy()
+
+        reps = 10
+        log_norm = np.zeros((reps,))
+        with torch.no_grad():
+            for r in range(reps):
+                y_samples = torch.zeros((num_negative, num_features))
+                log_p_tilde_y_samples, log_q_y_samples, y_samples = crit._unnorm_log_prob(y_samples, sample=True, return_samples=True)
+                log_w_tilde_y_samples = log_p_tilde_y_samples - log_q_y_samples
+                log_norm[r] = torch.logsumexp(log_w_tilde_y_samples, dim=0) - torch.log(torch.Tensor([num_negative]))
+
+            sampled_idx = torch.distributions.Categorical(logits=log_w_tilde_y_samples).sample((num_negative,))
+            y = torch.gather(y_samples, dim=0, index=sampled_idx[:, None].repeat(1, num_features))
+
+        print("Mean and std of log normalizer, {} reps: {}, {}".format(reps, log_norm.mean(), log_norm.std()))
+
+        true_log_norm = (num_features / 2) * torch.log(torch.tensor(2 * np.pi * std**2))
+        print("True log normalizer: {}".format(true_log_norm))
+
+        fig, ax = plt.subplots(1, num_features)
+        ax[0].hist(y[:, 0], density=True)
+        ax[0].plot(x, true_dens)
+
+        for i in range(num_features-1):
+            ax[i+1].hist(y[:, i+1] - y[:, i], density=True)
+            ax[i+1].plot(x, true_dens)
+
+        ax[0].set_title("Mean = {:.03}, std = {:.03}".format(mean, std))
+
+        plt.show()
+
+    def test_sampling_2(self):
+        # Test sampling on simple example
+
+        num_features, num_context_units = 10, 1
+        num_negative = 1000
+
+        mean = 1.0 #np.random.uniform(-5.0, 5.0)
+        std = 1.8 #np.random.uniform(0.1, 2.0)
+
+        class MockProposal:
+            def __init__(self, num_features, num_context_units):
+                self.num_features = num_features
+                self.num_context_units = num_context_units
+                self.counter = -1
+
+            def forward(self, y):
+                q = torch.distributions.normal.Normal(torch.zeros((y.shape[0])), 10 * torch.ones((y.shape[0])))
+
+                if self.counter == -1:
+                    context = y[:, 0].reshape(-1, 1)
+                    self.counter += 1
+                else:
+                    context = y[:, self.counter].reshape(-1, 1)
+                    self.counter += 1
+
+                if self.counter == (self.num_features - 1):
+                    self.counter = -1
+
+                return q, context
+
+            def inner_sample(self, distr, size):
+                return distr.sample(size).transpose(0, 1)
+
+            def inner_log_prob(self, distr, samples):
+                return distr.log_prob(samples.squeeze(dim=-1))
+
+        class MockModel(torch.nn.Module):
+            def __init__(self, num_context_units, mean, std, made):
+                super().__init__()
+                self.num_context_units = num_context_units
+                self.mean = mean
+                self.std = std
+                self.made = made
+
+            def forward(self, y):
+                y_curr, context = y[:, :num_context_units], y[:, num_context_units:]
+                mean = self.made.forward(y)
+
+                return - 0.5 * (1 / self.std ** 2) * (y_curr - context - mean) ** 2
+
+        proposal = MockProposal(num_features, num_context_units)
+
+        num_res_blocks, num_hidden = 2, 5
+        model_made = ResidualMADEJoint(1 + num_context_units, num_res_blocks, num_hidden, 1)
+        model = MockModel(num_context_units, mean, std, model_made)
+        crit = AemIsJointCrit(model, proposal, num_negative)
+
+        # Sample from model
+        x = np.arange(-10, 10, 0.2)
+        true_dens = torch.exp(torch.distributions.normal.Normal(mean, std).log_prob(torch.tensor(x))).numpy()
+
+        reps = 10
+        log_norm = np.zeros((reps,))
+        with torch.no_grad():
+            for r in range(reps):
+                y_samples = torch.zeros((num_negative, num_features))
+                log_p_tilde_y_samples, log_q_y_samples, y_samples = crit._unnorm_log_prob(y_samples, sample=True, return_samples=True)
+                log_w_tilde_y_samples = log_p_tilde_y_samples - log_q_y_samples
+                log_norm[r] = torch.logsumexp(log_w_tilde_y_samples, dim=0) - torch.log(torch.Tensor([num_negative]))
+
+            sampled_idx = torch.distributions.Categorical(logits=log_w_tilde_y_samples).sample((num_negative,))
+            y = torch.gather(y_samples, dim=0, index=sampled_idx[:, None].repeat(1, num_features))
+
+        print("Mean and std of log normalizer, {} reps: {}, {}".format(reps, log_norm.mean(), log_norm.std()))
+
+        true_log_norm = (num_features / 2) * torch.log(torch.tensor(2 * np.pi * std**2))
+        print("True log normalizer: {}".format(true_log_norm))
+
+        fig, ax = plt.subplots(1, num_features)
+        ax[0].hist(y[:, 0], density=True)
+        ax[0].plot(x, true_dens)
+
+        for i in range(num_features-1):
+            #with torch.no_grad():
+            #    mean_ind = model_made.forward(torch.cat((y[:, i + 1].reshape(-1, 1), y[:, i].reshape(-1, 1)), dim=1))
+            mean_ind = 0
+            ax[i+1].hist(y[:, i+1] - y[:, i] - mean_ind, density=True)
+            ax[i+1].plot(x, true_dens)
+
+        ax[0].set_title("Mean = {:.03}, std = {:.03}".format(mean, std))
+
+        plt.show()
+
+    def test_sampling_3(self):
+        # Test sampling on simple example where we use context model
+
+        num_features = 10
+        num_negative = 1000
+
+        mean = 1.0 #np.random.uniform(-5.0, 5.0)
+        std = 1.8 #np.random.uniform(0.1, 2.0)
+
+        num_context_units = 1
+        num_res_blocks, num_hidden, num_components = 2, 5, 5
+        output_dim_mult = 3 * num_components
+
+        class MockProposal:
+            def __init__(self, num_features, num_context_units, proposal_model):
+                self.num_features = num_features
+                self.num_context_units = num_context_units
+                self.counter = -1
+                self.proposal_model = proposal_model
+
+            def forward(self, y):
+                #q = torch.distributions.normal.Normal(torch.zeros((y.shape[0])), 10 * torch.ones((y.shape[0])))
+                #context_full = y
+                q, context_full = self.proposal_model.forward(y)
+
+                if self.counter == -1:
+                    context = context_full[:, 0].reshape(-1, 1)
+                    assert torch.allclose(context, y[:, 0].reshape(-1, 1))
+                    self.counter += 1
+                else:
+                    context = context_full[:, self.counter].reshape(-1, 1)
+                    assert torch.allclose(context, y[:, self.counter].reshape(-1, 1))
+                    self.counter += 1
+
+                if self.counter == (self.num_features - 1):
+                    self.counter = -1
+
+                return q, context
+
+            def inner_sample(self, distr, size):
+                return distr.sample(size).transpose(0, 1)
+
+            def inner_log_prob(self, distr, samples):
+                return distr.log_prob(samples)#.squeeze(dim=-1))
+
+        class MockModel(torch.nn.Module):
+            def __init__(self, num_context_units, mean, std, made):
+                super().__init__()
+                self.num_context_units = num_context_units
+                self.mean = mean
+                self.std = std
+                self.made = made
+
+            def forward(self, y):
+                y_curr, context = y[:, :num_context_units], y[:, num_context_units:]
+                mean = self.made.forward(y)
+
+                return - 0.5 * (1 / self.std ** 2) * (y_curr - context - mean) ** 2
+
+        made = ResidualMADEJoint(2 * num_features, num_res_blocks, num_hidden, output_dim_mult)
+        proposal_model = AemJointProposalWOContext(made, num_components)
+        proposal = MockProposal(num_features, num_context_units, proposal_model)
+
+        model_made = ResidualMADEJoint(1 + num_context_units, num_res_blocks, num_hidden, 1)
+        model = MockModel(num_context_units, mean, std, model_made)
+        crit = AemIsJointCrit(model, proposal, num_negative)
+
+        # Sample from model
+        x = np.arange(-10, 10, 0.2)
+        true_dens = torch.exp(torch.distributions.normal.Normal(mean, std).log_prob(torch.tensor(x))).numpy()
+
+        reps = 10
+        log_norm = np.zeros((reps,))
+        with torch.no_grad():
+            for r in range(reps):
+                y_samples = torch.zeros((num_negative, num_features))
+                log_p_tilde_y_samples, log_q_y_samples, y_samples = crit._unnorm_log_prob(y_samples, sample=True,
+                                                                                          return_samples=True)
+                log_w_tilde_y_samples = log_p_tilde_y_samples - log_q_y_samples
+                log_norm[r] = torch.logsumexp(log_w_tilde_y_samples, dim=0) - torch.log(torch.Tensor([num_negative]))
+
+            sampled_idx = torch.distributions.Categorical(logits=log_w_tilde_y_samples).sample((num_negative,))
+            y = torch.gather(y_samples, dim=0, index=sampled_idx[:, None].repeat(1, num_features))
+
+        print("Mean and std of log normalizer, {} reps: {}, {}".format(reps, log_norm.mean(), log_norm.std()))
+
+        true_log_norm = (num_features / 2) * torch.log(torch.tensor(2 * np.pi * std ** 2))
+        print("True log normalizer: {}".format(true_log_norm))
+
+        fig, ax = plt.subplots(1, num_features)
+        ax[0].hist(y[:, 0], density=True)
+        ax[0].plot(x, true_dens)
+
+        for i in range(num_features - 1):
+            ax[i + 1].hist(y[:, i + 1] - y[:, i], density=True)
+            ax[i + 1].plot(x, true_dens)
+
+        ax[0].set_title("Mean = {:.03}, std = {:.03}".format(mean, std))
+
+        plt.show()
 
 
 if __name__ == "__main__":
     unittest.main()
+    #TestAemIsCrit().test_sampling_2()
