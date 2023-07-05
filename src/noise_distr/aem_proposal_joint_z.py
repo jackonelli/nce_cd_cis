@@ -91,9 +91,13 @@ class AemJointProposal(BaseModel):
         # Calculate log prob conditionen on x
         proposal_distr, _ = self.forward(x)
 
+
         return self.inner_log_prob(proposal_distr, samples)
 
     def inner_log_prob(self, distr, samples):
+        print(samples.max())
+        print(samples.min())
+
         return distr.log_prob(samples)
 
     def prob(self, samples):

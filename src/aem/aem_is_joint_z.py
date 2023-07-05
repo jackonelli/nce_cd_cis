@@ -101,9 +101,11 @@ class AemIsJointCrit(PartFnEstimator):
 
         if num_observed < y.shape[0]:
             with torch.no_grad():
-                # OBS: VARFÖR HADE JAG SQUEEZE = -1 INNAN???
-                y[num_observed:, dim] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze(dim=0)[
+                # OBS: VARFÖR HADE JAG SQUEEZE = 0 INNAN???
+                samp = self._noise_distr.inner_sample(q_i, torch.Size((1,)))
+                y[num_observed:, dim] = samp.squeeze(dim=0)[
                                         num_observed:]
+                print(samp.max())
 
         log_q_y_s = self._noise_distr.inner_log_prob(q_i, y[:, dim].unsqueeze(dim=-1)).squeeze()
 
@@ -118,6 +120,7 @@ class AemIsJointCrit(PartFnEstimator):
         y_s = torch.cat((y, y_samples))
         for i in range(self.dim):
             log_q_y_s[:, i], context[:, i, :], y_s = self._proposal_log_probs_dim(y_s, i, y.shape[0])
+            print(y_s.max())
             # y_s = torch.cat((y * self.mask[i + 1, :], y_samples))
 
         log_q_y_s = log_q_y_s.sum(dim=-1)

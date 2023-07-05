@@ -10,6 +10,8 @@ from torch.distributions import constraints
 from torch.distributions.exp_family import ExponentialFamily
 from torch.distributions.utils import _standard_normal, broadcast_all
 
+from scipy.stats import truncnorm
+
 q = sys.exit
 
 
@@ -145,7 +147,6 @@ class Normal_(ExponentialFamily):
     def _log_normalizer(self, x, y):
         return -0.25 * x.pow(2) / y + 0.5 * torch.log(-math.pi / y)
 
-
 class MixtureSameFamily(distributions.Distribution):
     def __init__(self, mixture_distribution, components_distribution):
         self.mixture_distribution = mixture_distribution
@@ -158,6 +159,7 @@ class MixtureSameFamily(distributions.Distribution):
 
     def sample(self, sample_shape=torch.Size()):
         mixture_mask = self.mixture_distribution.sample(sample_shape)  # [S, B, D, M]
+        print(mixture_mask)
         if len(mixture_mask.shape) == 3:
             mixture_mask = mixture_mask[:, None, ...]
         components_samples = self.components_distribution.rsample(

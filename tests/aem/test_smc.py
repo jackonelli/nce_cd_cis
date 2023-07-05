@@ -163,6 +163,7 @@ class TestSmc(unittest.TestCase):
         dim, num_context_units = 10, 1
         num_samples = 1000
 
+
         mean = 1.0 #np.random.uniform(-5.0, 5.0)
         std = 1.8 #np.random.uniform(0.1, 2.0)
 
@@ -212,7 +213,7 @@ class TestSmc(unittest.TestCase):
         x = np.arange(-10, 10, 0.2)
         true_dens = torch.exp(torch.distributions.normal.Normal(mean, std).log_prob(torch.tensor(x))).numpy()
 
-        reps = 10
+        reps = 100
         log_norm = torch.zeros((reps,))
         for r in range(reps):
             log_norm[r], y_s, log_w_tilde_y_s, _ = crit.inner_smc(1, num_samples, None)
@@ -298,7 +299,7 @@ class TestSmc(unittest.TestCase):
         x = np.arange(-10, 10, 0.2)
         true_dens = torch.exp(torch.distributions.normal.Normal(mean, std).log_prob(torch.tensor(x))).numpy()
 
-        reps = 10
+        reps = 100
         log_norm = torch.zeros((reps,))
         for r in range(reps):
             log_norm[r], y_s, log_w_tilde_y_s, _ = crit.inner_smc(1, num_samples, None)
@@ -331,7 +332,7 @@ class TestSmc(unittest.TestCase):
         # Test sampling on simple example where we use context model
 
         dim = 10
-        num_samples = 1000
+        num_samples = 100000
 
         mean = 1.0  # np.random.uniform(-5.0, 5.0)
         std = 1.8  # np.random.uniform(0.1, 2.0)
@@ -395,7 +396,7 @@ class TestSmc(unittest.TestCase):
         x = np.arange(-10, 10, 0.2)
         true_dens = torch.exp(torch.distributions.normal.Normal(mean, std).log_prob(torch.tensor(x))).numpy()
 
-        reps = 10
+        reps = 100
         log_norm = torch.zeros((reps,))
         for r in range(reps):
             log_norm[r], y_s, log_w_tilde_y_s, _ = crit.inner_smc(1, num_samples, None)
@@ -422,4 +423,4 @@ class TestSmc(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    #TestSmc().test_smc()
+    #TestSmc().test_sampling_3()
