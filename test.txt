@@ -1,0 +1,28 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling:standardize
+Scaling:standardize
+Scaling:standardize
+Training proposal.
+New best proposal with validation loss 21.665626525878906
+New best proposal with validation loss 19.314834594726562
+New best proposal with validation loss 17.856204986572266
+New best proposal with validation loss 15.549259185791016
+New best proposal with validation loss 15.515012741088867
+New best proposal with validation loss 15.109870910644531
+New best proposal with validation loss 14.979756355285645
+New best proposal with validation loss 14.815643310546875
+New best proposal with validation loss 14.754552841186523
+New best proposal with validation loss 14.394694328308105
+New best proposal with validation loss 13.918590545654297
+New best proposal with validation loss 13.504606246948242
+New best proposal with validation loss 13.350687026977539
+New best proposal with validation loss 12.890588760375977
+Loading proposal.
+New best model with validation loss 17.09743309020996
+New best model with validation loss 15.633010864257812
+New best model with validation loss 15.004387855529785
+New best model with validation loss 14.048160552978516
+New best model with validation loss 13.436458587646484
+New best model with validation loss 12.978597640991211

@@ -7,8 +7,6 @@ from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
 from src.nce.per_cnce import PersistentCondNceCrit
 from src.models.gaussian_model import GaussianModel
 
-from tests.nce.test_binary_nce import sample_postive_test_samples
-
 
 class TestPersistentCnceGrad(unittest.TestCase):
     def test_grad(self):
@@ -36,7 +34,6 @@ class TestPersistentCnceGrad(unittest.TestCase):
         y = y.unsqueeze(dim=1).repeat(1, J, 1)
         y_p = crit.persistent_y(y, idx).reshape(-1, y.shape[-1])
         y_samples = crit.sample_noise(1, y_p)
-        # NB We recompute w_tilde in inner_crit to comply with the API.
 
         crit.calculate_inner_crit_grad(y_p, y_samples, y.reshape(-1, y.shape[-1]))
         grad_1 = [param.grad.detach().clone() for param in true_distr.parameters()]

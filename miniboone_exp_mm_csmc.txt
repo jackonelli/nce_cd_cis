@@ -1,0 +1,42 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/miniboone/train.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/miniboone/val.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/miniboone/test.npy
+Loading proposal.
+New best model with validation loss -79.41836547851562
+New best model with validation loss -84.03208923339844
+New best model with validation loss -85.66184997558594
+New best model with validation loss -88.44925689697266
+New best model with validation loss -89.49790954589844
+New best model with validation loss -90.29219818115234
+New best model with validation loss -91.06086730957031
+New best model with validation loss -91.8836898803711
+New best model with validation loss -92.32415771484375
+New best model with validation loss -92.86063385009766
+New best model with validation loss -93.058837890625
+New best model with validation loss -93.76640319824219
+New best model with validation loss -94.02555084228516
+New best model with validation loss -94.49739074707031
+New best model with validation loss -94.59160614013672
+New best model with validation loss -94.74494171142578
+New best model with validation loss -94.89178466796875
+New best model with validation loss -95.3812255859375
+New best model with validation loss -95.80521392822266
+New best model with validation loss -95.92855072021484
+New best model with validation loss -96.08736419677734
+New best model with validation loss -96.37611389160156
+New best model with validation loss -96.4068603515625
+New best model with validation loss -96.47904205322266
+New best model with validation loss -96.49368286132812
+New best model with validation loss -96.53108978271484
+New best model with validation loss -96.55584716796875
+New best model with validation loss -96.60032653808594
+New best model with validation loss -96.66477966308594
+New best model with validation loss -96.7336196899414
+New best model with validation loss -96.7381591796875
+New best model with validation loss -96.7745590209961

@@ -1,14 +1,12 @@
 import unittest
 import torch
 
-from src.nce.ace_cis import AceCisCrit
+from src.ace.ace_cis import AceCisCrit
 from src.models.ace.ace_model import AceModel, ResidualBlock
 from src.noise_distr.ace_proposal import AceProposal
 
-from src.experiments.ace_exp_utils import UniformMaskGenerator
 
-
-class TestAceIs(unittest.TestCase):
+class TestAceCis(unittest.TestCase):
     def test_crit(self):
         # Just test so that everything seems to run ok
         num_features = torch.randint(low=2, high=10, size=torch.Size((1,))).item()
@@ -52,17 +50,16 @@ class TestAceIs(unittest.TestCase):
             else:
                 print("Note: param is not torch.nn.Parameter")
 
-        # Check that parameters of proposal have NOT been updated
-        # TODO: should it be updated based on context??
         for param in proposal.parameters():
             if isinstance(param, torch.nn.Parameter):
                 pass
-                #assert torch.allclose(param.grad, torch.tensor(0.0))
+                # assert torch.allclose(param.grad, torch.tensor(0.0))
             if isinstance(param, ResidualBlock):
                 print("Note: param is not torch.nn.Parameter")
 
-        # Update only for proposal
+            # Update only for proposal
         model.clear_gradients()
+        proposal.clear_gradients()
         crit.calculate_crit_grad_q(y, 0)
 
         # Check that parameters of model have NOT been updated

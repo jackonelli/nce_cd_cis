@@ -1,0 +1,137 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/power/train.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/power/val.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/power/test.npy
+Training proposal.
+New best proposal with validation loss -11.010144233703613
+New best proposal with validation loss -12.151280403137207
+New best proposal with validation loss -12.410489082336426
+New best proposal with validation loss -12.500892639160156
+New best proposal with validation loss -12.507390022277832
+New best proposal with validation loss -12.553504943847656
+New best proposal with validation loss -12.571853637695312
+New best proposal with validation loss -12.578211784362793
+New best proposal with validation loss -12.58227825164795
+New best proposal with validation loss -12.597295761108398
+New best proposal with validation loss -12.605457305908203
+New best proposal with validation loss -12.630955696105957
+New best proposal with validation loss -12.654744148254395
+New best proposal with validation loss -12.66665267944336
+New best proposal with validation loss -12.691478729248047
+New best proposal with validation loss -12.70470905303955
+New best proposal with validation loss -12.71045970916748
+New best proposal with validation loss -12.7330904006958
+New best proposal with validation loss -12.7396821975708
+New best proposal with validation loss -12.741233825683594
+New best proposal with validation loss -12.74307918548584
+New best proposal with validation loss -12.750094413757324
+New best proposal with validation loss -12.754563331604004
+New best proposal with validation loss -12.766186714172363
+New best proposal with validation loss -12.772008895874023
+New best proposal with validation loss -12.772336959838867
+New best proposal with validation loss -12.773102760314941
+New best proposal with validation loss -12.776103973388672
+New best proposal with validation loss -12.787104606628418
+New best proposal with validation loss -12.787384033203125
+New best proposal with validation loss -12.790192604064941
+New best proposal with validation loss -12.79113483428955
+New best proposal with validation loss -12.791817665100098
+New best proposal with validation loss -12.792136192321777
+New best proposal with validation loss -12.797407150268555
+New best proposal with validation loss -12.797579765319824
+New best proposal with validation loss -12.801457405090332
+New best proposal with validation loss -12.80171012878418
+New best proposal with validation loss -12.8018159866333
+New best proposal with validation loss -12.80247974395752
+New best proposal with validation loss -12.803715705871582
+New best proposal with validation loss -12.807466506958008
+New best proposal with validation loss -12.807685852050781
+New best proposal with validation loss -12.809332847595215
+New best proposal with validation loss -12.810304641723633
+New best proposal with validation loss -12.811057090759277
+New best proposal with validation loss -12.812243461608887
+New best proposal with validation loss -12.815210342407227
+New best proposal with validation loss -12.815630912780762
+New best proposal with validation loss -12.816937446594238
+New best proposal with validation loss -12.817529678344727
+New best proposal with validation loss -12.818693161010742
+New best proposal with validation loss -12.818853378295898
+New best proposal with validation loss -12.822552680969238
+New best proposal with validation loss -12.824177742004395
+New best proposal with validation loss -12.824349403381348
+New best proposal with validation loss -12.826433181762695
+New best proposal with validation loss -12.82768440246582
+New best proposal with validation loss -12.828185081481934
+Loading proposal.
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+New best model with validation loss -11.745304107666016
+New best model with validation loss -11.856045722961426
+New best model with validation loss -12.304911613464355
+New best model with validation loss -12.540921211242676
+New best model with validation loss -12.667101860046387
+New best model with validation loss -12.682269096374512
+New best model with validation loss -12.74431037902832
+New best model with validation loss -12.780330657958984
+New best model with validation loss -12.800625801086426
+New best model with validation loss -12.873791694641113
+New best model with validation loss -12.87719440460205
+New best model with validation loss -12.95289134979248
+New best model with validation loss -12.957304000854492
+New best model with validation loss -12.96142578125
+New best model with validation loss -12.991129875183105
+New best model with validation loss -12.99730396270752
+New best model with validation loss -13.006391525268555
+New best model with validation loss -13.010970115661621
+New best model with validation loss -13.044015884399414
+New best model with validation loss -13.04678726196289
+New best model with validation loss -13.053865432739258
+New best model with validation loss -13.057412147521973
+New best model with validation loss -13.066537857055664
+New best model with validation loss -13.076571464538574
+New best model with validation loss -13.078885078430176
+New best model with validation loss -13.089484214782715
+New best model with validation loss -13.09071159362793
+New best model with validation loss -13.095159530639648
+New best model with validation loss -13.098919868469238
+New best model with validation loss -13.100293159484863
+New best model with validation loss -13.10805892944336
+New best model with validation loss -13.111591339111328
+New best model with validation loss -13.113940238952637
+New best model with validation loss -13.114514350891113
+New best model with validation loss -13.122115135192871
+New best model with validation loss -13.131989479064941
+New best model with validation loss -13.1378755569458
+New best model with validation loss -13.139491081237793
+New best model with validation loss -13.150836944580078
+New best model with validation loss -13.151607513427734
+New best model with validation loss -13.154424667358398
+New best model with validation loss -13.15885066986084
+New best model with validation loss -13.16122817993164
+New best model with validation loss -13.166956901550293
+New best model with validation loss -13.1671724319458
+New best model with validation loss -13.174643516540527
+New best model with validation loss -13.17540454864502
+New best model with validation loss -13.176359176635742
+New best model with validation loss -13.180168151855469
+New best model with validation loss -13.188021659851074
+New best model with validation loss -13.18930435180664
+New best model with validation loss -13.19486141204834
+New best model with validation loss -13.197033882141113
+New best model with validation loss -13.200823783874512
+New best model with validation loss -13.204957008361816
+New best model with validation loss -13.20718765258789
+New best model with validation loss -13.210153579711914
+New best model with validation loss -13.210554122924805
+New best model with validation loss -13.213058471679688
+New best model with validation loss -13.215899467468262
+New best model with validation loss -13.216402053833008
+New best model with validation loss -13.217793464660645
+New best model with validation loss -13.227510452270508
+New best model with validation loss -13.229849815368652
+New best model with validation loss -13.232637405395508

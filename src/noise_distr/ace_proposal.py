@@ -22,7 +22,7 @@ class AceProposal(BaseModel):
             self.activation_fun = torch.nn.ReLU
 
         self.input_layer = torch.nn.Linear(in_features=2*self.num_features, out_features=num_hidden_units)
-        # h = tfl.Dense(hidden_units)(h)
+
 
         self.num_blocks = num_blocks
         self.residual_blocks = torch.nn.ModuleList([ResidualBlock(num_hidden_units, num_hidden_units, self.activation_fun,
@@ -53,8 +53,8 @@ class AceProposal(BaseModel):
 
         x = self.output_layer(x).reshape(-1, self.num_features, 3 * self.num_components + self.num_context_units)
 
-        context = x[..., :self.num_context_units]
-        params = x[..., self.num_context_units:]
+        context = x[:, :, :self.num_context_units]
+        params = x[:, :, self.num_context_units:]
 
         proposal_distr = self.create_proposal_distr(params)
 

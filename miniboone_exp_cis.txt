@@ -1,0 +1,20 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/miniboone/train.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/miniboone/val.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/miniboone/test.npy
+Loading proposal.
+New best model with validation loss 14.893210411071777
+New best model with validation loss 13.97143268585205
+New best model with validation loss 13.41259765625
+New best model with validation loss 13.403098106384277
+New best model with validation loss 13.037994384765625
+New best model with validation loss 12.930869102478027
+New best model with validation loss 12.859270095825195
+New best model with validation loss 12.787410736083984
+New best model with validation loss 12.739717483520508
+New best model with validation loss 12.516098022460938

@@ -1,0 +1,73 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/miniboone/train.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/miniboone/val.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/miniboone/test.npy
+Training proposal.
+New best proposal with validation loss -74.2730712890625
+New best proposal with validation loss -81.7177734375
+New best proposal with validation loss -86.0680923461914
+New best proposal with validation loss -87.57844543457031
+New best proposal with validation loss -88.3644027709961
+New best proposal with validation loss -89.79712677001953
+New best proposal with validation loss -90.74527740478516
+New best proposal with validation loss -91.2901611328125
+New best proposal with validation loss -91.7283935546875
+New best proposal with validation loss -91.92286682128906
+New best proposal with validation loss -92.31966400146484
+New best proposal with validation loss -92.75393676757812
+New best proposal with validation loss -93.15210723876953
+New best proposal with validation loss -93.4831314086914
+New best proposal with validation loss -93.7969970703125
+New best proposal with validation loss -93.94025421142578
+New best proposal with validation loss -94.09162139892578
+New best proposal with validation loss -94.47286987304688
+New best proposal with validation loss -94.64704895019531
+New best proposal with validation loss -94.78972625732422
+New best proposal with validation loss -94.88066101074219
+New best proposal with validation loss -94.90599060058594
+New best proposal with validation loss -95.05999755859375
+New best proposal with validation loss -95.1796646118164
+New best proposal with validation loss -95.27415466308594
+New best proposal with validation loss -95.31208038330078
+New best proposal with validation loss -95.37210845947266
+New best proposal with validation loss -95.40668487548828
+New best proposal with validation loss -95.45887756347656
+New best proposal with validation loss -95.5
+New best proposal with validation loss -95.59388732910156
+New best proposal with validation loss -95.61884307861328
+New best proposal with validation loss -95.6585693359375
+New best proposal with validation loss -95.69344329833984
+Loading proposal.
+New best model with validation loss -87.16182708740234
+New best model with validation loss -87.85965728759766
+New best model with validation loss -88.1368179321289
+New best model with validation loss -88.31421661376953
+New best model with validation loss -88.83402252197266
+New best model with validation loss -89.51265716552734
+New best model with validation loss -89.56884765625
+New best model with validation loss -89.75518035888672
+New best model with validation loss -89.99697875976562
+New best model with validation loss -91.429443359375
+New best model with validation loss -91.64746856689453
+New best model with validation loss -91.958740234375
+New best model with validation loss -95.33930206298828
+New best model with validation loss -98.48654174804688
+New best model with validation loss -106.86581420898438
+New best model with validation loss -108.35885620117188
+New best model with validation loss -129.03355407714844
+New best model with validation loss -142.531005859375
+New best model with validation loss -163.15914916992188
+New best model with validation loss -183.7588653564453
+New best model with validation loss -198.34243774414062
+New best model with validation loss -222.97393798828125
+New best model with validation loss -226.87075805664062
+New best model with validation loss -227.02577209472656
+New best model with validation loss -255.23573303222656
+New best model with validation loss -278.44488525390625
+New best model with validation loss -289.3872985839844
+New best model with validation loss -324.832763671875

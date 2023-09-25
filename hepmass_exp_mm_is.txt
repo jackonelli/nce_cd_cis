@@ -1,0 +1,113 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/hepmass/train.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/hepmass/val.npy
+Scaling: normalize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data_norm/hepmass/test.npy
+Training proposal.
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+New best proposal with validation loss -13.36849594116211
+New best proposal with validation loss -14.81043815612793
+New best proposal with validation loss -15.492865562438965
+New best proposal with validation loss -15.625856399536133
+New best proposal with validation loss -16.690074920654297
+New best proposal with validation loss -17.237247467041016
+New best proposal with validation loss -17.604337692260742
+New best proposal with validation loss -18.039831161499023
+New best proposal with validation loss -18.268760681152344
+New best proposal with validation loss -18.508235931396484
+New best proposal with validation loss -18.571134567260742
+New best proposal with validation loss -18.957908630371094
+New best proposal with validation loss -18.95953369140625
+New best proposal with validation loss -19.041091918945312
+New best proposal with validation loss -19.159725189208984
+New best proposal with validation loss -19.417957305908203
+New best proposal with validation loss -19.478557586669922
+New best proposal with validation loss -19.574695587158203
+New best proposal with validation loss -19.666034698486328
+New best proposal with validation loss -19.76978302001953
+New best proposal with validation loss -19.815265655517578
+New best proposal with validation loss -19.817821502685547
+New best proposal with validation loss -19.930639266967773
+New best proposal with validation loss -19.968238830566406
+New best proposal with validation loss -20.046222686767578
+New best proposal with validation loss -20.048748016357422
+New best proposal with validation loss -20.142601013183594
+New best proposal with validation loss -20.15201187133789
+New best proposal with validation loss -20.201892852783203
+New best proposal with validation loss -20.392803192138672
+New best proposal with validation loss -20.396987915039062
+New best proposal with validation loss -20.443973541259766
+New best proposal with validation loss -20.46025848388672
+New best proposal with validation loss -20.586490631103516
+New best proposal with validation loss -20.674314498901367
+New best proposal with validation loss -20.722761154174805
+New best proposal with validation loss -20.747570037841797
+New best proposal with validation loss -20.77138328552246
+New best proposal with validation loss -20.785171508789062
+New best proposal with validation loss -20.865097045898438
+New best proposal with validation loss -20.963199615478516
+New best proposal with validation loss -20.969324111938477
+New best proposal with validation loss -21.008502960205078
+New best proposal with validation loss -21.022502899169922
+New best proposal with validation loss -21.104589462280273
+New best proposal with validation loss -21.137365341186523
+New best proposal with validation loss -21.142810821533203
+New best proposal with validation loss -21.15969467163086
+New best proposal with validation loss -21.178401947021484
+New best proposal with validation loss -21.2513484954834
+New best proposal with validation loss -21.290605545043945
+New best proposal with validation loss -21.34139060974121
+New best proposal with validation loss -21.432170867919922
+New best proposal with validation loss -21.44405174255371
+New best proposal with validation loss -21.445110321044922
+New best proposal with validation loss -21.450347900390625
+New best proposal with validation loss -21.510517120361328
+Loading proposal.
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+New best model with validation loss -18.40106964111328
+New best model with validation loss -18.835670471191406
+New best model with validation loss -19.100265502929688
+New best model with validation loss -19.39692497253418
+New best model with validation loss -19.53949546813965
+New best model with validation loss -19.741973876953125
+New best model with validation loss -19.899782180786133
+New best model with validation loss -20.09300422668457
+New best model with validation loss -20.210432052612305
+New best model with validation loss -20.384441375732422
+New best model with validation loss -20.458114624023438
+New best model with validation loss -20.671993255615234
+New best model with validation loss -20.777854919433594
+New best model with validation loss -20.940914154052734
+New best model with validation loss -21.135414123535156
+New best model with validation loss -21.15911293029785
+New best model with validation loss -21.314741134643555
+New best model with validation loss -21.32176399230957
+New best model with validation loss -21.56464195251465
+New best model with validation loss -21.696212768554688
+New best model with validation loss -21.782468795776367
+New best model with validation loss -21.80331039428711
+New best model with validation loss -21.81160545349121
+New best model with validation loss -21.826932907104492
+New best model with validation loss -21.93313980102539
+New best model with validation loss -22.034154891967773
+New best model with validation loss -22.1282958984375
+New best model with validation loss -22.404876708984375
+New best model with validation loss -23.032760620117188
+New best model with validation loss -23.14057159423828
+New best model with validation loss -23.819419860839844
+New best model with validation loss -24.275188446044922
+New best model with validation loss -24.851402282714844
+New best model with validation loss -25.29847526550293
+New best model with validation loss -26.897674560546875
+New best model with validation loss -27.722959518432617
+New best model with validation loss -28.156476974487305
+New best model with validation loss -28.77850914001465
+New best model with validation loss -29.65673065185547
+New best model with validation loss -29.751386642456055
+New best model with validation loss -34.539306640625

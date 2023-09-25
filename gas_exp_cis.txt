@@ -1,0 +1,106 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/train.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/val.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/test.npy
+Loading proposal.
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+New best model with validation loss -9.915071487426758
+New best model with validation loss -10.289806365966797
+New best model with validation loss -10.388020515441895
+New best model with validation loss -10.510014533996582
+New best model with validation loss -10.582275390625
+New best model with validation loss -10.615735054016113
+New best model with validation loss -10.68319034576416
+New best model with validation loss -10.74693489074707
+New best model with validation loss -10.826497077941895
+New best model with validation loss -10.860097885131836
+New best model with validation loss -10.919530868530273
+New best model with validation loss -11.012051582336426
+New best model with validation loss -11.06627368927002
+New best model with validation loss -11.095705032348633
+New best model with validation loss -11.17016315460205
+New best model with validation loss -11.210906982421875
+New best model with validation loss -11.239713668823242
+New best model with validation loss -11.280448913574219
+New best model with validation loss -11.382529258728027
+New best model with validation loss -11.461329460144043
+New best model with validation loss -11.473149299621582
+New best model with validation loss -11.52311897277832
+New best model with validation loss -11.538591384887695
+New best model with validation loss -11.632448196411133
+New best model with validation loss -11.649456977844238
+New best model with validation loss -11.691133499145508
+New best model with validation loss -11.710550308227539
+New best model with validation loss -11.717192649841309
+New best model with validation loss -11.726400375366211
+New best model with validation loss -11.764175415039062
+New best model with validation loss -11.803516387939453
+New best model with validation loss -11.808032035827637
+New best model with validation loss -11.84013843536377
+New best model with validation loss -11.901230812072754
+New best model with validation loss -11.926186561584473
+New best model with validation loss -11.973468780517578
+New best model with validation loss -11.976927757263184
+New best model with validation loss -12.00025749206543
+New best model with validation loss -12.013500213623047
+New best model with validation loss -12.0299654006958
+New best model with validation loss -12.041031837463379
+New best model with validation loss -12.04682445526123
+New best model with validation loss -12.065703392028809
+New best model with validation loss -12.118154525756836
+New best model with validation loss -12.127089500427246
+New best model with validation loss -12.12740707397461
+New best model with validation loss -12.13744831085205
+New best model with validation loss -12.159303665161133
+New best model with validation loss -12.18562126159668
+New best model with validation loss -12.188909530639648
+New best model with validation loss -12.220528602600098
+New best model with validation loss -12.243103981018066
+New best model with validation loss -12.285796165466309
+New best model with validation loss -12.286003112792969
+New best model with validation loss -12.302253723144531
+New best model with validation loss -12.306705474853516
+New best model with validation loss -12.329856872558594
+New best model with validation loss -12.333503723144531
+New best model with validation loss -12.334662437438965
+New best model with validation loss -12.34216594696045
+New best model with validation loss -12.353785514831543
+New best model with validation loss -12.364289283752441
+New best model with validation loss -12.365354537963867
+New best model with validation loss -12.371392250061035
+New best model with validation loss -12.382347106933594
+New best model with validation loss -12.402643203735352
+New best model with validation loss -12.403718948364258
+New best model with validation loss -12.41088581085205
+New best model with validation loss -12.426482200622559
+New best model with validation loss -12.431262969970703
+New best model with validation loss -12.43423080444336
+New best model with validation loss -12.443535804748535
+New best model with validation loss -12.460819244384766
+New best model with validation loss -12.482213973999023
+New best model with validation loss -12.5072603225708
+New best model with validation loss -12.514123916625977
+New best model with validation loss -12.521202087402344
+New best model with validation loss -12.527853965759277
+New best model with validation loss -12.534103393554688
+New best model with validation loss -12.540942192077637
+New best model with validation loss -12.568923950195312
+New best model with validation loss -12.572737693786621
+New best model with validation loss -12.573525428771973
+New best model with validation loss -12.582804679870605
+New best model with validation loss -12.587246894836426
+New best model with validation loss -12.613153457641602
+New best model with validation loss -12.62901782989502
+New best model with validation loss -12.630375862121582
+New best model with validation loss -12.633513450622559
+New best model with validation loss -12.636752128601074
+New best model with validation loss -12.637557983398438
+New best model with validation loss -12.645703315734863
+New best model with validation loss -12.648112297058105
+New best model with validation loss -12.651727676391602
