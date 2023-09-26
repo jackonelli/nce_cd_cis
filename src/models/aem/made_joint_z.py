@@ -3,7 +3,31 @@ from torch import nn
 from torch.nn import functional as F, init
 
 from src.models.base_model import BaseModel
-from src.models.aem.made import get_mask
+
+
+def get_mask(in_features, out_features, autoregressive_features, mask_type=None):
+    max_ = max(1, autoregressive_features - 1)
+    min_ = min(1, autoregressive_features - 1)
+
+    if mask_type == 'input':
+        in_degrees = torch.arange(1, autoregressive_features + 1)
+        out_degrees = torch.arange(out_features) % max_ + min_
+        mask = (out_degrees[..., None] >= in_degrees).float()
+
+    elif mask_type == 'output':
+        in_degrees = torch.arange(in_features) % max_ + min_
+        out_degrees = tile(
+            torch.arange(1, autoregressive_features + 1),
+            out_features // autoregressive_features
+        )
+        mask = (out_degrees[..., None] > in_degrees).float()
+
+    else:
+        in_degrees = torch.arange(in_features) % max_ + min_
+        out_degrees = torch.arange(out_features) % max_ + min_
+        mask = (out_degrees[..., None] >= in_degrees).float()
+
+    return mask
 
 
 def get_autoregressive_mask(dim):

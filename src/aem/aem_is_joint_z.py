@@ -101,23 +101,9 @@ class AemIsJointCrit(PartFnEstimator):
 
         if num_observed < y.shape[0]:
             with torch.no_grad():
-                # OBS: VARFÖR HADE JAG SQUEEZE = 0 INNAN???
                 samp = self._noise_distr.inner_sample(q_i, torch.Size((1,)))
                 y[num_observed:, dim] = samp.squeeze(dim=0)[
                                         num_observed:]
-
-                # print(dim)
-                # print(samp.min())
-                # print(samp.max())
-                # print(q_i.components_distribution.a[samp.argmax()])
-                # print(q_i.components_distribution.b[samp.argmax()])
-                # print(q_i.components_distribution.loc[samp.argmax()])
-                # print(q_i.components_distribution.scale[samp.argmax()])
-                # print(q_i.components_distribution.a[samp.argmin()])
-                # print(q_i.components_distribution.b[samp.argmin()])
-                # print(q_i.components_distribution.loc[samp.argmin()])
-                # print(q_i.components_distribution.scale[samp.argmin()])
-
 
         log_q_y_s = self._noise_distr.inner_log_prob(q_i, y[:, dim].unsqueeze(dim=-1)).squeeze()
 
@@ -132,8 +118,6 @@ class AemIsJointCrit(PartFnEstimator):
         y_s = torch.cat((y, y_samples))
         for i in range(self.dim):
             log_q_y_s[:, i], context[:, i, :], y_s = self._proposal_log_probs_dim(y_s, i, y.shape[0])
-            #print(y_s.max())
-            # y_s = torch.cat((y * self.mask[i + 1, :], y_samples))
 
         log_q_y_s = log_q_y_s.sum(dim=-1)
         log_q_y, log_q_y_samples = log_q_y_s[:y.shape[0]], log_q_y_s[y.shape[0]:]
@@ -141,58 +125,7 @@ class AemIsJointCrit(PartFnEstimator):
 
         return log_q_y, log_q_y_samples, context, y_samples
 
-    # def _proposal_log_probs(self, y, num_samples: int):
-    # y_samples = torch.zeros((y.shape[0] * num_samples, self.dim))
-    # context = torch.zeros((y.shape[0] * (num_samples + 1), self.dim, self.num_context_units))
-    # log_q_y_s = torch.zeros((y.shape[0] * (num_samples + 1), self.dim))
-
-    # y_s = torch.cat((y * self.mask[0, :], y_samples))
-    # for i in range(self.dim):
-    # net_input = torch.cat((y_s, self.mask[i, :].reshape(1, -1).repeat(y_s.shape[0], 1)), dim=-1)
-    # q_i, context[:, i, :] = self._noise_distr.forward(net_input)
-
-    # # if np.mod(self.counter, 100) == 0:
-    # # print(i)
-    # # print(q_i.components_distribution.scale.min())
-    # # print(q_i.components_distribution.scale.median())
-    # # print(q_i.components_distribution.scale.max())
-    # # print(q_i.components_distribution.scale[0])
-    # # print(q_i.components_distribution.scale[-1])
-
-    # with torch.no_grad():
-    # y_samples[:, i] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze()[y.shape[0]:]
-
-    # y_s = torch.cat((y * self.mask[i + 1, :], y_samples))
-    # log_q_y_s[:, i] = self._noise_distr.inner_log_prob(q_i, y_s[:, i].unsqueeze(dim=-1)).squeeze()
-
-    # log_q_y_s = log_q_y_s.sum(dim=-1)
-    # log_q_y, log_q_y_samples = log_q_y_s[:y.shape[0]], log_q_y_s[y.shape[0]:]
-
-    # return log_q_y, log_q_y_samples, context, y_samples
-
-    # def _proposal_log_probs(self, y, num_samples: int):
-    #
-    #     y_samples = torch.zeros((y.shape[0], num_samples, self.dim))
-    #     context = torch.zeros((y.shape[0], (num_samples + 1), self.dim, self.num_context_units))
-    #     log_q_y_s = torch.zeros((y.shape[0], (num_samples + 1), self.dim))
-    #
-    #     y_s = torch.cat((y.unsqueeze(dim=1), y_samples), dim=1)
-    #     for i in range(self.dim):
-    #         for b in range(num_samples + 1):
-    #             net_input = torch.cat((y_s[:, b, :] * self.mask[i, :], self.mask[i, :].reshape(1, -1).repeat(y.shape[0], 1)), dim=-1)
-    #             q_i, context[:, b, i, :] = self._noise_distr.forward(net_input)
-    #
-    #             if b > 0:
-    #                 with torch.no_grad():
-    #                     y_samples[:, b-1, i] = self._noise_distr.inner_sample(q_i, torch.Size((1,))).squeeze()
-    #
-    #             log_q_y_s[:, b, i] = self._noise_distr.inner_log_prob(q_i, y_s[:, b, i].unsqueeze(dim=-1)).squeeze()
-    #
-    #     context_y, context_y_samples = context[:, 0, ::].reshape(-1, y.shape[-1]), context[:, 1:, ::].reshape(-1, y.shape[-1])
-    #     log_q_y, log_q_y_samples =log_q_y_s[:, 0, :].sum(dim=-1).reshape(-1), log_q_y_s[:, 1:, :].sum(dim=-1).reshape(-1)
-    #
-    #     return log_q_y, log_q_y_samples, context_y, context_y_samples, y_samples.reshape(-1, y.shape[-1])
-
+   
     def _model_log_probs(self, y, context):
 
         energy_net_inputs = torch.cat(

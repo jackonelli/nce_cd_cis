@@ -3,24 +3,23 @@ import os
 import numpy as np
 import torch
 from torch.utils import data
-import matplotlib.pyplot as plt
 
 from src.aem.aem_is_joint_z import AemIsJointCrit
 from src.aem.aem_cis_joint_z import AemCisJointCrit
-from src.aem.aem_cis_joint_z_adapt import AemCisJointAdaCrit
-from src.aem.aem_pers_cis import AemCisJointPersCrit
-from src.aem.aem_pers_cis_adapt import AemCisJointAdaPersCrit
 from src.aem.aem_smc import AemSmcCrit
 from src.aem.aem_smc_cond import AemSmcCondCrit
-from src.aem.aem_pers_cond_smc import AemSmcCondPersCrit
-from src.aem.aem_smc_adaptive import AemSmcAdaCrit
-from src.aem.aem_smc_cond_adaptive import AemSmcCondAdaCrit
-from src.data import data_uci
-from src.data.data_uci.uciutils import get_project_root
+from src.experiments.aem_exp_utils import standard_resampling
+
 from src.models.aem.energy_net import ResidualEnergyNet
 from src.models.aem.made_joint_z import ResidualMADEJoint
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
+
+from src.data import data_uci
+from src.data.data_uci.uciutils import get_project_root
+
 from src.experiments.aem_exp_utils import parse_activation, parse_args, InfiniteLoader
+from src.training.model_training import train_aem_model
+from nbs.aem_experiment import load_models
 
 from nbs.wasserstein import wasserstein_metric
 
@@ -30,15 +29,8 @@ def main(args):
     np.random.seed(args.seed)
 
     data_name = args.dataset_name
-    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem_backup/") #os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem/")
+    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem/") 
     base_dir = os.path.join(proj_dir, args.dataset_name)
-
-    if not os.path.exists(base_dir):
-        os.makedirs(base_dir)  # (io.get_checkpoint_root())
-
-    # Save args
-    #with open(os.path.join(base_dir, 'commandline_args.txt'), 'w') as f:
-    #   json.dump(args.__dict__, f, indent=2)
 
     crits = ['IS', 'CIS', 'CSMC']
     crit_lab = ["aem_is_j", "aem_cis_j", "aem_csmc_j"]
@@ -61,7 +53,7 @@ def main(args):
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)  # (io.get_checkpoint_root())
     
-    file = open("{}/eval_wasser_{}_set_large.txt".format(file_dir, 'test'), "w")
+    file = open("{}/eval_wasser_{}_set.txt".format(file_dir, 'test'), "w")
     for i in range(args.reps):
         test_loader = load_data(data_name, args)
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
@@ -112,39 +104,9 @@ def run_test(test_loader, file, save_dir, args):
     dim = test_loader.dataset.dim  # D
     output_dim_multiplier = args.context_dim + 3 * args.n_mixture_components  # K + 3M
 
-    model = ResidualEnergyNet(
-        input_dim=(args.context_dim + 1),
-        n_residual_blocks=args.n_residual_blocks_energy_net,
-        hidden_dim=args.hidden_dim_energy_net,
-        energy_upper_bound=args.energy_upper_bound,
-        activation=parse_activation(args.activation_energy_net),
-        use_batch_norm=args.use_batch_norm_energy_net,
-        dropout_probability=args.dropout_probability_energy_net
-    )
+    model, made, proposal = load_models(args)
 
     model.load_state_dict(torch.load(os.path.join(save_dir, "model"), map_location=device))
-
-    # Create MADE
-    made = ResidualMADEJoint(
-        input_dim=2*dim,
-        n_residual_blocks=args.n_residual_blocks_made,
-        hidden_dim=args.hidden_dim_made,
-        output_dim_multiplier=output_dim_multiplier,
-        conditional=False,
-        activation=parse_activation(args.activation_made),
-        use_batch_norm=args.use_batch_norm_made,
-        dropout_probability=args.dropout_probability_made
-    )
-
-    # Create proposal
-    proposal = AemJointProposal(
-        autoregressive_net=made,
-        num_context_units=args.context_dim,
-        num_components=args.n_mixture_components,
-        mixture_component_min_scale=args.mixture_component_min_scale,
-        apply_context_activation=args.apply_context_activation
-    )
-
     proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) # TODO: check so that this loads params also of made
 
     # create aem
@@ -153,13 +115,13 @@ def run_test(test_loader, file, save_dir, args):
     model.eval()
     made.eval()
     crit.set_training(False)
+    crit_smc.set_resampling_function(standard_resampling)
    
     # Importance sampling eval loop
     print("Evaluating model...")
     
-    
    
-    num_samp = args.n_importance_samples  # Sorry, hackar denna lite
+    num_samp = args.n_importance_samples  # Reusing this one
     reps = 10
     dist = torch.zeros((reps,))
             

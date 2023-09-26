@@ -211,41 +211,6 @@ class MixtureSameFamily1D(distributions.Distribution):
         # calculate numerically stable log coefficients, and pad
         log_prob_mixture = self.mixture_distribution.logits
         return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-1)
-        
-        
-class MixtureSameFamily1DNoR(distributions.Distribution):
-    def __init__(self, mixture_distribution, components_distribution):
-        self.mixture_distribution = mixture_distribution
-        self.components_distribution = components_distribution
-
-        super().__init__(
-            batch_shape=self.components_distribution.batch_shape,
-            event_shape=self.components_distribution.event_shape
-        )
-
-    def sample(self, sample_shape=torch.Size()):
-        mixture_mask = self.mixture_distribution.sample(sample_shape)  # [B, 1, M]
-        
-        if mixture_mask.shape[-1] == 1:
-            assert torch.allclose(mixture_mask, torch.ones(mixture_mask.shape))
-        
-
-        if len(mixture_mask.shape) == 3:
-            mixture_mask = mixture_mask[:, None, ...]
-        components_samples = self.components_distribution.sample(
-            sample_shape)  # [S, B, D, M]
-        samples = torch.sum(mixture_mask * components_samples, dim=-1).squeeze(dim=0)  # [B, 1]
-        return samples
-
-    def log_prob(self, value):
-        # pad value for evaluation under component density
-        # [B, 1]
-        value = value[None, :, :, None].repeat(1, 1, 1, self.batch_shape[-1])  # [S, B, D, M]
-        log_prob_components = self.components_distribution.log_prob(value).squeeze(dim=0)  # [B, D, M]
-
-        # calculate numerically stable log coefficients, and pad
-        log_prob_mixture = self.mixture_distribution.logits
-        return torch.logsumexp(log_prob_mixture + log_prob_components, dim=-1)
 
 
 def get_aem_losses(data_loader, criterion, device):
@@ -270,7 +235,14 @@ def parse_activation(activation):
         'softplus': torch.nn.functional.softplus
     }
     return activations[activation]
-
+    
+    
+def adaptive_resampling(ess, num_samples):
+    return ess < (num_samples / 2)
+    
+def standard_resampling(ess, num_samples):
+    # Always resample
+    return ess <= num_samples
 
 def parse_args():
     parser = argparse.ArgumentParser()
