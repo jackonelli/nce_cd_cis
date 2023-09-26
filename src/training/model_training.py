@@ -4,7 +4,6 @@ import torch
 import numpy as np
 
 from src.training.training_utils import no_stopping, PolynomialLr
-from src.experiments.ace_exp_utils import get_ace_losses
 from src.experiments.aem_exp_utils import get_aem_losses
 
 from tensorboardX import SummaryWriter
@@ -146,7 +145,7 @@ def train_aem_model(
         optimizer.step()
 
         if decaying_lr:
-            scheduler.step()  # TODO: har flyttat ner denna
+            scheduler.step()  # TODO: moved to here
 
         if (step + 1) % validation_freq == 0:
 

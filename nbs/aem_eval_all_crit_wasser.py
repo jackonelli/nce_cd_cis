@@ -104,8 +104,9 @@ def run_test(test_loader, file, save_dir, args):
     dim = test_loader.dataset.dim  # D
     output_dim_multiplier = args.context_dim + 3 * args.n_mixture_components  # K + 3M
 
-    model, made, proposal = load_models(args)
-
+    dim = test_loader.dataset.dim  # D
+    model, made, proposal = load_models(dim, args)
+    
     model.load_state_dict(torch.load(os.path.join(save_dir, "model"), map_location=device))
     proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) # TODO: check so that this loads params also of made
 

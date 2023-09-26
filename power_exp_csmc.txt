@@ -1,0 +1,15 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: standardize
+Preprocessing and saving Power...
+Standardizing data
+Saving data to: /home/amaol67/deep_ext_obj/src/data/data_uci/data/power/train.npy
+Saving data to: /home/amaol67/deep_ext_obj/src/data/data_uci/data/power/val.npy
+Saving data to: /home/amaol67/deep_ext_obj/src/data/data_uci/data/power/test.npy
+Done!
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/power/train.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/power/val.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/power/test.npy

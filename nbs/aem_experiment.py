@@ -110,10 +110,9 @@ def load_data(name, args):
     return train_loader, validation_loader, test_loader
     
     
-def load_models(args):
+def load_models(dim, args):
 
     # define parameters for MADE and energy net
-    dim = train_loader.loader.dataset.dim  # D
     output_dim_multiplier = args.context_dim + 3 * args.n_mixture_components  # K + 3M
 
     # Create energy net
@@ -158,8 +157,8 @@ def run_train(train_loader, validation_loader, criterion, save_dir, args):
     else:
         device = torch.device('cpu')
 
-
-    model, made, proposal = load_models(args)
+    dim = train_loader.loader.dataset.dim  # D
+    model, made, proposal = load_models(dim, args)
     
 
     # create aem

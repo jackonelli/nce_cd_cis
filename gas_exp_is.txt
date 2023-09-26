@@ -1,0 +1,29 @@
+Kerberos initialization for amaol67@AD.LIU.SE
+k5start: authenticating as amaol67@AD.LIU.SE
+k5start: getting tickets for krbtgt/AD.LIU.SE@AD.LIU.SE
+Scaling: standardize
+Preprocessing and saving Gas...
+> UCI, BSDS300, and MNIST data not found.
+> The zipped download is 817MB in size, and 1.6GB once unzipped.
+> The download includes CIFAR-10, although it is not used in the paper.
+> After extraction, this script will delete the zipped download.
+> You will also be able to specify whether to delete CIFAR-10.
+> Do you wish to download the data? [Y/n]
+Extracting datasets...
+Finished extraction.
+
+Removing zipped data...
+Zipped data removed.
+
+Do you wish to delete CIFAR-10? [Y/n]CIFAR-10 removed.
+
+Standardizing data
+Saving data to: /home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/train.npy
+Saving data to: /home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/val.npy
+Saving data to: /home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/test.npy
+Done!
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/train.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/val.npy
+Scaling: standardize
+Data loaded from:/home/amaol67/deep_ext_obj/src/data/data_uci/data/gas/test.npy

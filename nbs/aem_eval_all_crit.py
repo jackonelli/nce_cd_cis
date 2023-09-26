@@ -103,7 +103,8 @@ def run_test(test_loader, file, save_dir, args):
     else:
         device = torch.device('cpu')
 
-    model, made, proposal = load_models(args)
+    dim = test_loader.dataset.dim  # D
+    model, made, proposal = load_models(dim, args)
 
     model.load_state_dict(torch.load(os.path.join(save_dir, "model"), map_location=device))
     proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) 
