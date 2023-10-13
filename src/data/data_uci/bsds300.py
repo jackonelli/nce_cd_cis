@@ -1,18 +1,27 @@
+import os
 import numpy as np
 
 from matplotlib import pyplot as plt
 from torch.utils import data
 
-from src.data.data_uci.uciutils import load_bsds300
+from src.data.data_uci.uciutils import load_bsds300, get_data_root
 
 
 class BSDS300Dataset(data.Dataset):
-    def __init__(self, split='train', frac=None, num_dims=None, scaling = 'standardize'): # TODO: scaling argument not used
+    def __init__(self, split='train', frac=None, num_dims=None, scaling = None): # TODO: scaling argument not used
+    
         splits = dict(zip(
             ('train', 'val', 'test'),
             load_bsds300()
         ))
         self.data = np.array(splits[split]).astype(np.float32)
+        
+        path = os.path.join(get_data_root(), 'data', 'BSDS300/BSDS300.hdf5')
+        print("Data loaded from:" + str(path))
+
+        
+        if scaling is not None:
+            print("Scaling is not done for this dataset.")
         
         
         if num_dims is not None:

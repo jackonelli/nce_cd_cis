@@ -171,6 +171,6 @@ class AemSmcCrit(AemIsJointCrit):
 
         return log_p_tilde_y, log_q_y
         
-    def set_resampling_function(resampling_function):
+    def set_resampling_function(self, resampling_function):
         self.resampling_function = resampling_function
 

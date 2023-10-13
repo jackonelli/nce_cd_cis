@@ -255,7 +255,9 @@ def parse_args():
     parser.add_argument('--train_batch_size', type=int, default=512,
                         help='Size of batch used for training.')
     parser.add_argument('--val_frac', type=float, default=0.1,
-                        help='Fraction of validation set to use.')
+                        help='Fraction of validation set to use for training/evaluation.')
+    parser.add_argument('--val_split', type=str, default='test',
+                        help='Which dataset to use for evaluation (train/val/test).')
     parser.add_argument('--val_batch_size', type=int, default=512,
                         help='Size of batch used for validation.')
     parser.add_argument('--test_batch_size', type=int, default=256,
@@ -323,7 +325,7 @@ def parse_args():
                         help='Number of warm-up steps for aem density.')
     parser.add_argument('--hard_alpha_warm_up', default=True,
                         help='Whether to use a hard warm up for alpha')
-
+    
     # logging and checkpoints
     parser.add_argument('--monitor_interval', default=1000, type=int,
                         help='Interval in steps at which to report training stats.')

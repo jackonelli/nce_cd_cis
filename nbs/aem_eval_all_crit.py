@@ -28,11 +28,16 @@ def main(args):
     np.random.seed(args.seed)
 
     data_name = args.dataset_name
-    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem/") 
+    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem - aistats/") 
     base_dir = os.path.join(proj_dir, args.dataset_name)
 
-    crits = ['IS', 'CIS', 'CSMC']
-    crit_lab = ["aem_is_j", "aem_cis_j", "aem_csmc_j"]
+    if args.dataset_name in ["miniboone", "bsds300"]:
+        crits = ['CIS', 'CSMC']
+        crit_lab = ["aem_cis_j", "aem_csmc_j"]
+    else:
+        crits = ['IS', 'CIS', 'CSMC']
+        crit_lab = ["aem_is_j", "aem_cis_j", "aem_csmc_j"]
+        
     file_dir = os.path.join(base_dir, 'all')
 
     
@@ -40,7 +45,6 @@ def main(args):
         crit_lab = [cl + "_d_" + str(args.dims) for cl in crit_lab]
         file_dir = file_dir + "_ub_" +  "_d_" + str(args.dims)
 
- 
     if args.energy_upper_bound > 0.0:
         crit_lab = [cl + "_ub_" + str(args.energy_upper_bound) for cl in crit_lab]
         file_dir = file_dir + "_ub_" + str(args.energy_upper_bound)
@@ -54,7 +58,7 @@ def main(args):
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)  # (io.get_checkpoint_root())
     
-    file = open("{}/eval_{}_set.txt".format(file_dir, 'test'), "w")
+    file = open("{}/eval_{}_set_{}.txt".format(file_dir, args.val_split, str(args.n_importance_samples)), "w")
     for i in range(args.reps):
         test_loader = load_data(data_name, args)
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
@@ -81,7 +85,7 @@ def load_data(name, args):
     else:
         gen = torch.Generator(device='cpu')
     
-    dataset = data_uci.load_uci_dataset(args.dataset_name, split='test') 
+    dataset = data_uci.load_uci_dataset(args.dataset_name, split=args.val_split, frac=args.val_frac) 
     test_loader = data.DataLoader(
         dataset=dataset,
         batch_size=args.test_batch_size,
@@ -140,7 +144,6 @@ def run_test(test_loader, file, save_dir, args):
 
         # Estimate log_normalizer with is
         log_norm = torch.zeros((num_est,))
-        
         if args.n_importance_samples < 1e5: # Arbitrary threshold to avoid memory issues
             for i in range(num_est):
                 log_norm[i], ess = crit.log_part_fn(return_ess=True)

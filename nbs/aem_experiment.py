@@ -31,14 +31,14 @@ def main(args):
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)  # (io.get_checkpoint_root())
 
-    crit_dir = {
+    crit_dict = {
         'is': ([AemIsJointCrit], ["aem_is_j"]),
         'cis': ([AemCisJointCrit], ["aem_cis_j"]),
         'csmc': ([AemSmcCondCrit], ["aem_csmc_j"])
     }
 
-    if args.criterion in crit_dir:
-        crits, crit_lab = crit_dir[args.criterion]
+    if args.criterion in crit_dict:
+        crits, crit_lab = crit_dict[args.criterion]
         
         if args.dims is not None:
             crit_lab = [crit_lab[0] + "_d_" + str(args.dims)]

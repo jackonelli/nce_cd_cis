@@ -18,10 +18,10 @@ from src.data import data_uci
 from src.data.data_uci.uciutils import get_project_root
 
 from src.experiments.aem_exp_utils import parse_activation, parse_args, InfiniteLoader
+from src.experiments.wasserstein import wasserstein_metric
 from src.training.model_training import train_aem_model
 from nbs.aem_experiment import load_models
 
-from nbs.wasserstein import wasserstein_metric
 
 def main(args):
 
@@ -29,11 +29,16 @@ def main(args):
     np.random.seed(args.seed)
 
     data_name = args.dataset_name
-    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem/") 
+    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem - aistats/") 
     base_dir = os.path.join(proj_dir, args.dataset_name)
 
-    crits = ['IS', 'CIS', 'CSMC']
-    crit_lab = ["aem_is_j", "aem_cis_j", "aem_csmc_j"]
+    if args.dataset_name in ["miniboone", "bsds300"]:
+        crits = ['CIS', 'CSMC']
+        crit_lab = ["aem_cis_j", "aem_csmc_j"]
+    else:
+        crits = ['IS', 'CIS', 'CSMC']
+        crit_lab = ["aem_is_j", "aem_cis_j", "aem_csmc_j"]
+        
     file_dir = os.path.join(base_dir, 'all')
 
     
@@ -53,7 +58,7 @@ def main(args):
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)  # (io.get_checkpoint_root())
     
-    file = open("{}/eval_wasser_{}_set.txt".format(file_dir, 'test'), "w")
+    file = open("{}/eval_wasser_{}_set_{}.txt".format(file_dir, args.val_split, str(args.n_importance_samples)), "w")
     for i in range(args.reps):
         test_loader = load_data(data_name, args)
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
@@ -79,7 +84,7 @@ def load_data(name, args):
     else:
         gen = torch.Generator(device='cpu')
     
-    dataset = data_uci.load_uci_dataset(args.dataset_name, split='test') #, frac=args.val_frac)
+    dataset = data_uci.load_uci_dataset(args.dataset_name, split=args.val_split)#, frac=args.val_frac)
     test_loader = data.DataLoader(
         dataset=dataset,
         batch_size=args.test_batch_size,
@@ -108,7 +113,7 @@ def run_test(test_loader, file, save_dir, args):
     model, made, proposal = load_models(dim, args)
     
     model.load_state_dict(torch.load(os.path.join(save_dir, "model"), map_location=device))
-    proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) # TODO: check so that this loads params also of made
+    proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) 
 
     # create aem
     crit = AemSmcCrit(model, proposal, args.n_proposal_samples_per_input, args.n_importance_samples)
@@ -116,7 +121,7 @@ def run_test(test_loader, file, save_dir, args):
     model.eval()
     made.eval()
     crit.set_training(False)
-    crit_smc.set_resampling_function(standard_resampling)
+    crit.set_resampling_function(standard_resampling)
    
     # Importance sampling eval loop
     print("Evaluating model...")
@@ -130,8 +135,7 @@ def run_test(test_loader, file, save_dir, args):
         # Sample from data
         data_samples_all = test_loader.dataset.data
 
-
-        select_ind = np.random.choice(data_samples_all.shape[0], size=num_samp, replace=False)
+        select_ind = np.random.choice(data_samples_all.shape[0], size=num_samp, replace=True) # replace = False
         x_samples = torch.tensor(data_samples_all[select_ind, :]).cpu()
         
         # Sample from model (using SMC)
@@ -145,7 +149,6 @@ def run_test(test_loader, file, save_dir, args):
 
           
     # Save outputs
-    print(dist)
     print(
         "Wasserstein distance with {} samples:".format(
             num_samp
@@ -163,8 +166,15 @@ def run_test(test_loader, file, save_dir, args):
     )
     
     print(
-        "Std: {}".format(
+        "Stddev: {}".format(
             dist_std
+        ),
+        file=file,
+    )
+    
+    print(
+        "Stderr: {}".format(
+            dist_std / np.sqrt(reps)
         ),
         file=file,
     )

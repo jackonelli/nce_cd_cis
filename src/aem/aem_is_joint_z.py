@@ -96,16 +96,59 @@ class AemIsJointCrit(PartFnEstimator):
         net_input = torch.cat(
             (y * self.mask[dim, :], self.mask[dim, :].reshape(1, -1).repeat(y.shape[0], 1)),
             dim=-1)
+            
+        max_size = 500000
+        if net_input.shape[0] > max_size and not self.training:
+            
+            assert num_observed == y.shape[0] or num_observed < max_size, "Can not handle the case where not all samples are observed or observed samples are covered by the first slice"
+        
+            batch_size = max_size
+            n_batches, leftover = (
+                net_input.shape[0] // batch_size,
+                net_input.shape[0] % batch_size
+            )
+            slices = [slice(batch_size * i, batch_size * (i + 1)) for i in
+                      range(n_batches)]
+            slices.append(
+                slice(batch_size * n_batches, batch_size * n_batches + leftover))
+                
+            log_q_y_ss, contexts = [], []
+            for s, slice_ in enumerate(slices):
+                if net_input[slice_].shape[0] > 0: # For some reason, we sometimes get empty slices
+                    q_i_batch, context_batch = self._noise_distr.forward(net_input[slice_]) # .detach()
+                    contexts.append(context_batch)
+        
+                    if num_observed < y.shape[0]: # If we should sample at all
+                        with torch.no_grad():
+                            samp = self._noise_distr.inner_sample(q_i_batch, torch.Size((1,)))
 
-        q_i, context = self._noise_distr.forward(net_input)
+                            if num_observed > 0:  # If there are some observed samples
+                                assert s == 0, "All observed samples should be covered by the first slice (if not all observed)" # This should only happen in first slice
+                                num_samps = samp.squeeze(dim=0).shape[0]
+                                y[num_observed:num_samps, dim] = samp.squeeze(dim=0)[num_observed:]
+                                
+                            else:
+                                y[slice_, dim] = samp.squeeze(dim=0)
 
-        if num_observed < y.shape[0]:
-            with torch.no_grad():
-                samp = self._noise_distr.inner_sample(q_i, torch.Size((1,)))
-                y[num_observed:, dim] = samp.squeeze(dim=0)[
-                                        num_observed:]
+                    log_q_y_s_batch = self._noise_distr.inner_log_prob(q_i_batch, y[slice_, dim].unsqueeze(dim=-1)).squeeze()
+                    log_q_y_ss.append(log_q_y_s_batch)
 
-        log_q_y_s = self._noise_distr.inner_log_prob(q_i, y[:, dim].unsqueeze(dim=-1)).squeeze()
+            log_q_y_s = torch.cat(log_q_y_ss, dim=0)
+            context = torch.cat(contexts, dim=0)
+                     
+            assert log_q_y_s.shape[0] == net_input.shape[0]
+            assert context.shape[0] == net_input.shape[0]
+
+        else:
+            q_i, context = self._noise_distr.forward(net_input)
+
+            if num_observed < y.shape[0]:
+                with torch.no_grad():
+                    samp = self._noise_distr.inner_sample(q_i, torch.Size((1,)))
+                    y[num_observed:, dim] = samp.squeeze(dim=0)[
+                                            num_observed:]
+
+            log_q_y_s = self._noise_distr.inner_log_prob(q_i, y[:, dim].unsqueeze(dim=-1)).squeeze()
 
         return log_q_y_s, context, y
 
