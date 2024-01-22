@@ -28,6 +28,20 @@ class KlDiv:
 
     def metric(self, model):
         return torch.mean((torch.exp(model.log_precision) - self.true_precison) ** 2)
+        
+
+class PolynomialLr:
+    """Polynomial decaying lr according to keras"""
+    def __init__(self, decay_steps, initial_lr, end_lr=1e-7, power=1.0):
+        self.decay_steps = decay_steps
+        self.initial_lr = initial_lr
+        self.end_lr = end_lr
+        self.power = power
+
+    def decayed_learning_rate(self, step):
+        step = min(step, self.decay_steps)
+        return ((self.initial_lr - self.end_lr) * (1 - step / self.decay_steps)**self.power) + self.end_lr
+
 
 
 # Stopping conditions
@@ -66,16 +80,19 @@ def remove_file(file_name):
         os.remove(file_name)
 
 
-class PolynomialLr:
-    """Polynomial decaying lr according to keras"""
-    def __init__(self, decay_steps, initial_lr, end_lr=1e-7, power=1.0):
-        self.decay_steps = decay_steps
-        self.initial_lr = initial_lr
-        self.end_lr = end_lr
-        self.power = power
+def normalised_log_likelihood(data_loader, criterion):
 
-    def decayed_learning_rate(self, step):
-        step = min(step, self.decay_steps)
-        return ((self.initial_lr - self.end_lr) * (1 - step / self.decay_steps)**self.power) + self.end_lr
+    model = criterion.get_model()
 
+    #with torch.no_grad: # or put model in eval mode
+    log_p_tilde = 0
+    log_z = 0
+    N = 0
+    for i, (y, idx) in enumerate(data_loader, 0):
+        log_p_tilde += model.log_prob(y).sum()
+        log_z += criterion.outer_part_fn(y) * y.shape[0]
+
+        N += y.shape[0]
+
+    return log_p_tilde - log_z / N
 

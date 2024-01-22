@@ -1,4 +1,4 @@
-"""Conditional Noise Contrastive Estimation (NCE) with multiple MCMC steps"""
+"""Contrastive Divergence with Metropolis-Hastings kernel"""
 from typing import Optional
 import torch
 from torch import Tensor
@@ -11,7 +11,7 @@ from src.models.base_model import BaseModel
 from src.training.training_utils import add_to_npy_file
 
 
-class CdCnceCrit(PartFnEstimator):
+class CdMHCnceCrit(PartFnEstimator):
     def __init__(
         self,
         unnorm_distr: BaseModel,
@@ -24,7 +24,7 @@ class CdCnceCrit(PartFnEstimator):
 
         self.mcmc_steps = mcmc_steps
         self.save_acc_prob = save_acc_prob
-        self.name = "cd_cnce"
+        self.name = "cd_mh"
 
     def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
         pass
@@ -32,12 +32,13 @@ class CdCnceCrit(PartFnEstimator):
     def calculate_crit_grad(self, y: Tensor, _idx: Optional[Tensor]):
         # We will have N*J pairs
         y = torch.repeat_interleave(y, self._num_neg, dim=0)
-        y_samples = self.sample_noise(1, y)
+        y_samples = self.sample_noise(1, y) #self.sample_noise((y.size(0), 1), y)
 
         return self.calculate_inner_crit_grad(y, y_samples)
 
     def calculate_inner_crit_grad(self, y: Tensor, y_samples: Tensor, y_base=None):
 
+        # Gradient of mean is same as mean of gradient
         if y_base is None:
             # Gradient of mean is same as mean of gradient
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
@@ -47,25 +48,25 @@ class CdCnceCrit(PartFnEstimator):
         grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
 
         y_0 = y.clone()
+        # log_w_threshold = 1e4
+        # w_y = torch.zeros((y.shape[0], 1), dtype=y.dtype)
         for t in range(self.mcmc_steps):
 
-            # Concatenate samples
+            # Get neg. samples
             ys = concat_samples(y_0, y_samples)
-            assert ys.shape == (y.shape[0], 2, y.shape[1])
+            assert ys.shape == (y_0.size(0), 2, y_0.size(1))
 
-            # Calculate and normalise weight ratios
+            # Calculate weight ratios (acceptance prob.)
             log_w_y = self._log_unnorm_w_ratio(y_0, y_samples).detach()
-            w_y = 1 / (1 + torch.exp(-log_w_y))
-            w = torch.cat((w_y, 1 - w_y), dim=1)
+            w_y = torch.exp(- log_w_y)
+            w_y[w_y >= 1.0] = 1.0
+            w = torch.cat((1 - w_y, w_y), dim=1)
 
             if self.save_acc_prob:
-                # Ref. MH acceptance prob.
-                acc_prob_mh = torch.exp(- log_w_y)
-                acc_prob_mh[acc_prob_mh >= 1.0] = 1.0
-                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy",
-                                (1 - w_y).numpy())
-                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy",
-                                acc_prob_mh.numpy())
+                # Ref. CNCE acc. prob.
+                acc_prob_cnce = 1 - 1 / (1 + torch.exp(-log_w_y))
+                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy", w_y.numpy())
+                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy", acc_prob_cnce.numpy())
 
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
@@ -78,60 +79,31 @@ class CdCnceCrit(PartFnEstimator):
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y
-                y_0, y_samples = self._resample(ys, w_y)
+                sample_inds = torch.distributions.bernoulli.Bernoulli(
+                    probs=w_y
+                ).sample()
+                y_0 = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
+
                 assert y_0.shape == y.shape
+
+                # Sample neg. samples
+                y_samples = self.sample_noise(1, y)  # self.sample_noise((y_0.size(0), 1), y_0)
 
         self._unnorm_distr.set_gradients(grads)
-
-    def _resample(self, ys, w_y):
-        # Sample y
-        sample_inds = torch.distributions.bernoulli.Bernoulli(
-            probs=1 - w_y
-        ).sample()
-        y = ys[torch.cat((1 - sample_inds, sample_inds), dim=-1).bool(), :]
-
-        # Sample neg. samples
-        y_samples = self.sample_noise(1, y)
-
-        return y, y_samples
-
-    def log_part_fn(self, y, _idx: Optional[Tensor]) -> Tensor:
-        y_samples = self.sample_noise(self._num_neg, y.reshape(y.size(0), 1, -1))
-
-        return self.inner_log_part_fn(y, y_samples)
-
-    def inner_log_part_fn(self, y, y_samples) -> Tensor:
-
-        y_0 = y.clone()
-        log_z = 0
-        for t in range(self.mcmc_steps):
-
-            ys = concat_samples(y_0, y_samples)
-            assert ys.shape == (y.shape[0], 2, y.shape[1])
-
-            log_w_y = self._log_unnorm_w_ratio(y_0, y_samples)
-            w_y = 1 / (1 + torch.exp(-log_w_y))
-            w = torch.cat((w_y, 1 - w_y), dim=1)
-
-            log_z += ((w * self._unnorm_distr.log_prob(ys)).sum(dim=1)).mean()   # TODO: Normalised weights, right?
-
-            if (t + 1) < self.mcmc_steps:
-                # Sample y
-                y_0, y_samples = self._resample(ys, w_y)
-                assert y_0.shape == y.shape
-
-        return log_z / torch.tensor(self.mcmc_steps)
 
     def part_fn(self, y, y_samples) -> Tensor:
         """Compute Ẑ"""
         pass
 
+    #def sample_noise(self, num_samples: tuple, y: Tensor):
+    #    return self._noise_distr.sample(
+     #       torch.Size(num_samples), y.reshape(y.size(0), 1, -1)
+     #   )
+
     def _unnorm_w(self, y, y_samples) -> Tensor:
         return torch.exp(self._log_unnorm_w(y, y_samples))
 
     def _log_unnorm_w(self, y, y_samples):
-        # "Log weights of y (NxD) and y_samples (NxJxD)"
-        # Note: dimension of the final weight vector is NxJx2
 
         w_tilde_y = log_cond_unnorm_weights(y.reshape(y.size(0), 1, -1), y_samples, self._unnorm_distr.log_prob,
                                             self._noise_distr.log_prob)
@@ -141,7 +113,7 @@ class CdCnceCrit(PartFnEstimator):
         return torch.stack((w_tilde_y, w_tilde_yp), dim=-1)
 
     def _log_unnorm_w_ratio(self, y, y_samples):
-        """Log weight ratio of y (NxD) and y_samples (NxJxD)"""
+        """Log weights of y (NxD) and y_samples (NxJxD)"""
 
         return log_cond_unnorm_weights_ratio(
             y.reshape(y.size(0), 1, -1),
@@ -149,6 +121,3 @@ class CdCnceCrit(PartFnEstimator):
             self._unnorm_distr.log_prob,
             self._noise_distr.log_prob,
         )
-
-
-

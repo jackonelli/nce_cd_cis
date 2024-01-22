@@ -10,7 +10,7 @@ class MlisCrit(PartFnEstimator):
         super().__init__(unnorm_distr, noise_distr)
 
     def crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
-        return -torch.log(self._unnorm_distr(y)) + self.log_part_fn(None, y_samples)
+        return -torch.log(self._unnorm_distr(y)) + self.inner_log_part_fn(None, y_samples)
 
     def part_fn(self, _y, y_samples) -> Tensor:
         # The number of samples is the number of negative samples

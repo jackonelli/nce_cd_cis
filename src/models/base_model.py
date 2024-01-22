@@ -15,10 +15,10 @@ class BaseModel(torch.nn.Module):
 
     def forward(self, y: Tensor) -> Tensor:
         return self.prob(y)
+        
 
     def grad_log_prob(self, y: Tensor, weights=torch.tensor(1)):
         """ Calculate (weighted) gradient of log probability """
-
         self.clear_gradients()
 
         l = (weights * self.log_prob(y)).mean()
@@ -54,3 +54,4 @@ class BaseModel(torch.nn.Module):
             num_params += param.numel()
 
         return num_params
+

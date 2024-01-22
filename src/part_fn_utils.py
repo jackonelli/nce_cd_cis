@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import torch
 from torch import Tensor
 
@@ -93,3 +94,8 @@ def log_cond_unnorm_weights_ratio(
 def norm_weights(unnorm_weights: Tensor) -> Tensor:
     """Compute self-normalised weight w(y) = w_tilde(y) / sum_j w_tilde(y_j) for all y_j"""
     return unnorm_weights / unnorm_weights.sum()
+
+
+def outer_product(v, h):
+    """Compute outer product of 2D matrices"""
+    return v.reshape(v.shape[0], -1, 1) * h.reshape(h.shape[0], 1, -1)

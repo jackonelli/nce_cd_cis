@@ -15,32 +15,40 @@ def train_model(
     evaluation_metric,
     train_loader,
     save_dir,
+    num_epochs=100,
     weight_decay=0.0,
+    lr=0.1,
     decaying_lr=False,
-    neg_sample_size: int = 10,
-    num_epochs: int = 100,
+    lr_factor=0.1,
+    num_epochs_decay=100,
     stopping_condition=no_stopping,
-    lr: float = 0.1,
-    scheduler_opts: Optional[Tuple[int, float]] = None,
+    Adam=False,
+    device=torch.device("cpu")
 ):
 
-    model = criterion.get_model()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    model = criterion.get_model().to(device)
+
+    if Adam:
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if decaying_lr:
         # Linearly decaying lr (run it for half of training time)
-        scheduler = torch.optim.lr_scheduler.LinearLR(
-            optimizer, total_iters=int((num_epochs * len(train_loader)) / 2)
-        )
+        num_epochs_decay = num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
+        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=lr_factor,
+                                                      total_iters=int((num_epochs_decay * len(train_loader))))
 
-    batch_metrics = []
-    batch_metrics.append(evaluation_metric(model))
-    batch_losses = []
-
+    metric = []
     for epoch in range(num_epochs):
 
         old_params = torch.nn.utils.parameters_to_vector(model.parameters())
         for i, (y, idx) in enumerate(train_loader, 0):
+
+            if type(y) is tuple or type(y) is list:
+                y = (y[0].to(device), y[1].to(device))
+            else:
+                y = y.to(device)
 
             optimizer.zero_grad()
 
@@ -55,14 +63,16 @@ def train_model(
 
             # Take gradient step
             optimizer.step()
+
             if decaying_lr:
                 scheduler.step()
 
             # Note: now logging this for every iteration (and not epoch)
-            with torch.no_grad():
-                loss = criterion.crit(y, None)
-                batch_losses.append(loss.item())
-            batch_metrics.append(evaluation_metric(model))
+            metric.append(evaluation_metric(model).detach().numpy())
+
+        if np.mod(epoch + 1, 10) == 0:
+            print('[%d] evaluation metric: %.3f' % (epoch + 1, metric[-1]))
+            torch.save(model.state_dict(), "res/model_" + str(epoch + 1))
 
         if stopping_condition(
             torch.nn.utils.parameters_to_vector(model.parameters()), old_params
@@ -70,13 +80,14 @@ def train_model(
             print("Training converged")
             break
 
-    # print("Finished training")
+    print("Finished training")
 
+    metric = np.array(metric)
     if save_dir is not None:
-        np.save(save_dir, batch_metrics)
+        np.save(save_dir, metric)
         print("Data saved")
 
-    return torch.tensor(batch_losses), torch.tensor(batch_metrics)
+    return metric[-1]
 
 
 def train_aem_model(
@@ -201,5 +212,4 @@ def train_aem_model(
     if save_final:
         torch.save(model.state_dict(), save_dir + "/model_final")
         torch.save(proposal.state_dict(), save_dir + "/proposal_final")
-
 
