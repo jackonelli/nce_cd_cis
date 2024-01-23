@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import unittest
 import torch
 
@@ -8,10 +7,10 @@ from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
 from src.nce.cnce import CondNceCrit
 from src.nce.cd_cnce import CdCnceCrit
 
-from tests.nce.test_binary_nce import sample_postive_test_samples
+from tests.nce.nce_test_utils import sample_postive_test_samples
 
 
-class TestCdRank(unittest.TestCase):
+class TestCdCnce(unittest.TestCase):
     def test_criterion_grad_unc_distr(self):
         """Check that criterion gives same gradient as NCE ranking for 1 step, when noise distr. is not conditional"""
 

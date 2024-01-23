@@ -7,7 +7,7 @@ from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
 from src.nce.cnce import CondNceCrit
 from src.part_fn_utils import unnorm_weights, cond_unnorm_weights_ratio
 
-from tests.nce.test_binary_nce import sample_postive_test_samples
+from tests.nce.nce_test_utils import sample_postive_test_samples
 
 
 class TestCondNce(unittest.TestCase):
