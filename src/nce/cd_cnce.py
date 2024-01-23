@@ -114,7 +114,7 @@ class CdCnceCrit(PartFnEstimator):
             w_y = 1 / (1 + torch.exp(-log_w_y))
             w = torch.cat((w_y, 1 - w_y), dim=1)
 
-            log_z += ((w * self._unnorm_distr.log_prob(ys)).sum(dim=1)).mean()   # TODO: Normalised weights, right?
+            log_z += ((w * self._unnorm_distr.log_prob(ys)).sum(dim=1)).mean()
 
             if (t + 1) < self.mcmc_steps:
                 # Sample y

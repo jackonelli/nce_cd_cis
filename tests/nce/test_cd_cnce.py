@@ -63,6 +63,8 @@ class TestCdCnce(unittest.TestCase):
             (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
         ).int()
 
+        print(num_neg_samples)
+
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
         mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
