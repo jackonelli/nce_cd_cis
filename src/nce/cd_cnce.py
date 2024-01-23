@@ -44,7 +44,7 @@ class CdCnceCrit(PartFnEstimator):
         else:
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
 
-        grads = [-2 * grad_log_prob_y / y.shape[0]  for grad_log_prob_y in grads_log_prob_y]
+        grads = [-grad_log_prob_y / y.shape[0]  for grad_log_prob_y in grads_log_prob_y]
 
         y_0 = y.clone()
         for t in range(self.mcmc_steps):
@@ -55,6 +55,7 @@ class CdCnceCrit(PartFnEstimator):
 
             # Calculate and normalise weight ratios
             log_w_y = self._log_unnorm_w_ratio(y_0, y_samples).detach()
+            print(log_w_y.shape)
             w_y = 1 / (1 + torch.exp(-log_w_y))
             w = torch.cat((w_y, 1 - w_y), dim=1)
 
@@ -72,6 +73,7 @@ class CdCnceCrit(PartFnEstimator):
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
 
             # Mean over samples, mean over iter.
+            print(self.mcmc_steps)
             grads = [
                 grad + (1 / (y_0.shape[0] * self.mcmc_steps)) * grad_log_prob
                 for grad, grad_log_prob in zip(grads, grads_log_prob)
