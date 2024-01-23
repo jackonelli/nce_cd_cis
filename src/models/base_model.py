@@ -1,15 +1,15 @@
+from typing import Optional
 import torch
 from torch import Tensor
 
 
 class BaseModel(torch.nn.Module):
-
     def prob(self, y: Tensor) -> Tensor:
         """Compute unnorm prob p_tilde(y)"""
 
         return torch.exp(self.log_prob(y))
 
-    def log_prob(self, y: Tensor) -> Tensor:
+    def log_prob(self, y: Tensor, x: Optional[Tensor] = None) -> Tensor:
         """Compute log of unnorm prob: log p_tilde(y)"""
         pass
 
@@ -18,28 +18,29 @@ class BaseModel(torch.nn.Module):
         
 
     def grad_log_prob(self, y: Tensor, weights=torch.tensor(1)):
-        """ Calculate (weighted) gradient of log probability """
-        self.clear_gradients()
+        """Calculate (weighted) gradient of log probability"""
 
-        l = (weights * self.log_prob(y)).mean()
-        l.backward()
+
+        # print("Normalised weights", weights)
+        temp_loss = (weights * self.log_prob(y)).sum()
+        temp_loss.backward()
         grads = [param.grad.detach().clone() for param in self.parameters()]
 
         return grads
 
     def set_gradients(self, grads):
-        """ Manually set parameter gradients """
+        """Manually set parameter gradients"""
 
         self.clear_gradients()
 
         for param, grad in zip(self.parameters(), grads):
-             param.grad = grad
+            param.grad = grad
 
     def get_gradients(self):
         return [param.grad for param in self.parameters()]
 
     def clear_gradients(self):
-        """ Clear all parameter gradients """
+        """Clear all parameter gradients"""
 
         for param in self.parameters():
             if param.grad is not None:
@@ -47,7 +48,7 @@ class BaseModel(torch.nn.Module):
                 param.grad.detach_()
 
     def num_parameters(self):
-        """ Total number of model parameters """
+        """Total number of model parameters"""
 
         num_params = 0
         for param in self.parameters():

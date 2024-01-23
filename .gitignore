@@ -6,4 +6,8 @@ datasets/
 src/data/data_uci/data/
 src/data/data_uci/data_norm/
 res/
+fig/
+*.png
 *.npy
+*.pkl
+*.pth

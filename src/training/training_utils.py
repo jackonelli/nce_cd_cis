@@ -29,6 +29,27 @@ class KlDiv:
     def metric(self, model):
         return torch.mean((torch.exp(model.log_precision) - self.true_precison) ** 2)
         
+        
+class MvnKlDiv:
+    """KL divergence between two MVN distributions"""
+
+    def __init__(self, true_mu, true_cov):
+        self.dim = true_cov.size(0)
+        self.true_mu = true_mu.reshape((self.dim, 1))
+        self.true_cov = true_cov
+
+    def metric(self, model):
+        mu, cov = model.mu.reshape((self.dim, 1)), model.cov()
+        term_1 = torch.logdet(cov) - torch.logdet(self.true_cov)
+        term_2 = torch.trace(torch.linalg.solve(cov, self.true_cov))
+
+        mu_diff = mu - self.true_mu
+        cov_inv = torch.linalg.inv(cov)
+        term_3 = mu_diff.T @ cov_inv @ mu_diff
+        kl_div = (term_1 + term_2 + term_3 - self.dim) / 2
+        
+        return kl_div.item()
+        
 
 class PolynomialLr:
     """Polynomial decaying lr according to keras"""
@@ -95,4 +116,5 @@ def normalised_log_likelihood(data_loader, criterion):
         N += y.shape[0]
 
     return log_p_tilde - log_z / N
+
 

@@ -1,0 +1,30 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+torch = "*"
+numpy = "*"
+scipy = "*"
+wandb = "*"
+sklearn = "*"
+matplotlib = "*"
+jupyter = "*"
+ipython = "*"
+opencv-python = "*"
+# EBMs for regression req's
+ninja = "*"
+yacs = "*"
+cython = "*"
+tqdm = "*"
+
+[dev-packages]
+pytest = "*"
+pylint = "*"
+black = "*"
+neovim = "*"
+rope = "*"
+
+[requires]
+python_version = "3.8"

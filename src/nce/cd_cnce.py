@@ -67,6 +67,7 @@ class CdCnceCrit(PartFnEstimator):
                 add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy",
                                 acc_prob_mh.numpy())
 
+
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
 
@@ -149,6 +150,3 @@ class CdCnceCrit(PartFnEstimator):
             self._unnorm_distr.log_prob,
             self._noise_distr.log_prob,
         )
-
-
-

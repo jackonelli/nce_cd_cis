@@ -59,3 +59,6 @@ class PartFnEstimator(ABC):
 
     def get_model(self):
         return self._unnorm_distr
+
+    def num_neg_samples(self):
+        return self._num_neg
