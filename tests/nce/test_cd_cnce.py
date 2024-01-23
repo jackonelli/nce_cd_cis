@@ -85,7 +85,10 @@ class TestCdCnce(unittest.TestCase):
         criterion_ref.calculate_inner_crit_grad(y, y_samples)
         refs = criterion_ref.get_model_gradients()
 
+
         for grad, grad_ref in zip(res, refs):
+            print(grad)
+            print(grad / grad_ref)
             self.assertTrue(torch.allclose(grad_ref, grad, rtol=1e-4))
 
     def test_several_steps(self):

@@ -31,7 +31,7 @@ class TestCdMH(unittest.TestCase):
 
         mcmc_steps = 3
         criterion = CdCnceCrit(
-            true_distr, noise_distr, num_neg_samples, mcmc_steps, save_metrics=False
+            true_distr, noise_distr, num_neg_samples, mcmc_steps, save_acc_prob=False
         )
         criterion.calculate_crit_grad(y, None)
 

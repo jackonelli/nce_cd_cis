@@ -26,7 +26,7 @@ from src.training.training_utils import (
     MvnKlDiv,
     no_stopping,
 )
-from src.experiments.utils import generate_bounds, table_data, format_table
+from src.utils.utils import generate_bounds, table_data, format_table
 
 D, N, J = 5, 128, 10  # Dimension, Num. data samples, Num neg. samples
 # Initial values for p_theta (model distribution)

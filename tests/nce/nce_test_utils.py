@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 
 def sample_postive_test_samples(num_samples, min_num_dims=2, max_num_dims=5):

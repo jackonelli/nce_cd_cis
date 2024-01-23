@@ -17,7 +17,7 @@ from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 from src.data import data_uci
 from src.data.data_uci.uciutils import get_project_root
 
-from src.experiments.aem_exp_utils import parse_activation, parse_args, InfiniteLoader
+from src.utils.aem_exp_utils import parse_activation, parse_args, InfiniteLoader
 from src.training.model_training import train_aem_model
 from nbs.aem_experiment import load_models
 
