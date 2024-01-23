@@ -18,10 +18,10 @@ from src.data import data_uci
 from src.data.data_uci.uciutils import get_project_root
 
 from src.experiments.aem_exp_utils import parse_activation, parse_args, InfiniteLoader
+from src.experiments.wasserstein import wasserstein_metric
 from src.training.model_training import train_aem_model
 from nbs.aem_experiment import load_models
 
-import geomloss
 
 def main(args):
 
@@ -58,7 +58,7 @@ def main(args):
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)  # (io.get_checkpoint_root())
     
-    file = open("{}/eval_wasser_pytorch_{}_set_{}.txt".format(file_dir, args.val_split, str(args.n_importance_samples)), "w")
+    file = open("{}/eval_wasser_{}_set_{}.txt".format(file_dir, args.val_split, str(args.n_importance_samples)), "w")
     for i in range(args.reps):
         test_loader = load_data(data_name, args)
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
@@ -113,7 +113,7 @@ def run_test(test_loader, file, save_dir, args):
     model, made, proposal = load_models(dim, args)
     
     model.load_state_dict(torch.load(os.path.join(save_dir, "model"), map_location=device))
-    proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) # TODO: check so that this loads params also of made
+    proposal.load_state_dict(torch.load(os.path.join(save_dir, "proposal"), map_location=device)) 
 
     # create aem
     crit = AemSmcCrit(model, proposal, args.n_proposal_samples_per_input, args.n_importance_samples)
@@ -130,7 +130,7 @@ def run_test(test_loader, file, save_dir, args):
     num_samp = args.n_importance_samples  # Reusing this one
     reps = 10
     dist = torch.zeros((reps,))
-    wasser_metric = geomloss.SamplesLoss(loss="sinkhorn", p=2, blur=0.0, scaling=1e-3)
+            
     for r in range(reps):
         # Sample from data
         data_samples_all = test_loader.dataset.data
@@ -145,7 +145,7 @@ def run_test(test_loader, file, save_dir, args):
         select_ind = torch.distributions.Categorical(logits=log_w_tilde_y_s.squeeze(dim=0)).sample((num_samp,))
         y_samples = torch.gather(y_s.squeeze(dim=0), dim=0, index=select_ind[:, None].repeat(1, dim)).cpu()
 
-        dist[r] = wasser_metric(x_samples, y_samples)
+        dist[r] = wasserstein_metric(x_samples, y_samples)
 
           
     # Save outputs
