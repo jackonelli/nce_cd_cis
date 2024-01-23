@@ -28,7 +28,7 @@ def main(args):
     np.random.seed(args.seed)
 
     data_name = args.dataset_name
-    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem - aistats/") 
+    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/experiments/res/aem - aistats/")
     base_dir = os.path.join(proj_dir, args.dataset_name)
 
     if args.dataset_name in ["miniboone", "bsds300"]:

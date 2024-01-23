@@ -25,7 +25,7 @@ def main(args):
     np.random.seed(args.seed)
 
     data_name = args.dataset_name
-    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/nbs/res/aem/")
+    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/experiments/res/aem/")
     base_dir = os.path.join(proj_dir, args.dataset_name)
 
     if not os.path.exists(base_dir):
