@@ -20,7 +20,6 @@ class BaseModel(torch.nn.Module):
     def grad_log_prob(self, y: Tensor, weights=torch.tensor(1)):
         """Calculate (weighted) gradient of log probability"""
 
-
         # print("Normalised weights", weights)
         temp_loss = (weights * self.log_prob(y)).sum()
         temp_loss.backward()

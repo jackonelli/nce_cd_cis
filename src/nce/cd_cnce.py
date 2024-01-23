@@ -44,7 +44,7 @@ class CdCnceCrit(PartFnEstimator):
         else:
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
 
-        grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
+        grads = [-2 * grad_log_prob_y / y.shape[0]  for grad_log_prob_y in grads_log_prob_y]
 
         y_0 = y.clone()
         for t in range(self.mcmc_steps):
@@ -71,9 +71,9 @@ class CdCnceCrit(PartFnEstimator):
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
 
-            # Sum over samples (2), mean over iter.
+            # Mean over samples, mean over iter.
             grads = [
-                grad + (2 / self.mcmc_steps) * grad_log_prob
+                grad + (1 / (y_0.shape[0] * self.mcmc_steps)) * grad_log_prob
                 for grad, grad_log_prob in zip(grads, grads_log_prob)
             ]
 
