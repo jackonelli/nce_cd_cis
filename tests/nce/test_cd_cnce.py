@@ -55,7 +55,7 @@ class TestCdCnce(unittest.TestCase):
         print("HERE STARTS THE TEST")
         # Sample some data to test on
         num_samples = 5 # 1000
-        y = sample_postive_test_samples(num_samples)
+        y = sample_postive_test_samples(num_samples, min_num_dims=2, max_num_dims=3)
 
         print("y")
         print(y)
@@ -70,7 +70,11 @@ class TestCdCnce(unittest.TestCase):
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        print("true mean")
+        print(mu_true)
         mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        print("noise mean")
+        print(mu_noise)
         true_distr = GaussianModel(mu_true.clone(), cov_true.clone())
         noise_distr = ConditionalMultivariateNormal(cov_noise)
 
