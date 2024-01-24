@@ -19,8 +19,6 @@ class CondNceCrit(PartFnEstimator):
     def inner_crit(self, y: Tensor, y_samples):
 
         log_w_tilde = self._log_unnorm_w_ratio(y, y_samples)
-        print("CNCE unnorm weights")
-        print(log_w_tilde)
 
         return torch.log(1 + torch.exp(-log_w_tilde)).mean()
 
