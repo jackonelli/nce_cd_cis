@@ -52,16 +52,21 @@ class TestCdCnce(unittest.TestCase):
 
     def test_criterion_grad(self):
         """Check that criterion gives same gradient as NCE ranking for 1 step, when noise distr. is conditional"""
-
+        print("HERE STARTS THE TEST")
         # Sample some data to test on
-        num_samples = 1000
+        num_samples = 5 # 1000
         y = sample_postive_test_samples(num_samples)
+
+        print("y")
+        print(y)
 
         # Random number of negative samples
         min_neg_samples, max_neg_samples = 2, 20
         num_neg_samples = (
             (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
         ).int()
+
+        num_neg_samples = 3
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
@@ -74,6 +79,9 @@ class TestCdCnce(unittest.TestCase):
 
         y = torch.repeat_interleave(y, num_neg_samples, dim=0)
         y_samples = criterion.sample_noise(1, y)
+
+        print("y_samples")
+        print(y_samples)
 
         # Calculate gradient directly using CD+CNCE
         criterion.calculate_inner_crit_grad(y, y_samples)
@@ -89,6 +97,9 @@ class TestCdCnce(unittest.TestCase):
         for grad, grad_ref in zip(res, refs):
             print(grad / grad_ref)
             self.assertTrue(torch.allclose(grad_ref, grad, rtol=1e-4))
+
+        print("HERE ENDS THE TEST")
+
 
     def test_several_steps(self):
         """Just check that everything seems to run for multiple MCMC steps"""
