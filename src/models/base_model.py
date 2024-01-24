@@ -23,7 +23,7 @@ class BaseModel(torch.nn.Module):
         l_temp = (weights * self.log_prob(y))
         print("Log prob med shape ")
         print(l_temp.shape)
-        print(l)
+        print(l_temp)
 
         l = (weights * self.log_prob(y)).sum()
         l.backward()
