@@ -29,13 +29,10 @@ class BaseModel(torch.nn.Module):
 
         print(l)
 
-        print("Grad weights")
-        weights.sum().backward()
-        gradsw = [param.grad.detach().clone() for param in self.parameters()]
+        for i, param in enumerate(self.parameters()):
+            print("grad prior" + str(i))
+            print(param.grad)
 
-        for i, grad in enumerate(gradsw):
-            print("grad temp loss" + str(i))
-            print(grad)
 
         l.backward()
         grads = [param.grad.detach().clone() for param in self.parameters()]
