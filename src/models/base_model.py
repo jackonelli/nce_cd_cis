@@ -22,26 +22,9 @@ class BaseModel(torch.nn.Module):
 
         self.clear_gradients()
 
-        # print("Normalised weights", weights)
-        l_temp = weights * self.log_prob(y)
-        print("Log prob with shape")
-        print(l_temp.shape)
-        print(l_temp)
-
         temp_loss = (weights * self.log_prob(y)).sum()
-        print(temp_loss)
-
-        for i, param in enumerate(self.parameters()):
-            print("grad prior" + str(i))
-            print(param.grad)
-
-
         temp_loss.backward()
         grads = [param.grad.detach().clone() for param in self.parameters()]
-
-        for i, grad in enumerate(grads):
-            print("grad temp loss " + str(i))
-            print(grad)
 
         return grads
 
