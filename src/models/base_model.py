@@ -20,6 +20,11 @@ class BaseModel(torch.nn.Module):
         """ Calculate (weighted) gradient of log probability """
         self.clear_gradients()
 
+        l_temp = (weights * self.log_prob(y))
+        print("Log prob med shape ")
+        print(l_temp.shape)
+        print(l)
+
         l = (weights * self.log_prob(y)).sum()
         l.backward()
         grads = [param.grad.detach().clone() for param in self.parameters()]

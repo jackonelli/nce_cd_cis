@@ -55,11 +55,11 @@ class TestCdRank(unittest.TestCase):
         print("TEST STARTS HERE")
         # Sample some data to test on
         num_samples = 5  # 1000
-        y = torch.tensor([[-2.5278, 0.6083, 0.2062],
-                          [-1.6150, 2.0330, -0.5338],
-                          [-0.6505, 2.0204, 0.8260],
-                          [-2.7263, 1.3239, 0.5762],
-                          [-1.5593, 1.4321, 1.5634]])  # sample_postive_test_samples(num_samples)
+        y = torch.tensor([[-0.9742, -1.7647],
+                        [-0.9475, -0.3340],
+                        [-0.4262,  0.6364],
+                        [ 1.9665, -1.4356],
+                        [ 0.4696,  1.0241]])  # sample_postive_test_samples(num_samples)
         print("y")
         print(y)
 
@@ -68,10 +68,17 @@ class TestCdRank(unittest.TestCase):
         num_neg_samples = (
             (max_neg_samples - min_neg_samples) * torch.rand(1) + min_neg_samples
         ).int()
+        num_neg_samples = 3
 
         # Multivariate normal model and noise distr.
         mu_true, cov_true = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        mu_true = torch.tensor([-0.2900, -0.7650])
+        print("true mean")
+        print(mu_true)
         mu_noise, cov_noise = torch.randn((y.shape[-1],)), torch.eye(y.shape[-1])
+        mu_noise = torch.tensor([ 2.1008, -0.0943])
+        print("noise mean")
+        print(mu_noise)
         true_distr = GaussianModel(mu_true.clone(), cov_true.clone())
         noise_distr = ConditionalMultivariateNormal(cov_noise)
 
@@ -79,35 +86,35 @@ class TestCdRank(unittest.TestCase):
         criterion = CdCnceCrit(true_distr, noise_distr, num_neg_samples, mcmc_steps)
 
         y = torch.repeat_interleave(y, num_neg_samples, dim=0)
-        y_samples = torch.tensor([[[-3.5967e+00,  1.8068e+00,  3.9362e-01]],
+        y_samples = torch.tensor([[[-1.9684, -1.3018]],
 
-        [[-3.3302e+00, -2.7416e-01, -3.9162e-02]],
+        [[-0.2309, -2.3210]],
 
-        [[-8.2268e-02, -3.4417e-01, -2.0565e-01]],
+        [[ 0.4499, -1.9452]],
 
-        [[-1.4111e+00,  4.6796e-01, -6.5446e-01]],
+        [[-2.5049,  0.5279]],
 
-        [[-2.7106e+00,  2.5717e+00, -4.7367e-01]],
+        [[-0.1199, -0.7333]],
 
-        [[-1.4309e+00,  1.4161e+00, -1.6986e-01]],
+        [[-1.8766, -0.3863]],
 
-        [[-2.8917e-01,  2.2081e+00,  2.5424e-01]],
+        [[-0.9815, -0.9619]],
 
-        [[-1.3460e+00,  2.4110e-01, -1.1812e+00]],
+        [[-0.3796,  0.4796]],
 
-        [[-4.3365e-03,  4.4114e+00, -1.6243e+00]],
+        [[-1.5267,  0.9659]],
 
-        [[-2.1785e+00,  5.7454e-01,  1.5190e+00]],
+        [[ 0.2503, -0.1551]],
 
-        [[-3.9907e+00,  1.1558e+00,  4.9643e-01]],
+        [[ 2.4362, -1.5338]],
 
-        [[-2.6997e+00,  5.5572e-01,  1.1770e+00]],
+        [[ 0.9104,  0.3883]],
 
-        [[-1.9374e+00,  7.8639e-01,  1.2030e+00]],
+        [[ 0.9689, -0.4269]],
 
-        [[-2.0738e+00,  1.4319e+00, -1.4145e-01]],
+        [[-0.6876,  0.5823]],
 
-        [[-8.6571e-01,  2.1864e+00,  1.5748e+00]]]) #criterion.sample_noise(1, y)
+        [[-0.3902,  2.8169]]]) #criterion.sample_noise(1, y)
 
         print("y_samples")
         print(y_samples)
