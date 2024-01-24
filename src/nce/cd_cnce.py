@@ -44,18 +44,28 @@ class CdCnceCrit(PartFnEstimator):
         else:
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
 
-        grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
+        grads = [-grad_log_prob_y / y.shape[0] for grad_log_prob_y in grads_log_prob_y]
+
+        for i, grad in enumerate(grads):
+            print("grad y " + str(i))
+            print(grad)
 
         y_0 = y.clone()
         for t in range(self.mcmc_steps):
 
             # Concatenate samples
             ys = concat_samples(y_0, y_samples)
+            print("ys")
+            print(ys)
             assert ys.shape == (y.shape[0], 2, y.shape[1])
 
             # Calculate and normalise weight ratios
             log_w_y = self._log_unnorm_w_ratio(y_0, y_samples).detach()
             w_y = 1 / (1 + torch.exp(-log_w_y))
+
+            print("weights")
+            print(w_y)
+
             w = torch.cat((w_y, 1 - w_y), dim=1)
 
             if self.save_acc_prob:
@@ -70,9 +80,17 @@ class CdCnceCrit(PartFnEstimator):
             # Calculate gradients of log prob
             grads_log_prob = self._unnorm_distr.grad_log_prob(ys, w)
 
+            for i, grad in enumerate(grads_log_prob):
+                print("grad ys " + str(i))
+                print(grad)
+
+            for i, grad in enumerate(grads):
+                print("grad y 2nd " + str(i))
+                print(grad)
+
             # Sum over samples (2), mean over iter.
             grads = [
-                grad + (2 / self.mcmc_steps) * grad_log_prob
+                grad + (1 / (y_0.shape[0] * self.mcmc_steps)) * grad_log_prob
                 for grad, grad_log_prob in zip(grads, grads_log_prob)
             ]
 
