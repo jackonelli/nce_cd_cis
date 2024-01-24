@@ -41,10 +41,10 @@ class CdCnceCrit(PartFnEstimator):
         if y_base is None:
             # Gradient of mean is same as mean of gradient
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
-            grads = [-2 * grad_log_prob_y / y.shape[0]  for grad_log_prob_y in grads_log_prob_y]
+            grads = [- grad_log_prob_y / y.shape[0]  for grad_log_prob_y in grads_log_prob_y]
         else:
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
-            grads = [-2 * grad_log_prob_y / y_base.shape[0]  for grad_log_prob_y in grads_log_prob_y]
+            grads = [- grad_log_prob_y / y_base.shape[0]  for grad_log_prob_y in grads_log_prob_y]
 
         for i, grad in enumerate(grads):
             print("grad y " + str(i))
