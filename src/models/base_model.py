@@ -27,8 +27,13 @@ class BaseModel(torch.nn.Module):
         print(l_temp)
 
         temp_loss = (weights * self.log_prob(y)).sum()
+        print(temp_loss)
         temp_loss.backward()
         grads = [param.grad.detach().clone() for param in self.parameters()]
+
+        for i, grad in enumerate(grads):
+            print("grad temp loss " + str(i))
+            print(grad)
 
         return grads
 

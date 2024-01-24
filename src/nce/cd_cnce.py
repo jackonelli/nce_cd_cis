@@ -88,6 +88,11 @@ class CdCnceCrit(PartFnEstimator):
 
             # Mean over samples, mean over iter.
             print(self.mcmc_steps)
+
+            for i, grad in enumerate(grads):
+                print("grad y 2nd " + str(i))
+                print(grad)
+
             grads = [
                 grad + (1 / (y_0.shape[0] * self.mcmc_steps)) * grad_log_prob
                 for grad, grad_log_prob in zip(grads, grads_log_prob)
