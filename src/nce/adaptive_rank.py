@@ -8,7 +8,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import norm_weights, unnorm_weights, concat_samples
+from src.utils.part_fn_utils import norm_weights, unnorm_weights, concat_samples
 
 
 class AdaptiveRankKernel(PartFnEstimator):

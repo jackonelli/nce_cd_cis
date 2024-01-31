@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import log_cond_unnorm_weights, log_cond_unnorm_weights_ratio
+from src.utils.part_fn_utils import log_cond_unnorm_weights, log_cond_unnorm_weights_ratio
 
 
 class CondNceCrit(PartFnEstimator):

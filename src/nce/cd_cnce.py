@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
-from src.part_fn_utils import log_cond_unnorm_weights, log_cond_unnorm_weights_ratio, concat_samples
+from src.utils.part_fn_utils import log_cond_unnorm_weights, log_cond_unnorm_weights_ratio, concat_samples
 
 from src.noise_distr.base import NoiseDistr
 from src.models.base_model import BaseModel

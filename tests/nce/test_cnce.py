@@ -5,7 +5,7 @@ from src.models.gaussian_model import GaussianModel
 from src.noise_distr.normal import MultivariateNormal
 from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
 from src.nce.cnce import CondNceCrit
-from src.part_fn_utils import unnorm_weights, cond_unnorm_weights_ratio
+from src.utils.part_fn_utils import unnorm_weights, cond_unnorm_weights_ratio
 
 from tests.nce.nce_test_utils import sample_postive_test_samples
 

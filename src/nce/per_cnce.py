@@ -11,7 +11,7 @@ from torch import Tensor
 from torch.distributions import Categorical
 
 from src.nce.cd_cnce import CdCnceCrit
-from src.part_fn_utils import concat_samples
+from src.utils.part_fn_utils import concat_samples
 
 
 class PersistentCondNceCrit(CdCnceCrit):

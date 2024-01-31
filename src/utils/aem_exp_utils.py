@@ -2,9 +2,10 @@
 import math
 import sys
 import argparse
-import torch
-
 from numbers import Number
+import numpy as np
+
+import torch
 from torch import distributions
 from torch.distributions import constraints
 from torch.distributions.exp_family import ExponentialFamily
@@ -244,6 +245,26 @@ def standard_resampling(ess, num_samples):
     # Always resample
     return ess <= num_samples
 
+def wasserstein_metric(
+    x_samples: np.ndarray, y_samples: np.ndarray, p: float = 2.0
+) -> float:
+    """Wasserstein metric
+
+    Computes the empirical Wasserstein p-distance between x_samples and y_samples
+    by solving a linear assignment problem.
+
+    Args:
+        x_samples: samples
+        y_samples: samples
+        p: [0, inf) type of Wasserstein distance
+    """
+
+    d = cdist(x_samples, y_samples) ** p
+    assignment = linear_sum_assignment(d)
+    dist = (d[assignment].sum() / len(assignment)) ** (1.0 / p)
+    return dist.item()
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -343,4 +364,5 @@ def parse_args():
     args = parser.parse_args()
 
     return args
+
 

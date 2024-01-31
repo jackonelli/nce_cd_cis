@@ -2,7 +2,7 @@ import unittest
 import torch
 from src.noise_distr.conditional_normal import ConditionalMultivariateNormal
 from src.models.gaussian_model import GaussianModel
-from src.part_fn_utils import (
+from src.utils.part_fn_utils import (
     concat_samples,
     unnorm_weights,
     norm_weights,

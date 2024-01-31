@@ -11,7 +11,7 @@ from torch import Tensor
 from torch.distributions import Categorical
 
 from src.nce.cd_mh_cnce import CdMHCnceCrit
-from src.part_fn_utils import concat_samples, log_cond_unnorm_weights
+from src.utils.part_fn_utils import concat_samples, log_cond_unnorm_weights
 
 
 class PersistentMHCnceCritBatch(CdMHCnceCrit):

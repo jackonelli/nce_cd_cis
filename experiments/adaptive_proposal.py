@@ -26,7 +26,7 @@ from src.training.training_utils import (
     MvnKlDiv,
     no_stopping,
 )
-from src.utils.utils import generate_bounds, table_data, format_table
+from src.utils.plot_utils import generate_bounds, table_data, format_table
 
 D, N, J = 5, 128, 10  # Dimension, Num. data samples, Num neg. samples
 # Initial values for p_theta (model distribution)
@@ -50,7 +50,7 @@ def main(args):
     num_epochs = args.num_epochs
     learn_rate = args.base_lr * BATCH_SIZE ** 0.5
     # Options for decaying learning rate.
-    scheduler_opts = (num_epochs * (N // BATCH_SIZE), 0.01)
+    num_epochs_decay, lr_factor = num_epochs * (N // BATCH_SIZE), 0.01
 
     # Metrics
     metric = MvnKlDiv(MU_STAR, COV_STAR).metric
@@ -66,53 +66,34 @@ def main(args):
     for m in range(args.num_runs):
         print(f"Run {m+1}/{args.num_runs}")
         p_d, p_t_data_noise, p_t_model_noise = create_distr()
-        # q = q_phi
-        p_theta = DiagGaussianModel(INIT_MU.clone(), INIT_COV.clone())
-        # Note: we initialise q = p_d to make it a fair comparison.
-        q_phi = AdaptiveDiagGaussianModel(MU_STAR.clone(), COV_STAR.clone())
-        p_crit = NceRankCrit(p_theta, q_phi, J)
-        q_crit = AdaptiveRankKernel(p_theta, q_phi, J)
 
-        _, q_phi_metrics[m, :] = train_model_adaptive_proposal(
-            p_theta,
-            q_phi,
-            p_crit,
-            q_crit,
+        # q = p_d
+        _, p_d_metrics[m, :] = train_model(
+            NceRankCrit(p_t_data_noise, p_d, J),
             metric,
             train_loader,
-            None,
-            neg_sample_size=J,
             num_epochs=num_epochs,
             stopping_condition=no_stopping,
             lr=learn_rate,
-            scheduler_opts=scheduler_opts,
+            decaying_lr=True,
+            lr_factor=lr_factor,
+            num_epochs_decay=num_epochs_decay
         )
-        # # q = p_d
-        # _, p_d_metrics[m, :] = train_model(
-        #     NceRankCrit(p_t_data_noise, p_d, J),
-        #     metric,
-        #     train_loader,
-        #     None,
-        #     neg_sample_size=J,
-        #     num_epochs=num_epochs,
-        #     stopping_condition=no_stopping,
-        #     lr=learn_rate,
-        #     scheduler_opts=scheduler_opts,
-        # )
 
-        # # q = p_theta
-        # _, p_t_metrics[m, :] = train_model_model_proposal(
-        #     p_t_model_noise,
-        #     NceRankCrit,
-        #     metric,
-        #     train_loader,
-        #     None,
-        #     J,
-        #     num_epochs,
-        #     lr=learn_rate,
-        #     stopping_condition=no_stopping,
-        #     scheduler_opts=scheduler_opts,
-        # )
+        # q = p_theta
+        _, p_t_metrics[m, :] = train_model_model_proposal(
+            p_t_model_noise,
+            NceRankCrit,
+            metric,
+            train_loader,
+            neg_sample_size=J,
+            num_epochs=num_epochs,
+            lr=learn_rate,
+            stopping_condition=no_stopping,
+            decaying_lr=True,
+            lr_factor=lr_factor,
+            num_epochs_decay=num_epochs_decay
+        )
 
         # q = q_phi
         p_theta = DiagGaussianModel(INIT_MU.clone(), INIT_COV.clone())
@@ -128,13 +109,16 @@ def main(args):
             q_crit,
             metric,
             train_loader,
-            None,
             neg_sample_size=J,
             num_epochs=num_epochs,
             stopping_condition=no_stopping,
             lr=learn_rate,
-            scheduler_opts=scheduler_opts,
+            decaying_lr=True,
+            lr_factor=lr_factor,
+            num_epochs_decay=num_epochs_decay
         )
+
+
     if args.save_dir:
         # Save torch tensors:
         print(f"Saving KL metrics in '{args.save_dir}'")
@@ -170,10 +154,10 @@ def plot_kl_div(p_d_metrics, p_t_metrics, q_phi_metrics):
     ax.errorbar(it, med, [low, upp], label="$q=p_d$")
 
     it, med, low, upp = table_data(*generate_bounds(p_t_metrics.numpy()))
-    ax.errorbar(it, med, [low, upp], label="$q=p_t$")
+    ax.errorbar(it, med, [low, upp], label="$q=p_{\\theta}$")
 
     it, med, low, upp = table_data(*generate_bounds(q_phi_metrics.numpy()))
-    ax.errorbar(it, med, [low, upp], label="$q=p_{\\theta}$")
+    ax.errorbar(it, med, [low, upp], label="$q=p_{\\phi}$")
 
     ax.legend()
     ax.set_xlim([1, it.max() + 1])
@@ -210,7 +194,7 @@ def parse_args():
     parser.add_argument(
         "--save-dir",
         type=Path,
-        help="Number of epochs to train for.",
+        help="Directory where results should be saved.",
     )
     return parser.parse_args()
 

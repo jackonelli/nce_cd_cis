@@ -23,3 +23,8 @@ def initialise_params(mu_min=6, mu_max=8, sigma_min=0.3, sigma_max=1.5, z_min=0.
     z = torch.rand(1) + z_min
 
     return mu, torch.log(precision), torch.log(z)
+
+def get_cnce_noise_distr_par(y):
+    epsilon = torch.std(y, dim=-1).mean()
+
+    return torch.eye(y.shape[-1]) * epsilon ** 2
