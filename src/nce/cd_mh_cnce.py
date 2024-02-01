@@ -42,14 +42,12 @@ class CdMHCnceCrit(PartFnEstimator):
         if y_base is None:
             # Gradient of mean is same as mean of gradient
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y)
+            grads = [-grad_log_prob_y / y.shape[0] for grad_log_prob_y in grads_log_prob_y]
         else:
             grads_log_prob_y = self._unnorm_distr.grad_log_prob(y_base)
-
-        grads = [-grad_log_prob_y for grad_log_prob_y in grads_log_prob_y]
+            grads = [-grad_log_prob_y / y_base.shape[0] for grad_log_prob_y in grads_log_prob_y]
 
         y_0 = y.clone()
-        # log_w_threshold = 1e4
-        # w_y = torch.zeros((y.shape[0], 1), dtype=y.dtype)
         for t in range(self.mcmc_steps):
 
             # Get neg. samples
@@ -74,7 +72,7 @@ class CdMHCnceCrit(PartFnEstimator):
 
             # Sum over samples (2), mean over iter.
             grads = [
-                grad + (2 / self.mcmc_steps) * grad_log_prob
+                grad + (1 / (y.shape[0] * self.mcmc_steps)) * grad_log_prob
                 for grad, grad_log_prob in zip(grads, grads_log_prob)
             ]
 

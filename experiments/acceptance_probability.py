@@ -1,3 +1,5 @@
+from pathlib import Path
+import argparse
 import sys
 import os
 import torch
@@ -23,7 +25,7 @@ from src.training.training_utils import PrecisionErrorMetric, no_stopping, remov
 
 from src.utils.ring_model_exp_utils import generate_true_params, initialise_params, get_cnce_noise_distr_par
 
-from src.plot_utils import skip_list_item
+from src.utils.plot_utils import skip_list_item
 
 D = 5 # Dimension
 BATCH_SIZE = 20
@@ -31,15 +33,24 @@ BATCH_SIZE = 20
 
 def main(args):
 
+    # Create save directories
+    if not os.path.exists(args.save_dir):
+        os.mkdir(args.save_dir)
+
+    data_dir = Path(str(args.save_dir) + "/datasets")
+    if not os.path.exists(data_dir):
+        os.mkdir(data_dir)
+
+
     # Scale learning rate to batch size
-    lr = args.base_lr * args.batch_size ** 0.5
+    lr = args.base_lr * BATCH_SIZE ** 0.5
     lr_factor = 0.1  # Factor for decaying learning rate
 
     # Get critera
     configs = get_criteria()
     
-    error_res = np.zeros((len(configs), int(np.ceil(num_samples / batch_size) * num_epochs), reps))
-    acc_prob_res = np.zeros((len(configs), 2, int(np.ceil(num_samples / batch_size) * num_epochs), reps))
+    error_res = np.zeros((len(configs), int(np.ceil(args.num_samples / BATCH_SIZE) * args.num_epochs) + 1, args.num_runs))
+    acc_prob_res = np.zeros((len(configs), 2, int(np.ceil(args.num_samples / BATCH_SIZE) * args.num_epochs), args.num_runs))
 
     # Run reps
     for rep in range(args.num_runs):
@@ -50,8 +61,8 @@ def main(args):
         error_metric = PrecisionErrorMetric(true_precision=precision).metric            
 
         training_data = RingModelDataset(sample_size=args.num_samples, num_dims=D, mu=mu, precision=precision, 
-                                         root_dir=os.path.join(args.save_dir, "datasets/ring_data_size_" + str(args.num_samples) + "_nn_" + str(args.num_neg_samples) + "_rep_" + str(rep)))
-        train_loader = torch.utils.data.DataLoader(training_data, batch_size=args.batch_size, shuffle=True)
+                                         root_dir=os.path.join(data_dir, "ring_data_size_" + str(args.num_samples) + "_nn_" + str(args.num_neg_samples) + "_rep_" + str(rep)))
+        train_loader = torch.utils.data.DataLoader(training_data, batch_size=BATCH_SIZE, shuffle=True)
 
         # Initialise           
         _, log_precision_init, log_z_init = initialise_params()
@@ -87,13 +98,13 @@ def main(args):
                 acc_prob_res[i, 0, :, rep] = np.load(Path(str(save_dir_pre) + "_" + "cd_cnce" + "_acc_prob.npy")).mean(axis=0)
                 acc_prob_res[i, 1, :, rep] = np.load(Path(str(save_dir_pre) + "_" + "cd_mh" + "_acc_prob.npy")).mean(axis=0)
 
-        plot_acc_prob_res(configs, error_res, acc_prob_res)
+    plot_acc_prob_res(configs, error_res, acc_prob_res, args)
 
 
-def plot_acc_prob_res(configs, error_res, acc_prob_res):
+def plot_acc_prob_res(configs, error_res, acc_prob_res, args):
     # Visualise result
-    num_its = error_res.shape[-2]
-    x = skip_list_item(np.arange(num_its) + 5)
+    num_its = error_res.shape[-2] - 1
+    x = skip_list_item(np.arange(1, num_its), args.data_res)
 
     fig, ax = plt.subplots(1, 3, figsize=(16, 5))
     ax[0].set_yscale('log')
@@ -105,7 +116,7 @@ def plot_acc_prob_res(configs, error_res, acc_prob_res):
         cnce_data = acc_prob_res[i, 0, x, :]
         mh_cnce_data = acc_prob_res[i, 1, x, :]
 
-        err_median, err_worst_case = np.median(err_data, axis=-1), np.min(err_data, axis=-1)
+        err_median, err_worst_case = np.median(err_data, axis=-1), np.max(err_data, axis=-1)
 
         ax[0].plot(x, err_median, color=config["color"], label=config["label"])
         ax[0].plot(x, err_worst_case, '--', color=config["color"])
@@ -153,11 +164,11 @@ def get_criteria():
 
     config_pers_cnce = {
         "criterion": PersistentCondNceCritBatch,
-        "label": "pers_cnce",
+        "name": "pers_cnce",
         "conditional_noise_distr": True,
         "mcmc_steps": None,
         "calc_acc_prob": True,
-        "legend_label": 'P-CNCE',
+        "label": 'P-CNCE',
         "color": [240/255,80/255,57/255]
     }
     

@@ -77,7 +77,10 @@ def train_model(
             # Note: now logging this for every iteration (and not epoch)
             with torch.no_grad():
                 loss = criterion.crit(y, None)
-                batch_losses.append(loss.item())
+
+                if loss is not None:
+                    batch_losses.append(loss.item())
+
                 batch_metrics.append(evaluation_metric(model))
 
         if stopping_condition(
