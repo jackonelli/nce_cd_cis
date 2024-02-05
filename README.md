@@ -33,6 +33,8 @@ python experiments/acceptance_probability.py
 
 To reproduce results in Table 1. 
 
+#### Training
+
 Power:
 
 ```
@@ -40,7 +42,6 @@ python experiments/aem --criterion CRIT --n_total_steps 1000000
 ```
 
 Gas:
- -m nbs.aem_experiment --criterion 'is' --dataset_name 'miniboone'  --dropout_probability_energy_net 0.5 --dropout_probability_made 0.5 --train_batch_size 128 --val_batch_size 128 --n_total_steps 50000 --alpha_warm_up_steps 0 --val_frac 1.0 | tee miniboone_exp_is.txt
 
 ```
 python experiments/aem --criterion CRIT --dataset_name 'gas' --dropout_probability_energy_net 0.0 --dropout_probability_made 0.0 --activation_energy_net 'tanh' --n_total_steps 600000 
@@ -66,8 +67,9 @@ python experiments/aem --criterion CRIT --dataset_name 'bsds300' --hidden_dim_ma
 
 Replace CRIT with designated criterion ('is'/'cis'/csmc').
 
+#### Evaluation
 
-To evaluate the log. likelihood for all critera^1:
+To evaluate the log. likelihood for all critera$^1$:
 
 Power:
 
@@ -100,7 +102,6 @@ python experiments/aem_eval_log_likelihood --dataset_name 'bsds300' --hidden_dim
 ```
 
 
-
 To evaluate the Wasserstein distance for all critera:
 
 
@@ -131,18 +132,11 @@ python experiments/aem_eval_wasserstein --dataset_name 'miniboone'  --dropout_pr
 BSDS300:
 
 ```
-python experiments/aem_eval_log_likelihood --dataset_name 'bsds300' --hidden_dim_made 512 --train_batch_size 128  --val_batch_size 128 --val_frac 1.0 --n_importance_samples 10000
+python experiments/aem_eval_wasserstein --dataset_name 'bsds300' --hidden_dim_made 512 --train_batch_size 128  --val_batch_size 128 --val_frac 1.0 --n_importance_samples 10000
 ```
 
 
-
-```
-python experiments/aem_eval_wasserstein.py
-```
-
-
-
-^1 Evaluation expects that all models for the given dataset have been trained (IS, CIS, CSMC for Power, Gas, Hepmass and CIS, CSMC for Miniboone, BSDS300). 
+$^1$ Evaluation expects that all models for the given dataset have been trained (IS, CIS, CSMC for Power, Gas, Hepmass and CIS, CSMC for Miniboone, BSDS300). 
 
 
 ## TODO
