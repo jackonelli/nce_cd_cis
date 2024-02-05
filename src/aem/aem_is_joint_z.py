@@ -2,6 +2,7 @@
 from typing import Optional
 import torch
 from torch import Tensor
+
 from src.part_fn_base import PartFnEstimator
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 from src.models.aem.made_joint_z import get_autoregressive_mask

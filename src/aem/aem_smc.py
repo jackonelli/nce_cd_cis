@@ -5,7 +5,7 @@ from torch.distributions import Categorical
 from src.aem.aem_is_joint_z import AemIsJointCrit
 from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 
-from src.experiments.aem_exp_utils import adaptive_resampling
+from src.utils.aem_exp_utils import adaptive_resampling
 
 
 class AemSmcCrit(AemIsJointCrit):

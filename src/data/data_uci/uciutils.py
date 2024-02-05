@@ -1,6 +1,5 @@
 # Adapted from https://github.com/conormdurkan/autoregressive-energy-machines
 
-#import h5py
 import numpy as np
 import os
 import pandas as pd
@@ -57,7 +56,7 @@ def download_and_extract(data_dir):
     os.remove(filename)
     print('Zipped data removed.\n')
 
-    response = input('Do you wish to delete CIFAR-10? [Y/n]')
+    response = input('Do you wish to delete CIFAR-10? [y/n]')
     if response in ['y', '']:
         shutil.rmtree(os.path.join(data_dir, 'data/cifar10'))
         print('CIFAR-10 removed.\n')
@@ -76,7 +75,7 @@ def download_data():
             "> The download includes CIFAR-10, although it is not used in the paper.\n"
             "> After extraction, this script will delete the zipped download.\n"
             "> You will also be able to specify whether to delete CIFAR-10.\n"
-            "> Do you wish to download the data? [Y/n]"
+            "> Do you wish to download the data? [y/n]"
         )
         response = input(query)
         if response in ['y', '']:

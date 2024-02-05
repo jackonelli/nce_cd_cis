@@ -6,7 +6,7 @@ from torch.nn import functional as F
 
 from src.models.base_model import BaseModel
 
-from src.experiments.aem_exp_utils import Normal_, MixtureSameFamily1D
+from src.utils.aem_exp_utils import Normal_, MixtureSameFamily1D
 
 
 class AemJointProposal(BaseModel):
