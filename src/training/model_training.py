@@ -357,4 +357,4 @@ def train_aem_model(
         torch.save(model.state_dict(), save_dir + "/model_final")
         torch.save(proposal.state_dict(), save_dir + "/proposal_final")
 
-    return torch.tensor(batch_losses), torch.tensor(batch_metrics)
+    #return torch.tensor(batch_losses), torch.tensor(batch_metrics)

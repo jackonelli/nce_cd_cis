@@ -8,7 +8,6 @@ from src.aem.aem_is_joint_z import AemIsJointCrit
 from src.aem.aem_cis_joint_z import AemCisJointCrit
 from src.aem.aem_smc import AemSmcCrit
 from src.aem.aem_smc_cond import AemSmcCondCrit
-from src.experiments.aem_exp_utils import standard_resampling
 
 from src.models.aem.energy_net import ResidualEnergyNet
 from src.models.aem.made_joint_z import ResidualMADEJoint
@@ -17,9 +16,9 @@ from src.noise_distr.aem_proposal_joint_z import AemJointProposal
 from src.data import data_uci
 from src.data.data_uci.uciutils import get_project_root
 
-from src.utils.aem_exp_utils import parse_activation, parse_args, InfiniteLoader, wasserstein_metric
+from src.utils.aem_exp_utils import parse_activation, parse_args, InfiniteLoader, wasserstein_metric, standard_resampling
 from src.training.model_training import train_aem_model
-from nbs.aem_experiment import load_models
+from experiments.aem import load_models
 
 
 def main(args):
@@ -28,7 +27,7 @@ def main(args):
     np.random.seed(args.seed)
 
     data_name = args.dataset_name
-    proj_dir = os.path.join(get_project_root(), "deep_ext_obj/experiments/res/aem - aistats/")
+    proj_dir = os.path.join(get_project_root(), "nce_cd_cis/experiments/res/aem/")
     base_dir = os.path.join(proj_dir, args.dataset_name)
 
     if args.dataset_name in ["miniboone", "bsds300"]:
@@ -69,8 +68,9 @@ def main(args):
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)  # (io.get_checkpoint_root())
 
-            dist = run_test(test_loader, file, save_dir, args)
-            print("Wasserstein dist: {}".format(dist))
+            dist_mean, dist_sterr = run_test(test_loader, file, save_dir, args)
+            print("Wasserstein dist, mean: {}".format(dist_mean))
+            print("Wasserstein dist, sterr: {}".format(dist_sterr))
 
     file.close()
 
@@ -127,10 +127,10 @@ def run_test(test_loader, file, save_dir, args):
     
    
     num_samp = args.n_importance_samples  # Reusing this one
-    reps = 10
-    dist = torch.zeros((reps,))
+    num_est = 10
+    dist = torch.zeros((num_est,))
             
-    for r in range(reps):
+    for i in range(num_est):
         # Sample from data
         data_samples_all = test_loader.dataset.data
 
@@ -144,7 +144,7 @@ def run_test(test_loader, file, save_dir, args):
         select_ind = torch.distributions.Categorical(logits=log_w_tilde_y_s.squeeze(dim=0)).sample((num_samp,))
         y_samples = torch.gather(y_s.squeeze(dim=0), dim=0, index=select_ind[:, None].repeat(1, dim)).cpu()
 
-        dist[r] = wasserstein_metric(x_samples, y_samples)
+        dist[i] = wasserstein_metric(x_samples, y_samples)
 
           
     # Save outputs
@@ -173,12 +173,12 @@ def run_test(test_loader, file, save_dir, args):
     
     print(
         "Stderr: {}".format(
-            dist_std / np.sqrt(reps)
+            dist_std / np.sqrt(num_est)
         ),
         file=file,
     )
     
-    return dist_mean
+    return dist_mean, dist_std / np.sqrt(num_est)
 
 
 if __name__ == '__main__':

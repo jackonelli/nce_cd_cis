@@ -225,7 +225,7 @@ def parse_args():
     )
     parser.add_argument(
         "--save-dir",
-        default="res/",
+        default="experiments/res/acc_prob",
         type=Path,
         help="Directory where results should be saved.",
     )

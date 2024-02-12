@@ -12,6 +12,9 @@ from torch.distributions.exp_family import ExponentialFamily
 from torch.distributions.utils import _standard_normal, broadcast_all
 
 from scipy.stats import truncnorm
+from scipy.spatial.distance import cdist
+from scipy.optimize import linear_sum_assignment
+
 
 q = sys.exit
 
