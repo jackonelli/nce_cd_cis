@@ -7,17 +7,15 @@ name = "pypi"
 torch = "*"
 numpy = "*"
 scipy = "*"
-wandb = "*"
-sklearn = "*"
 matplotlib = "*"
 jupyter = "*"
 ipython = "*"
-opencv-python = "*"
-# EBMs for regression req's
-ninja = "*"
-yacs = "*"
-cython = "*"
 tqdm = "*"
+tensorboardX = "*"
+tikzplotlib = "*"
+# UCI data
+pandas = "*"
+h5py = "*"
 
 [dev-packages]
 pytest = "*"
@@ -27,4 +25,4 @@ neovim = "*"
 rope = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.10"

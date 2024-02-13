@@ -11,12 +11,8 @@ from tqdm import tqdm
 
 
 """Training loops"""
-from typing import Optional, Tuple
-import torch
 from torch.optim.lr_scheduler import LinearLR
-import numpy as np
 
-from src.training.training_utils import no_stopping
 from src.noise_distr.normal import MultivariateNormal
 
 
@@ -31,7 +27,7 @@ def train_model(
     lr_factor=0.1,
     num_epochs_decay=100,
     stopping_condition=no_stopping,
-    device=torch.device("cpu")
+    device=torch.device("cpu"),
 ):
 
     model = criterion.get_model().to(device)
@@ -41,9 +37,12 @@ def train_model(
     if decaying_lr:
         # Linearly decaying lr
         num_epochs_decay = num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
-        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=lr_factor,
-                                                      total_iters=int((num_epochs_decay * len(train_loader))))
-
+        scheduler = torch.optim.lr_scheduler.LinearLR(
+            optimizer,
+            start_factor=1.0,
+            end_factor=lr_factor,
+            total_iters=int((num_epochs_decay * len(train_loader))),
+        )
 
     batch_metrics = []
     batch_metrics.append(evaluation_metric(model))
@@ -83,9 +82,7 @@ def train_model(
 
                 batch_metrics.append(evaluation_metric(model))
 
-        if stopping_condition(
-            torch.nn.utils.parameters_to_vector(model.parameters()), old_params
-        ):
+        if stopping_condition(torch.nn.utils.parameters_to_vector(model.parameters()), old_params):
             print("Training converged")
             break
 
@@ -103,7 +100,7 @@ def train_model_model_proposal(
     lr: float = 0.1,
     decaying_lr=False,
     lr_factor=0.1,
-    num_epochs_decay=100
+    num_epochs_decay=100,
 ):
     """Training loop for q = p_theta
 
@@ -117,9 +114,7 @@ def train_model_model_proposal(
     batch_losses = []
 
     if decaying_lr:
-        num_epochs_decay = (
-            num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
-        )
+        num_epochs_decay = num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
         scheduler = LinearLR(
             optimizer,
             start_factor=1.0,
@@ -131,9 +126,7 @@ def train_model_model_proposal(
         # print(f"Epoch {epoch}")
         old_params = torch.nn.utils.parameters_to_vector(model.parameters())
         for _, (y, idx) in enumerate(train_loader, 0):
-            q = MultivariateNormal(
-                model.mu.detach().clone(), model.cov().clone().detach().clone()
-            )
+            q = MultivariateNormal(model.mu.detach().clone(), model.cov().clone().detach().clone())
             criterion = crit_constructor(model, q, neg_sample_size)
             optimizer.zero_grad()
             with torch.no_grad():
@@ -152,9 +145,7 @@ def train_model_model_proposal(
             with torch.no_grad():
                 batch_metrics.append(evaluation_metric(model))
 
-        if stopping_condition(
-            torch.nn.utils.parameters_to_vector(model.parameters()), old_params
-        ):
+        if stopping_condition(torch.nn.utils.parameters_to_vector(model.parameters()), old_params):
             print("Training converged")
             break
     # print("Finished training")
@@ -174,7 +165,7 @@ def train_model_adaptive_proposal(
     lr: float = 0.1,
     decaying_lr=False,
     lr_factor=0.1,
-    num_epochs_decay=100
+    num_epochs_decay=100,
 ):
     """Training loop for adaptive proposal q_phi
 
@@ -188,9 +179,7 @@ def train_model_adaptive_proposal(
     batch_losses = []
 
     if decaying_lr:
-        num_epochs_decay = (
-            num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
-        )
+        num_epochs_decay = num_epochs_decay if num_epochs > num_epochs_decay else num_epochs
         p_scheduler = LinearLR(
             p_optimizer,
             start_factor=1.0,
@@ -229,9 +218,7 @@ def train_model_adaptive_proposal(
             with torch.no_grad():
                 batch_metrics.append(evaluation_metric(p_theta))
 
-        if stopping_condition(
-            torch.nn.utils.parameters_to_vector(q_phi.parameters()), old_params
-        ):
+        if stopping_condition(torch.nn.utils.parameters_to_vector(q_phi.parameters()), old_params):
             print("Training converged")
             break
     # print("Finished training")
@@ -239,24 +226,26 @@ def train_model_adaptive_proposal(
 
 
 def train_aem_model(
-        criterion,
-        train_loader,
-        validation_loader,
-        save_dir,
-        decaying_lr=False,
-        num_training_steps: int = 1600000,
-        num_warm_up_steps: int = 5000,
-        num_training_steps_q=None,
-        hard_warmup: bool = True,
-        lr: float = 0.1,
-        validation_freq=5000,
-        device=torch.device("cpu"),
-        save_final=True
+    criterion,
+    train_loader,
+    validation_loader,
+    save_dir,
+    decaying_lr=False,
+    num_training_steps: int = 1600000,
+    num_warm_up_steps: int = 5000,
+    num_training_steps_q=None,
+    hard_warmup: bool = True,
+    lr: float = 0.1,
+    validation_freq=5000,
+    device=torch.device("cpu"),
+    save_final=True,
 ):
     if num_training_steps_q is None:
         num_training_steps_q = num_training_steps
     else:
-        assert num_training_steps_q >= num_warm_up_steps, "Number of warm up steps larger than total training steps for q"
+        assert (
+            num_training_steps_q >= num_warm_up_steps
+        ), "Number of warm up steps larger than total training steps for q"
 
     if not os.path.exists(save_dir + "/log"):
         os.makedirs(save_dir + "/log")
@@ -312,7 +301,9 @@ def train_aem_model(
             criterion.set_training(False)
 
             with torch.no_grad():
-                val_loss, val_loss_p, val_loss_q = get_aem_losses(validation_loader, criterion, device)
+                val_loss, val_loss_p, val_loss_q = get_aem_losses(
+                    validation_loader, criterion, device
+                )
 
             if step >= num_warm_up_steps and val_loss_p < best_loss_p:
                 print("New best model with validation loss {}".format(val_loss_p))
@@ -326,21 +317,19 @@ def train_aem_model(
                 torch.save(proposal.state_dict(), save_dir + "/proposal_best")
                 best_loss_q = val_loss_q
 
-            s = 'val loss: {:.4f}, ' \
-                'val loss p: {:.4f}, ' \
-                'val loss q: {:.4f}'.format(
-                val_loss.item(),
-                val_loss_p.item(),
-                val_loss_q.item()
+            s = (
+                "val loss: {:.4f}, "
+                "val loss p: {:.4f}, "
+                "val loss q: {:.4f}".format(val_loss.item(), val_loss_p.item(), val_loss_q.item())
             )
 
             tbar.set_description(s)
 
             summaries = {
-                'log-prob-aem-val': torch.Tensor([val_loss]),
-                'log-prob-model-val': torch.Tensor([val_loss_p]),
-                'log-prob-proposal-val': torch.Tensor([val_loss_q]),
-                'learning-rate': torch.Tensor(scheduler.get_last_lr())
+                "log-prob-aem-val": torch.Tensor([val_loss]),
+                "log-prob-model-val": torch.Tensor([val_loss_p]),
+                "log-prob-proposal-val": torch.Tensor([val_loss_q]),
+                "learning-rate": torch.Tensor(scheduler.get_last_lr()),
             }
 
             for summary, value in summaries.items():
@@ -357,4 +346,4 @@ def train_aem_model(
         torch.save(model.state_dict(), save_dir + "/model_final")
         torch.save(proposal.state_dict(), save_dir + "/proposal_final")
 
-    #return torch.tensor(batch_losses), torch.tensor(batch_metrics)
+    # return torch.tensor(batch_losses), torch.tensor(batch_metrics)
