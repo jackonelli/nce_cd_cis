@@ -1,6 +1,7 @@
 # NCE CD+CIS
 
-This is the implementation of the methods described in the paper "On the Connection Between Noise Contrastive Estimation and Contrastive Divergence".
+This is the implementation of the methods described in the paper "On the Connection Between Noise Contrastive Estimation and Contrastive Divergence",
+accepted for publication in AISTATS 2024.
 
 ## Setup
 
@@ -137,15 +138,3 @@ python experiments/aem_eval_wasserstein --dataset_name 'bsds300' --hidden_dim_ma
 
 
 $^1$ Evaluation expects that all models for the given dataset have been trained (IS, CIS, CSMC for Power, Gas, Hepmass and CIS, CSMC for Miniboone, BSDS300). 
-
-
-## TODO
-
-- Add input x to `BaseModel`
-- Rename `noise_distr` -> `proposal_distr`
-- Weird reshapes to use conditional model. Move this to interior in cond distr. (interleave-funktion borttagen i cond. MVN model (kör broadcasting istället)
-- ~Remove idx param in `inner_crit`~
-- idx param in `part_fn` interface
-- ~Persistent CNCE inherits from CNCE~ (DONE?)
-
-
