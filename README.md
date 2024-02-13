@@ -88,4 +88,4 @@ python experiments/aem_eval_wasserstein.py --dataset_name 'bsds300' --hidden_dim
 ```
 
 
-[^1] Evaluation expects that all models for the given dataset have been trained (IS, CIS, CSMC for Power, Gas, Hepmass and CIS, CSMC for Miniboone, BSDS300). 
+[^1]: Evaluation expects that all models for the given dataset have been trained (IS, CIS, CSMC for Power, Gas, Hepmass and CIS, CSMC for Miniboone, BSDS300). 
