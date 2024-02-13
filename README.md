@@ -53,7 +53,7 @@ Replace CRIT with designated criterion ('is'/'cis'/csmc').
 
 #### Evaluation
 
-To evaluate the log. likelihood for all critera$^1$:
+To evaluate the log. likelihood for all criteria[^1]:
 
 
 ```
@@ -70,7 +70,7 @@ python experiments/aem_eval_log_likelihood.py --dataset_name 'bsds300' --hidden_
 ```
 
 
-To evaluate the Wasserstein distance for all critera:
+To evaluate the Wasserstein distance for all criteria:
 
 
 
@@ -88,4 +88,4 @@ python experiments/aem_eval_wasserstein.py --dataset_name 'bsds300' --hidden_dim
 ```
 
 
-$^1$ Evaluation expects that all models for the given dataset have been trained (IS, CIS, CSMC for Power, Gas, Hepmass and CIS, CSMC for Miniboone, BSDS300). 
+[^1] Evaluation expects that all models for the given dataset have been trained (IS, CIS, CSMC for Power, Gas, Hepmass and CIS, CSMC for Miniboone, BSDS300). 
