@@ -8,24 +8,25 @@ import matplotlib.pyplot as plt
 class RingModelDataset(Dataset):
     """Ring model dataset."""
 
-    def __init__(self, sample_size, num_dims, mu, precision, root_dir, transform=None):
+    def __init__(self, sample_size, num_dims, mu, precision, data_path, transform=None):
         """
         Args:
             sample_size: (int) number of samples to generate
             num_dims: (int) dimension of data
             mu: (tensor float) model mean.
             precision: (tensor float) model precision
-            root_dir: (string) directory for saving data
+            data_path: (string) file for saving data
             transform: (callable, optional) optional data transform
         """
-        self.root_dir = root_dir
+        self.data_path = data_path
+        self.data_path.parent.mkdir(exist_ok=True, parents=True)
         self.transform = transform
 
         self.num_samples = sample_size
         self.y = generate_ring_data(
             num_samples=self.num_samples, num_dims=num_dims, mu=mu, precision=precision
         )
-        np.save(self.root_dir, self.y.numpy())
+        np.save(self.data_path, self.y.numpy())
 
     def get_full_data(self):
         return self.y
@@ -48,7 +49,7 @@ def generate_ring_data(num_samples, num_dims, mu, precision):
     # They use a cutoff of 0.1 for the radii
 
     u = torch.randn(size=(num_samples, num_dims))
-    u = u / torch.sqrt(torch.sum(u ** 2, dim=-1, keepdim=True))
+    u = u / torch.sqrt(torch.sum(u**2, dim=-1, keepdim=True))
 
     r = torch.sqrt(1 / precision) * torch.randn(size=(num_samples, 1)) + mu
 
@@ -61,7 +62,7 @@ def plot_2d_ring_data():
         num_dims=2,
         mu=3,
         precision=2,
-        root_dir="datasets/ring_model_test",
+        data_path="datasets/ring_model_test",
     )
     plt.plot(dataset.y[:, 0], dataset.y[:, 1], ".")
     plt.show()
