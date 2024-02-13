@@ -1,5 +1,7 @@
 """Contrastive Divergence with Metropolis-Hastings kernel"""
+import os
 from typing import Optional
+from pathlib import Path
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
@@ -19,11 +21,13 @@ class CdMHCnceCrit(PartFnEstimator):
         num_neg_samples: int,
         mcmc_steps: int,
         save_acc_prob=False,
+	save_dir=None, # Path
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
         self.mcmc_steps = mcmc_steps
         self.save_acc_prob = save_acc_prob
+        self.save_dir = save_dir if save_dir is not None else "res/"
         self.name = "cd_mh"
 
     def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
@@ -63,8 +67,8 @@ class CdMHCnceCrit(PartFnEstimator):
             if self.save_acc_prob:
                 # Ref. CNCE acc. prob.
                 acc_prob_cnce = 1 - 1 / (1 + torch.exp(-log_w_y))
-                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy", w_y.numpy())
-                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy", acc_prob_cnce.numpy())
+                add_to_npy_file(os.path.join(self.save_dir, self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy"), w_y.numpy())
+                add_to_npy_file(os.path.join(self.save_dir, self.name + "_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy"), acc_prob_cnce.numpy())
 
 
             # Calculate gradients of log prob

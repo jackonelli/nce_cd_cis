@@ -84,9 +84,9 @@ def main(args):
             p_n = ConditionalMultivariateNormal(cov=cov_noise_cnce)
             
             if config["mcmc_steps"] is not None: 
-                criterion = config["criterion"](p_m, p_n, args.num_neg_samples, config["mcmc_steps"], save_acc_prob=config["calc_acc_prob"])
+                criterion = config["criterion"](p_m, p_n, args.num_neg_samples, config["mcmc_steps"], save_acc_prob=config["calc_acc_prob"], save_dir=args.save_dir)
             else:
-                criterion = config["criterion"](p_m, p_n, args.num_neg_samples, save_acc_prob=config["calc_acc_prob"])
+                criterion = config["criterion"](p_m, p_n, args.num_neg_samples, save_acc_prob=config["calc_acc_prob"], save_dir=args.save_dir)
 
             _, error_res[i, :, rep] = train_model(criterion, error_metric, train_loader, num_epochs=args.num_epochs,
                                stopping_condition=no_stopping, lr=lr, decaying_lr=True, lr_factor=lr_factor)
@@ -225,7 +225,7 @@ def parse_args():
     )
     parser.add_argument(
         "--save-dir",
-        default="experiments/res/acc_prob",
+        default="experiments/res/acc_prob/",
         type=Path,
         help="Directory where results should be saved.",
     )

@@ -17,9 +17,9 @@ from src.utils.part_fn_utils import concat_samples, log_cond_unnorm_weights
 class PersistentCondNceCritBatch(CdCnceCrit):
     """Persistent cond. NCE crit"""
 
-    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, save_acc_prob=False):
+    def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, save_acc_prob=False, save_dir=None):
         mcmc_steps = 1  # TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation
-        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps, save_acc_prob)
+        super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps, save_acc_prob, save_dir)
         self._persistent_y = dict()
         self.name = "pers_cnce"
 

@@ -1,5 +1,7 @@
 """Conditional Noise Contrastive Estimation (NCE) with multiple MCMC steps"""
+import os
 from typing import Optional
+from pathlib import Path
 import torch
 from torch import Tensor
 from src.part_fn_base import PartFnEstimator
@@ -19,11 +21,13 @@ class CdCnceCrit(PartFnEstimator):
         num_neg_samples: int,
         mcmc_steps: int,
         save_acc_prob=False,
+        save_dir=None, # Path
     ):
         super().__init__(unnorm_distr, noise_distr, num_neg_samples)
 
         self.mcmc_steps = mcmc_steps
         self.save_acc_prob = save_acc_prob
+        self.save_dir = save_dir if save_dir is not None else "res/"
         self.name = "cd_cnce"
 
     def inner_crit(self, y: Tensor, y_samples: Tensor) -> Tensor:
@@ -63,9 +67,9 @@ class CdCnceCrit(PartFnEstimator):
                 # Ref. MH acceptance prob.
                 acc_prob_mh = torch.exp(- log_w_y)
                 acc_prob_mh[acc_prob_mh >= 1.0] = 1.0
-                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy",
+                add_to_npy_file(os.path.join(self.save_dir, self.name + "_num_neg_" + str(self._num_neg) + "_cd_cnce_acc_prob.npy"),
                                 (1 - w_y).numpy())
-                add_to_npy_file("res/" + self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy",
+                add_to_npy_file(os.path.join(self.save_dir, self.name + "_num_neg_" + str(self._num_neg) + "_cd_mh_acc_prob.npy"),
                                 acc_prob_mh.numpy())
 
 
