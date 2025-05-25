@@ -54,7 +54,10 @@ def main(args):
         crits, crit_lab = [], []
         print("Unknown criterion!")
 
+    # run experiments
     for i in range(args.reps):
+
+        # load data
         train_loader, validation_loader, test_loader = load_data(data_name, args)
 
         for j, (crit, lab) in enumerate(zip(crits, crit_lab)):
@@ -62,6 +65,7 @@ def main(args):
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)  # (io.get_checkpoint_root())
 
+            # train model
             run_train(train_loader, validation_loader, crit, save_dir, args)
             print("Training complete")
 
@@ -97,6 +101,7 @@ def load_data(name, args):
         generator=gen
     )
 
+    # test set
     test_dataset = data_uci.load_uci_dataset(args.dataset_name, split='test', num_dims=args.dims)
     test_loader = data.DataLoader(
         dataset=test_dataset,
@@ -172,7 +177,6 @@ def run_train(train_loader, validation_loader, criterion, save_dir, args):
     train_aem_model(crit, train_loader, validation_loader, save_dir, decaying_lr=True,
                     num_training_steps=args.n_total_steps, num_warm_up_steps=args.alpha_warm_up_steps, hard_warmup=args.hard_alpha_warm_up,
                     lr=args.learning_rate, validation_freq=args.monitor_interval, device=device)
-
 
 
 if __name__ == '__main__':
