@@ -70,8 +70,8 @@ def main(args):
             print("Training complete")
 
 def load_data(name, args):
+    
     # create datasets
-
     gen = None
     if args.use_gpu and torch.cuda.is_available():
         torch.set_default_tensor_type('torch.cuda.FloatTensor')
