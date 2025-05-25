@@ -106,7 +106,7 @@ def run_test(test_loader, file, save_dir, args):
     made.eval()
     crit.set_training(False)
     crit_smc.set_training(False)
-    crit_smc.set_resampling_function(standard_resampling) # TODO: Double check standard resampling
+    crit_smc.set_resampling_function(standard_resampling) 
    
     # Importance sampling eval loop
     print("Evaluating model...")
