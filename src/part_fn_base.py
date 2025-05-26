@@ -18,7 +18,7 @@ class PartFnEstimator(ABC):
         self._num_neg = num_neg_samples
 
     def log_part_fn(self, y, y_samples) -> Tensor:
-        return torch.log(self.log_part_fn(y, y_samples))
+        return torch.log(self.part_fn(y, y_samples))
 
     def crit(self, y: Tensor, _idx: Optional[Tensor]) -> Tensor:
         y_samples = self.sample_noise(self._num_neg, y.reshape(y.size(0), 1, -1))
