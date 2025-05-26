@@ -18,7 +18,7 @@ class PersistentMHCnceCritBatch(CdMHCnceCrit):
     """Persistent cond. NCE crit"""
 
     def __init__(self, unnorm_distr, noise_distr, num_neg_samples: int, save_acc_prob=False, save_dir=None):
-        mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation?
+        mcmc_steps = 1  #TODO: If we want to take several MCMC-steps, persistent y should  be updated at end of gradient calculation
         super().__init__(unnorm_distr, noise_distr, num_neg_samples, mcmc_steps, save_acc_prob, save_dir)
         self._persistent_y = dict()
         self.name = "pers_mh_cnce"
@@ -32,7 +32,7 @@ class PersistentMHCnceCritBatch(CdMHCnceCrit):
         #   This is in line with having pairs (y_0, y_1). Maybe, we could then make a dict with keys idx_0, ..., idx_J
         #   or similar
 
-        # TODO: this is a bit of an override, and should be made nice if we keep it
+        # TODO: this is a bit of an override
         idx = torch.arange(start=0, end=y.shape[0])
 
         y = y.unsqueeze(dim=1).repeat(1, self._num_neg, 1)
